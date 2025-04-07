@@ -1,15 +1,17 @@
 import fitz  # PyMuPDF
 from docx import Document  # Changed import statement
-from typing import List, Dict, Any, Optional, Tuple
+from typing import Dict, Any
+
+import easyocr
+reader = easyocr.Reader(['en', 'it'])
 
 
 def extract_from_pdf(file_path: str) -> str:
+    
     """Extract text from PDF documents."""
     try:
-              
         doc = fitz.open(file_path)
         text_blocks = []
-        images = []
 
         for page_num in range(len(doc)):
             page = doc.load_page(page_num)
@@ -22,15 +24,19 @@ def extract_from_pdf(file_path: str) -> str:
                 xref = img[0]
                 base_image = doc.extract_image(xref)
                 image_bytes = base_image["image"]
-                image_ext = base_image["ext"]
-                #with open(f"page{page_num+1}_img{img_index}.{image_ext}", "wb") as img_file:
-                #    img_file.write(image_bytes)
-                #    images.append(f"page{page_num+1}_img{img_index}.{image_ext}")
+                result = reader.readtext(image_bytes)
+                image_text=""
+                for (bbox, text, prob) in result:
+                    if prob > 0.25:
+                        image_text+=f"{text} "
+                text_blocks.append(f"content_img_page{page_num+1}: [{image_text}")
 
-        
+        with open("output.txt", "w", encoding="utf-8") as f:
+            f.write("\n\n".join(text_blocks))    
         return "\n\n".join(text_blocks)
     except ImportError:
         raise ImportError("PyMuPDF (fitz) library is required for PDF extraction. Install with 'pip install pymupdf'")
+
 
 def extract_from_word(file_path: str) -> str:
     """Extract text from Word documents."""

@@ -1,0 +1,1104 @@
+Part IV: Motion Tracking
+Nicola Conci
+nicola.conci@unitn.it
+University of Trento
+
+
+Introduction and motivations
+¡ Follow one or more moving objects for:
+¡ People monitoring
+¡ Traffic monitoring and analysis
+¡ Biological applications (cells tracking)
+¡ High Level analysis for
+¡ Discovery of activities
+¡ Behavior understanding
+¡ Detection of threats
+¡ More in general
+¡ Understand WHAT is moving in a scene
+¡ Understand HOW it moves/interacts with the environment
+Computer Vision 2020-21
+
+
+Object Tracking
+¡ On the basis of the applications requirements
+¡ Track the 2D coordinates (centroid)
+¡ Track in 3D (more cameras are required)
+¡ Determine the position of complex objects (human body 
+articulations)
+¡ Examples:
+Computer Vision 2020-21
+
+
+Object Tracking: applications
+¡ Monitoring and surveillance
+¡ Motion classification
+¡ Identification of anomalous/suspicious behaviors
+¡ Follow a trajectory
+¡ Human Machine Interfaces
+¡ Interact with a device removing physical barrier (mouse, keyboard) 
+¡ Natural language understanding
+¡ Virtual Reality
+¡ Immersive presence
+¡ Animation of virtual characters
+¡ Mining and retrieval
+¡ Browse databases containing specific motion patterns
+Computer Vision 2020-21
+
+
+Benefits
+¡ In HCI, control PC (or systems in general) à no need for 
+additional tools 
+¡ In surveillance,  Automated / Semi-automated systems à
+reduce the stress of human operators
+¡ Virtual reality, computer animation à animate and drive the 
+avatar
+¡ But also
+¡ Training of athletes, 
+¡ Gait disorders detection
+¡ Medical applications
+¡ … 
+Computer Vision 2020-21
+
+
+2D Tracking
+¡ Motion in the image plane
+¡ Sometimes it is enough
+¡ Different approaches
+¡ Region-based à set of pixels that share similar features (color)
+¡ Contour-based à determine position and shape of an object over 
+time. Useful to track deformable objects.
+¡ Feature-based à select meaningful points (contours, corners)
+¡ Template-based à use specific models (hands, faces, eyes)
+Computer Vision 2020-21
+
+
+Tracking: Region-based
+¡ Tracking regions with uniform appearance is a good method for 
+real-time applications:
+¡ Fast (20-30 fps)
+¡ Good tradeoff quality/speed
+¡ A region can be represented by the projection of an area with 
+similar color on the image plane
+¡ For example obtained from segmentation (e.g. after 
+background suppression)
+Computer Vision 2020-21
+
+
+Tracking: Region-based
+¡ Colors of regions must be different in order to be distinguished
+¡ It is unstable in presence of variable illumination
+¡ If applied to situations with variable illumination, appropriate 
+compensation techniques have to be applied, i.e.:
+¡ Use HS of HSV
+¡ Use a normalized RGB space
+¡ Ok indoor, troubles outdoor
+Computer Vision 2020-21
+
+
+Tracking: Region-based
+¡ What do I want to track?
+¡ Any type of moving object
+¡ Skin vs non-skin (hand and face tracking)
+¡ Areas with certain colors
+¡ How?
+¡ Color thresholding if uniform
+¡ Color histograms
+¡ Problems
+¡ Color changes over time (illumination, posture)
+¡ Acquired models of objects need to be updated
+Computer Vision 2020-21
+
+
+Tracking: Region-based
+¡ A possible approach:
+¡ Divide the object to be tracked into regions
+¡ Each region is associated to a color vector (average for all pixels in 
+the region) or histogram
+¡ Compute the color at each frame
+¡ If the ratio between the reference and actual values is close to 1, the 
+match is good
+Computer Vision 2020-21
+
+
+Tracking: Region-based
+¡ How to use histograms
+¡ For each moving object compute the histogram
+¡ At each step evaluate the histogram of the tracked region Ot and 
+compare it with the reference model Or for each region i
+¡ Similarity can be evaluated using:
+¡ Bin-by-bin comparison (intersection)
+¡ SSD
+¡ Bins should be neither to few, nor too many
+Computer Vision 2020-21
+SSD(Oi
+t,Oi
+r) =
+(
+n=1
+U
+∑Oi,n
+r −Oi,n
+t )2
+ 
+(Oi
+t,Oi
+r)
+
+=
+min{
+n=1
+U
+∑
+Oi,n
+r ,Oi,n
+t }
+See A. Bovik, Chapter 7
+
+
+Note: Shadows
+¡ Shadows are source of noise à false positives
+¡ A shadow does not correspond to the motion of a real object
+Computer Vision 2020-21
+l Variation of the luminance
+l Chrominance remains (ideally) unaltered
+l à for a proper tracking shadows should 
+be removed before tracking using a 
+suitable algorithm
+
+
+Blobs extraction
+¡ Aggregation of a set of pixels that share common features
+¡ An object can be made up by several blobs (head, torso, legs, 
+…)
+¡ Features include also position
+à pixels with similar color but far (in x,y) from the object must be 
+discarded
+¡ Typical application in combination with background suppression 
+Computer Vision 2020-21
+
+
+Target association 
+¡ Procedure common to all trackers, not only region-based
+¡ In general it is worth noting that detection is not carried out on a 
+frame-basis
+¡ This could be too demanding in terms of computational 
+resources
+¡ ONCE detected, targets are followed on a proximity basis
+¡ Example:
+1. Background subtraction informs about the presence of motion
+2. Histograms characterize each moving objects
+3. Unless occlusions occur, the target in the next frame should be the 
+closest blob
+Computer Vision 2020-21
+
+
+Target association
+Computer Vision 2020-21
+t+1
+t
+BG Sub
+BG Sub
+
+
+Target association
+¡ Association can be performed as:
+¡ Overlapping blob (issues with scale à depends on objects size)
+¡ Centroid with minimum distance (as above)
+¡ Overlapping bounding boxes (may fail due to perspective)
+¡ Bounding box with minimum distance
+¡ Bounding box to centroid distance
+¡ When association has been completed
+àFor each object/blob update the appearance model to account for 
+small variations
+àIn presence of occlusions, the last saved model can be used to 
+disambiguate
+Computer Vision 2020-21
+
+
+Splitting 
+¡ If objects are identified as single blobs, no problem!
+¡ However, background suppression may return ambiguous results
+1. Objects are split into several small blobs (not enough separation btw 
+BG and FG)
+2. Two objects enter the scene together, then separate
+Computer Vision 2020-21
+
+
+Splitting
+¡ Before saying it is case 1. or 2. evidence needs to be 
+accumulated
+àImpossible to understand what’s going on immediately
+àA temporal interval is needed to tell if:
+àIt is necessary to keep the object merged even though it is 
+fragmented
+àA new object has to be created
+Computer Vision 2020-21
+
+
+Merging 
+¡ When two objects move together consistently, then perhaps 
+they’re the same object.
+¡ Example:
+¡ A person’s arm and foot enter the scene first and are detected as two 
+well-separated FG blobs
+¡ Then also the rest of the body enters and a single blob is created
+¡ Blobs are close and they might share similar properties
+Computer Vision 2020-21
+
+
+Criteria for splitting and merging
+¡ Observation is the key
+¡ Need to monitor the regions of interest and evaluate 
+consistency in terms of:
+¡ Direction of motion
+¡ Distance between centroids/bounding boxes
+¡ Temporal range in which the phenomenon is observed
+¡ Velocity
+¡ Matching in features
+Computer Vision 2020-21
+
+
+Occlusions
+¡ Moving objects occlude each other while crossing
+¡ One or more objects disappear from the scene
+¡ Bigger blobs appear as a result of the occlusion, with properties that do 
+not belong to any of the models acquired previously
+¡ How to resolve the occlusion?
+¡ Need to re-associate “A to A” and “B to B”
+¡ Histograms are a good way out
+Computer Vision 2020-21
+
+
+Occlusions
+¡ It’s an “anomalous” (though very frequent) situation
+¡ Objects overlap and the acquired models are not reliable 
+anymore
+¡ Model update should be avoided during occlusions 
+Computer Vision 2020-21
+
+
+Tracking: Feature-based
+¡ The objective is to retrieve the motion information of a set of 
+features
+¡ Considering:
+¡ A={A(0), A(1), …, A(j-1)} is a set of images
+¡ mi(xi, yi) i=[0, j-1] the position of the feature in the image plane in each
+frame
+¡ Objective: 
+¡ determine the displacement vector di=(dxi, dyi) that best estimates
+the position of the feature in the next frame mi+1(xi+1, yi+1)=mi+di
+¡ If needed, points can be grouped and objects can be 
+represented using the bounding box or the convex hull
+Computer Vision 2020-21
+
+
+What features?
+¡ A good feature point has distinctive characteristics:
+¡ Brightness
+¡ Contrast
+¡ Texture 
+¡ Edges 
+¡ Corners
+¡ Points with high curvature
+Computer Vision 2020-21
+
+
+Good features to track
+¡ For each candidate point, compute:
+Computer Vision 2020-21
+Z =
+Jx
+2
+W∑
+Jx
+W∑
+Jy
+Jy
+W∑
+Jx
+Jy
+2
+W∑
+# 
+$ 
+% 
+% 
+% 
+& 
+' 
+( 
+( 
+( 
+l Jx and Jy are the gradients evaluated on the point in x and y
+direction within W (nxn window)
+l A good feature point is where the smallest eigenvalue of Z is 
+larger than a specified threshold
+l In practice, it highlights corner points and textures
+
+
+Good features to track
+¡ Eigenvalues should be above the image noise
+¡ Small eigenvalues imply strong similarity within the window
+¡ A large and a small eigenvalue means unidirectional patterns
+¡ If both eigenvalues are large, the point is of high interest 
+(salt&pepper texture, corners) 
+Computer Vision 2020-21
+
+
+How to track them?
+¡ Must ensure that the same points are tracked throughout the video!
+¡ Ideally we would expect that 
+Computer Vision 2020-21
+Ai(Dm −d) = Ai+1(m)
+l where
+l Ai, Ai+1 successive frames
+l m is the 2D position of the feature point
+l D is the deformation matrix (affine transformation model)
+l d is the displacement vector (translational model)
+
+
+How to track them?
+¡ However:
+¡ Due to noise the equality does usually not hold
+¡ Motion across successive frames is assumed to be small à a translational 
+model is a good approximation
+¡ Feature dissimilarity measure is used to quantify the change of 
+appearance between the first and current frame
+Computer Vision 2020-21
+ε =
+[Ai(m −d)−Ai+1(m)]2ω(m)dm
+W∫∫
+l w is a weighting function (e.g., Gaussian to emphasize the center of the 
+window)
+l When the feature dissimilarity grows too large, the feature point should 
+be abandoned
+
+
+How to track them?
+¡ In this case the solution for the displacement vector can be 
+expressed by the 2x2 linear system of equations (see paper for 
+details):
+Computer Vision 2020-21
+l To minimize the residual we differentiate w.r.t. unknowns (d)
+l and
+Zd = e
+e = 2
+[Ai(m)−Ai+1(m)]g(m)ω(m)dm
+W∫∫
+g(m) =
+∂(Ai(m)−Ai+1(m))
+∂x
+∂(Ai(m)−Ai+1(m))
+∂y
+#
+$
+%
+%
+%
+%
+&
+'
+(
+(
+(
+(
+
+
+The Lucas-Kanade optical flow
+¡ Two-frame differential method for optical flow estimation 
+developed by Bruce D. Lucas and Takeo Kanade (1981)
+¡ Consider u=[ux, uy] in frame I and v=[vx, vy] in frame J
+¡ The goal is to find d that satisfies v=u+d such as I and J are similar 
+(translational model)
+¡ Because of the aperture problem, similarity must be defined in 
+2D
+¡ d is the vector that minimizes
+¡ w is the integration window
+Computer Vision 2020-21
+✏(d) = ✏(dx, dy) =
+ux+!x
+X
+x=ux−!x
+uy+!y
+X
+y=uy−!y
+(I(x, y) −J(x + dx, y + dy))2 .
+
+
+Pyramidal implementation
+¡ The two key components to any feature tracker are accuracy
+and robustness 
+¡ Accuracy relates to the local sub-pixel accuracy attached to 
+tracking à small integration window preferable to limit 
+smoothness and preserve detail information (two image 
+patches moving rapidly in different directions)
+¡ Robustness relates to the sensitivity of tracking with respect to 
+changes of light and big motions à a large window is 
+preferable
+¡ à Pyramidal implementation
+Computer Vision 2020-21
+
+
+Pyramidal implementation
+¡ Level 0 is the image at original resolution
+¡ Level 4 (in this example) is the image at lowest 
+resolution
+¡ The L-th level is defined as a linear combination 
+of the elements in the previous level
+Computer Vision 2020-21
+IL(x, y)
+=
+1
+4IL−1(2x, 2y) +
+1
+8
+"
+IL−1(2x −1, 2y) + IL−1(2x + 1, 2y) + IL−1(2x, 2y −1) + IL−1(2x, 2y + 1)
+#
++
+1
+16
+"
+IL−1(2x −1, 2y −1) + IL−1(2x + 1, 2y + 1) + IL−1(2x −1, 2y + 1) + IL−1(2x + 1, 2y + 1)
+#
+.
+
+
+Pyramidal implementation
+¡ At each level of the pyramid an initial guess g of the flow is 
+computed at the lower level, which is then refined at the current 
+level.
+¡ g is used to pre-translate the image patch in the second image 
+J
+¡ d should be small 
+¡ The information is then propagated at the upper level
+¡ Overall the displacement becomes 
+Computer Vision 2020-21
+✏L(dL) = ✏L(dL
+x, dL
+y ) =
+uL
+x +!x
+X
+x=uL
+x −!x
+uL
+y +!y
+X
+y=uL
+y −!y
+$
+IL(x, y) −JL(x + gL
+x + dL
+x, y + gL
+y + dL
+y )
+%2
+gL−1 = 2 (gL + dL).
+d =
+Lm
+X
+L=0
+2L dL.
+
+
+Bayesian tracking
+¡ Idea: 
+¡ Estimate the state of a system over discrete time steps
+¡ At each step, noisy measurements
+¡ The state is represented by the x-y coordinates, velocity and 
+acceleration along each dimension
+¡ 6D vector
+¡ Noise is typically smaller than the information about the state
+Computer Vision 2020-21
+
+
+Bayesian tracking
+¡ The state can be defined as
+Computer Vision 2020-21
+xk = fk(xk−1,wk−1)
+l Linking the measurement with the state vector:
+zk = hk(xk,vk)
+l wk is the process noise 
+l vk is the measurement noise
+l fk and zk are in general nonlinear functions defined in 
+fk : ℜnx ! ℜnw →ℜnx and hk : ℜnx ! ℜnv →ℜnz
+d
+h
+h i i d
+
+
+Bayesian tracking
+¡ System and measurement should be available in probabilistic 
+form
+¡ Every time the measurement is available, the estimation can be 
+computed
+¡ It is an online method
+à for every step k an estimate can be computed based on the 
+previous observations zk up to instant k
+Computer Vision 2020-21
+
+
+Bayesian tracking
+¡ The initial pdf of the state vector is given, p(x0|z0)
+¡ z0 contains no measurement
+¡ Goal is to compute p(xk|zk) at time k
+¡ The process consists of two steps
+¡ Prediction
+¡ Update
+Computer Vision 2020-21
+
+
+Bayesian tracking - Prediction
+¡ From the previous representation:
+Computer Vision 2020-21
+xk = fk(xk-1,wk-1) ® p(xk | xk-1)
+zk = hk(xk,vk) ® p(zk | xk)
+l The posterior pdf at k-1 is propagated forward in time 
+using the system model
+p(xk | zk-1) =
+p(xk | xk-1)p(xk-1 | zk-1)
+ò
+dxk-1
+System model 
+Prior at time step k
+Posterior pdf at k-1
+
+
+Bayesian tracking - Update
+¡ Using the Bayes theorem it is possible to obtain the 
+desired pdf p(xk|zk)
+Computer Vision 2020-21
+p(xk | zk) = p(zk | xk)p(xk | zk-1)
+p(zk | zk-1)
+l Where p(zk|zk-1) is used for normalization and computed as 
+p(zk | zk-1) =
+p(zk | xk)p(xk | zk-1)
+ò
+dxk
+
+
+Bayesian tracking – Toy Example
+Computer Vision 2020-21
+D. Fox, J. Hightower, L. Liao, D. Schulz, G. Borriello, “Bayesian Filters for Location Estimation”, IEEE Pervasive 
+Computing, 2003.
+•
+User has a door “sensing 
+device”
+•
+User walks at typical walking 
+speed
+•
+(a) position is unknown
+•
+(b) the sensor senses a door
+•
+User can be in any of the 
+three positions
+•
+(c) User moves
+•
+(d) another door is sensed
+•
+(e) user moves again
+
+
+The Kalman filter
+¡ Introduced by Rudolf Emil Kalman in 1960
+¡ Applications:
+¡ Tracking missiles
+¡ Tracking hands/head/people
+¡ Tracking lips
+¡ Economics
+¡ Navigation
+¡ Apollo 11!
+¡ Pure KF can be applied to a large number of data types
+Computer Vision 2020-21
+
+
+The Kalman filter in a nutshell
+¡ In line with Bayesian tracking:
+¡ Take a measurement
+¡ Measurement is subject to error
+¡ Derive the state of the system from the measurement
+¡ We start from:
+Computer Vision 2020-21
+z1,σz1
+2
+ˆ x 1 = z1
+σ1
+2 = σz1
+2
+
+
+The Kalman filter in a nutshell
+¡ Add a second measurement
+¡ Combine the two
+¡ Iterate… 
+Computer Vision 2020-21
+z2,σ z2
+2
+ˆx2 = ?
+σ 2
+2 = ?
+ˆx2 = ˆx1 + K2(z2 −ˆx1)
+K2 =
+σ z1
+2
+σ z1
+2 +σ z2
+2
+1
+σ 2
+2 = 1
+σ z1
+2 + 1
+σ z2
+2
+l The algorithm works online
+l It’s a weighted average
+σ 2
+2 = σ z1
+2σ z2
+2
+σ z1
+2 +σ z2
+2
+
+
+The Kalman filter in a nutshell
+¡ Not all the difference between two measurements is noise
+¡ Motion occurs
+¡ Need to include a motion model, taking into account for 
+example position and velocity
+¡ The process:
+Loop {
+1.
+Predict the new state and the uncertainty
+2.
+Correct using the new measurement
+}
+Computer Vision 2020-21
+
+
+KF in practice
+¡ KF provides a computationally efficient solution to the least 
+squares method
+¡ Assuming that wk and vk are normal distributions (zero-mean, Qk
+and Rk covariance), then
+¡ The state and measurement model can be written as:
+Computer Vision 2020-21
+xk = Akxk−1 + Bkuk + wk−1
+zk = Hkxk + vk
+
+
+KF in practice
+¡ xk is the current state
+¡ xk-1 is the previous state
+¡ Ak is the state transition matrix
+¡ wk is the process noise 
+¡ zk is the actual measurement 
+¡ Hk is the measurement matrix
+¡ vk is the measurement noise
+¡ Bk and uk refer to additional and optional control input
+Computer Vision 2020-21
+xk = Akxk−1 + Bkuk + wk−1
+zk = Hkxk + vk
+
+
+KF in practice
+¡ We assume that the process noise and measurement noise are 
+not changing over time, plus
+¡ Gaussian
+¡ Zero mean
+¡ p(w) = N(0, Q)
+¡ p(v) = N(0,R)
+Computer Vision 2020-21
+Process noise
+covariance
+Measurement
+noise covariance
+
+
+Predict-and-correct stages
+¡ During the first phase the current state estimate together with 
+the error estimate are propagated forward in time
+¡ In the second stage a new measurement is taken to modify the 
+two estimations
+¡ Evaluation of 
+¡ a priori estimate (based on the past measurements) 
+¡ a posteriori estimate (as soon as measurement zk is available)
+Computer Vision 2020-21
+ek
+−= xk −ˆ x k
+−
+ek = xk −ˆ x k
+A priori state estimate
+A posteriori state estimate
+Current state
+Error estimate
+
+
+Predict-and-correct stages
+¡ Once the error estimates have been computed, determine the 
+error covariance by:
+Computer Vision 2020-21
+Pk
+−= E[ek
+−ek
+−T ]
+Pk = E[ekek
+T ]
+l For the prediction stage we have then (discarding the optional 
+control parameter): 
+ˆ x k
+−= Ak ˆ x k−1
+Pk
+−= AkPk−1Ak
+T + Qk−1
+
+
+Predict-and-correct stages
+¡ The gain is used to modify the a priori estimate and to compute 
+the a posteriori state estimate:
+Computer Vision 2020-21
+Kk = Pk
+−Hk
+T (HkPk
+−Hk
+T + Rk)−1
+l The update stage begins with the computation of the “gain” of 
+the KF, which minimizes the a posteriori error covariance
+ˆ x k = ˆ x k
+−+ Kk(zk −Hk ˆ x k
+−)
+l And to compute the a posteriori error covariance:
+Pk = (I −KkHk)Pk
+−
+
+
+How to:
+¡ Predict the position of a point following a certain trajectory in 
+(x,y) plane
+Computer Vision 2020-21
+xk = Akxk−1 + wk−1
+zk = Hkxk + vk
+l x, w, z, and v are 2x1 vectors
+l A and H are 2x2
+l Given w and v compute Q and R (in some cases determined empirically)
+l During initialization 
+l x0=Hz0
+l P0 diagonal matrix with reasonable values for covariance (maximum allowed 
+displacement?)
+
+
+How to:
+¡ Now predict … and correct:
+Computer Vision 2020-21
+Kk = Pk
+−Hk
+T (HkPk
+−Hk
+T + Rk)−1
+ˆ x k = ˆ x k
+−+ Kk(zk −Hk ˆ x k
+−)
+Pk = (I −KkHk)Pk
+−
+ˆ x k
+−= Ak ˆ x k−1
+Pk
+−= AkPk−1Ak
+T + Qk−1
+
+
+Implementation of the KF
+¡ Estimate a constant function y=c (voltage)
+Computer Vision 2020-21
+c
+Example taken from “An introduction to the Kalman Filter” by Greg Welch and Gary Bishop
+l Measurements we take are corrupted by white noise 
+(quantization error due to conversion)
+l Problem statement is easy, assuming A and H are both =1
+xk = xk−1 + wk
+zk = xk + vk
+
+
+Filter equations
+¡ Our a priori state estimate is given by the previous state
+Computer Vision 2020-21
+ˆ x k
+−= ˆ x k−1
+Pk
+−= Pk−1 + Q
+l And the measurement update
+Kk = Pk
+−(Pk
+−+ R)−1
+ˆ x k = ˆ x k
+−+ Kk(zk −ˆ x k
+−)
+Pk = (1−Kk)Pk
+−
+§
+We assume the process noise is small
+§
+To make the algorithm converge we have to set a “wrong” 
+initial value
+§
+P≠0 must be chosen as well
+
+
+Matlab code
+% State transition matrix A and measurement matrix H are unitary
+% Assume the measurement error is normal (white) with sigma=0.1
+% Assume the process error variance is small 1e-5
+x=1*ones(1,200); % the constant value to predict is 1
+R=1; Q=1e-5;
+N=size(x);  % Let's take a number of measurements N
+% Set priors
+x_est = zeros(1,size(x,2));
+P_est = zeros(1,size(x,2));
+x_est(1) = 0.5;
+P_est(1) = 0.5;
+z = zeros(1,size(x,2)); % Set vector for measurements
+z(1)=5;
+for n=2:size(x,2)
+x_prior = x_est(n-1);
+P_prior = P_est(n-1) + randn*Q;
+z(n) = x(n) + randn*sqrt(R);
+K = P_prior / (P_prior + R);
+x_est(n) = x_prior + K*(z(n) - x_prior);
+P_est(n) = (1-K)*P_prior;
+end
+plot(1:size(x,2),z, 'r+');
+hold on;
+grid on;
+plot(1:size(x,2),[x], 'g--’); plot(1:size(x,2),x_est, '-');
+Computer Vision 2020-21
+
+
+Matlab code
+Computer Vision 2020-21
+
+
+The extended KF (EKF)
+¡ Assumption in KF: state and measurement are linear
+¡ In general wrong in object tracking
+¡ “Adapt” the filter to linearize mean and covariance
+¡ The process is still defined through fk and hk, which are in this 
+case not linear
+Computer Vision 2020-21
+xk = fk(xk−1,wk−1)
+zk = hk(xk,vk)
+
+
+The EKF
+¡ Use partial derivatives to linearize the estimation
+¡ Partial derivatives of:
+¡ Process (A)
+¡ Measurements (H)
+¡ Since we don’t know the values of noise we can assume here 
+for simplicity that state and measurement are
+Computer Vision 2020-21
+˜ z k = h( ˜ x k,0)
+xk = f ( ˆxk−1,0)
+
+
+EKF prediction
+¡ Using the same notation as for KF, the prediction stage is given 
+by:
+Computer Vision 2020-21
+˜ x k = f ( ˆ x k−1,0)
+Pk
+−= Ak−1Pk−1Ak−1
+T +Wk−1Qk−1Wk−1
+T
+l Ak is the Jacobian matrix of partial derivatives of f with respect to xk
+l Wk is the Jacobian matrix of partial derivatives of f with respect to wk
+l Qk is the process noise covariance matrix
+
+
+EKF update
+¡ The update step becomes:
+Computer Vision 2020-21
+Kk = Pk
+−Hk
+T (HkPk
+−Hk
+T +VkRkVk
+T )−1
+ˆxk = xk + Kk(zk −hk( xk,0))
+Pk = (I −KkHk)Pk
+−
+l Hk is the Jacobian matrix of partial derivatives of h with respect 
+to xk
+l Vk is the Jacobian matrix of partial derivatives of h with respect 
+to vk
+l Rk is the measurement noise covariance matrix
+
+
+EKF predict-update
+Kk
+Pk
+- Hk
+T HkPk
+- Hk
+T
+V kRkV k
+T
++
+(
+) 1
+–
+=
+(1) Compute the Kalman gain
+xˆk
+xˆk
+-
+Kk zk
+h xˆk
+- 0
+,
+(
+)
+–
+(
+)
++
+=
+(2) Update estimate with measurement zk
+(3) Update the error covariance
+Pk
+I
+KkHk
+–
+(
+)Pk
+-
+=
+Measurement Update (“Correct”)
+(1) Project the state ahead
+(2) Project the error covariance ahead
+Time Update (“Predict”)
+xˆk
+-
+f xˆk
+1
+–
+uk
+1
+–
+0
+,
+,
+(
+)
+=
+Pk
+-
+AkPk
+1
+– Ak
+T
+WkQk
+1
+– Wk
+T
++
+=
+xˆk
+1
+–
+Initial estimates for 
+and Pk
+1
+–
+Computer Vision 2020-21
+
+
+Particle filters
+¡ KF and EKF assume the posterior probability to be Gaussian
+¡ In case it is not Gaussian performances are reduced
+¡ PFs can do the job
+¡ Main concept: 
+¡ Represent alternative solutions as a set of samples
+¡ Each sample with a weight
+¡ The more the samples, the closer the optimal Bayesian estimate
+Computer Vision 2020-21
+
+
+Properties
+¡ While KF is an optimal solution to the estimation problem, PFs
+provide an approximate solution
+¡ Can be applied to either linear and non-linear problems
+¡ Can handle multimodal distributions
+¡ Multiple hypothesis on the process state
+Computer Vision 2020-21
+
+
+How PFs work
+¡ Take a set of points associated with the corresponding weights:
+Computer Vision 2020-21
+{xk
+i}i=1
+N , {wk
+i}i=1
+N
+l The a posteriori pdf is represented by:
+p(xk | zk) ≈
+wk−1
+i δ(xk −xk−1
+i )
+i=1
+N
+∑
+
+
+PFs – SIR algorithm
+¡ How do we select
+for the pdf approximation?
+¡ Select PROPOSAL DISTRIBUTION
+¡ Draw
+¡ Update the weights
+¡ Normalize
+¡ Resample: 
+(i)
+draw Ns particles with probability proportional to their weight; 
+(ii)
+set uniform weight for the new set 
+Computer Vision 2020-21
+π(xk | xk−1)   Usually = p(xk | xk−1)
+(
+)
+xk
+i ≈π(xk | xk−1
+i )  with i =1...Ns
+ˆwk
+i = wk−1
+i p(zk|xk
+i )
+wk
+i = ˆwk
+i /
+wk
+i
+(
+)
+2
+i=1
+Ns
+∑
+wk
+i =1/ Ns
+{xk
+i}i=1
+N , {wk
+i}i=1
+N
+
+
+PFs – Toy Example
+Computer Vision 2020-21
+D. Fox, J. Hightower, L. Liao, D. Schulz, G. Borriello, “Bayesian Filters for Location Estimation”, IEEE Pervasive 
+Computing, 2003.
