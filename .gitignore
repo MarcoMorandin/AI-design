@@ -75,3 +75,9 @@ typings/
 package-lock.json
 credentials.json
 token.json
+
+*.mp4
+
+.venv
+
+__pycache__/
