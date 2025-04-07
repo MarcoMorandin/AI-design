@@ -2,9 +2,10 @@
   "name": "docs-management-module",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "nodemon index_edit.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon index.js"
   },
   "keywords": [],
   "author": "",
@@ -19,6 +20,7 @@
     "googleapis": "^148.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.13.2",
+    "multer": "^1.4.5-lts.2",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0"
   }

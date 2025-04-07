@@ -149,9 +149,20 @@ This application requires several environment variables for credentials and secr
             ]
           }
         }
-        ```
-
-5.  **Logout:**
+ 
+4.  **Upload file:**       ```
+    * **Using Postman / Insomnia:**
+        * Create a new `POST` request to `http://localhost:3000/api/documents/upload`.
+        * Go to the "Authorization" tab.
+        * Select Type: "Bearer Token".
+        * Paste your copied JWT into the "Token" field.
+        * Go to the "Body" tab.
+        * Select "form-data" as the type.
+        * Add new field named "folderName" (default is the root folder).
+        * Add a new field named "file" and select "File" as the type.
+        * Click "Select Files" and choose the file you want to upload.
+        * Send the request.
+6.  **Logout:**
     * Visit `http://localhost:3000/auth/logout` in your browser to clear your application session.
 
 ## Security Notes
