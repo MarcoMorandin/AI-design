@@ -2,6 +2,8 @@ const { google } = require("googleapis");
 const User = require("../models/User");
 const { decrypt } = require("../utils/encryption");
 require("dotenv").config();
+const { Readable } = require("stream");
+
 
 
 // Helper getDriveClientForUser(user) uses user.googleTokens from DB
@@ -72,6 +74,26 @@ async function getDriveClientForUser(user) {
     });
     return google.drive({ version: "v3", auth: oAuth2Client });
   }
+
+async function getFolderIdByName(drive, folderName) {
+  try{
+    const params={
+      q: `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+      fields: 'files(id, name)',
+      spaces: 'drive',
+      pageSize: 1
+    }
+    const res= await drive.files.list(params);
+    const files = res.data.files;
+    if (files && files.length > 0) {
+      return res.data.files[0].id; //return the id
+    }else{
+      throw new Error('Folder ${folderName} not preesent');
+    }
+  }catch (error) {
+    throw new Error(`Error searching for folder '${folderName}':`, error.response? error.response.data : error.message);
+  }
+}
 
 // Recursive Tree Function (Needs the user-specific Drive client)
 async function getFolderTree(drive, folderId) {
@@ -171,4 +193,73 @@ exports.getDriveTree=async(req,res)=>{
       });
     }
   } 
+}
+
+
+exports.uploadDocuments=async(req,res)=>{
+  try{
+    //Default → root folder
+    const folderName = req.body.folderName || req.user.driveFolderName;
+    if (!folderName){
+      return res.status(400).json({
+        success: false,
+        error: "Invalid request body",
+      });
+    }
+    if (!req.file){
+      return res.status(400).json({
+        success: false,
+        error: "No files uploaded",
+      });
+    }
+    const drive=await getDriveClientForUser(req.user);
+    const folderId= await getFolderIdByName(drive, folderName);
+    const fileMetadata={
+      name: req.file.originalname,
+      parents: [folderId],
+    };
+
+    const bufferStream = new Readable()
+    bufferStream.push(req.file.buffer)
+    bufferStream.push(null)
+
+    const media={
+      mimeType: req.file.mimetype,
+      body: bufferStream,
+    }
+
+    const response =await drive.files.create({
+      resource: fileMetadata,
+      media: media,
+      fields: "id, name, mimeType, parents",
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "File uploaded successfully",
+      fileId: response.data.id,
+    });
+
+  }catch(error){
+    console.error(
+      `API Error fetching folder tree for user ${req.user?.id}:`,
+      error
+    );
+    // Check for specific errors potentially thrown by getDriveClientForUser or getFolderTree
+    if (
+      error.message.includes("linked") ||
+      error.message.includes("credential") ||
+      error.message.includes("decrypt")
+    ) {
+      res.status(400).json({
+        success: false,
+        error: `Drive access error: ${error.message}`,
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: "Internal server error while uploading document.",
+      });
+    }
+  }
 }

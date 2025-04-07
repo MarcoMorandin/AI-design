@@ -4,6 +4,9 @@ const apiController = require("../controllers/apiController");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 require("dotenv").config();
+const multer = require("multer");
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 
 // Middleware per verificare il JWT
@@ -34,5 +37,7 @@ async function verifyJwt(req, res, next) {
 }
  
 router.get("/drive/tree", verifyJwt, apiController.getDriveTree);
+
+router.post("/documents/upload", verifyJwt, upload.single("file"), apiController.uploadDocuments);
 
 module.exports = router;
