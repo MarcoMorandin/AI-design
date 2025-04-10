@@ -12,12 +12,12 @@ from app.services import document_processing, llm
 
 logger = logging.getLogger(__name__)
 
-async def create_task_in_db(file_path: str) -> uuid.UUID:
+async def create_task_in_db(file_name: str) -> uuid.UUID:
     """Creates a new task record in MongoDB and returns its task_id."""
     task_id = uuid.uuid4()
     task_doc = TaskDocument(
         task_id=task_id,
-        file_path=file_path,
+        file_name=file_name,
         status=TaskStatus.PENDING,
         created_at=datetime.datetime.now(datetime.timezone.utc),
         updated_at=datetime.datetime.now(datetime.timezone.utc)
@@ -117,32 +117,27 @@ async def process_document_task(task_id: uuid.UUID, file_path: str):
         text = await document_processing.extract_text_from_document(file_path)
         logger.info(f"[Task:{task_id}] Text extracted from document")
         
-        # 3. Update status: ANALYZING
-        await update_task_status(task_id, TaskStatus.ANALYZING)
         
         # 4. Chunk document and analyze content
         chunks = document_processing.chunk_document(text)
-        content_analysis = await document_processing.analyze_content_per_section(chunks)
-        logger.info(f"[Task:{task_id}] Document analyzed with {len(chunks)} chunks")
-        
-        # 5. Update status: SUMMARIZING
+
         await update_task_status(task_id, TaskStatus.SUMMARIZING)
+
+        summary = await llm.generate_final_summary(chunks)
         
-        # 6. Generate coherent summary
-        summary_result, summary_path = await document_processing.generate_coherent_summary(
-            content_analysis, file_path
-        )
-        logger.info(f"[Task:{task_id}] Summary generated and saved to {summary_path}")
-        
-        # 7. Update task with result
-        await update_task_result(task_id, summary_result, str(summary_path))
+        logger.info(f"[Task:{task_id}] Summary generation successful.")
+
+        await update_task_result(task_id, summary)
+        logger.info(f"[Task:{task_id}] Task completed successfully.")
+
         
     except Exception as e:
         error_msg = f"Error processing document: {str(e)}"
         logger.error(f"[Task:{task_id}] {error_msg}")
         await update_task_status(task_id, TaskStatus.FAILED, error_msg)
 
-async def process_folder_task(task_id: uuid.UUID, folder_path: str):
+
+#async def process_folder_task(task_id: uuid.UUID, folder_path: str):
     """The background task for processing all documents in a folder."""
     logger.info(f"[Task:{task_id}] Starting background processing for folder: {folder_path}")
 

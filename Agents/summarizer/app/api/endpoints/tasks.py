@@ -11,7 +11,7 @@ from app.services import task_manager
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-@router.post("/document", response_model=TaskCreationResponse, status_code=202)
+@router.post("/", response_model=TaskCreationResponse, status_code=202)
 async def submit_document_task(
     background_tasks: BackgroundTasks,
     request_data: DocumentRequest = Body(...)
@@ -20,10 +20,10 @@ async def submit_document_task(
     Accepts a document file path, creates a background task for processing,
     and returns the task ID.
     """
-    logger.info(f"Received task submission for document: {request_data.file_path}")
+    logger.info(f"Received task submission for document: {request_data.file_name}")
     try:
         # Create task entry in DB (status: PENDING)
-        task_id = await task_manager.create_task_in_db(request_data.file_path)
+        task_id = await task_manager.create_task_in_db(request_data.file_name)
 
         # Add the processing function to background tasks
         background_tasks.add_task(
@@ -40,11 +40,11 @@ async def submit_document_task(
         logger.exception(f"Failed to submit task for document {request_data.file_path}: {e}")
         raise HTTPException(status_code=500, detail="Failed to create processing task.")
 
-@router.post("/folder", response_model=TaskCreationResponse, status_code=202)
-async def submit_folder_task(
-    background_tasks: BackgroundTasks,
-    request_data: FolderRequest = Body(...)
-):
+#@router.post("/folder", response_model=TaskCreationResponse, status_code=202)
+#async def submit_folder_task(
+#    background_tasks: BackgroundTasks,
+#    request_data: FolderRequest = Body(...)
+#):
     """
     Accepts a folder path containing documents, creates a background task for processing,
     and returns the task ID.

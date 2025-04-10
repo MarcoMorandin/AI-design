@@ -7,7 +7,7 @@ from typing import List, Dict, Any, Tuple, Optional
 
 from app.utils.file_handler import extract_from_pdf, extract_from_word, extract_from_text
 from app.utils.prompts import SYSTEM_PROMPT, PROCESS_CHUNK_PROMPT, EXTRACT_DOCUMENT_STRUCTURE_PROMPT
-from app.core.config import settings
+from app.core.config import Settings, settings
 from app.services.llm import generate_content
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,60 @@ async def extract_text_from_document(file_path: str) -> str:
     except Exception as e:
         raise Exception(f"Error extracting text from document: {str(e)}")
 
+
 def chunk_document(text: str) -> List[str]:
+    """
+    Suddivide il testo del documento in chunk gestibili per l'elaborazione,
+    introducendo anche un overlapping tra i chunk in base al valore impostato in settings.OVERLAP.
+    
+    Args:
+        text: Testo completo del documento.
+    
+    Returns:
+        Una lista di chunk di testo.
+    """
+    paragraphs = text.split("\n\n")
+    chunks = []
+    current_chunk = []
+    current_length = 0
+    chars_per_token = 4  # Stima approssimativa: 4 caratteri per token
+
+    for para in paragraphs:
+        para = para.strip()
+        if not para:
+            continue
+        # token estimation
+        para_tokens = len(para) // chars_per_token
+        
+        # chunkization
+        if current_length + para_tokens > settings.MAX_TOKEN_PER_CHUNK and current_chunk:
+            chunks.append("\n\n".join(current_chunk))
+            
+            # Estrazione del pezzo da sovrapporre: si iterano i paragrafi del chunk corrente al contrario
+            # fino a raggiungere almeno overlap_tokens token
+            overlap_chunk = []
+            overlap_count = 0
+            for prev_para in reversed(current_chunk):
+                # Inserisco all'inizio per mantenere l'ordine originale
+                overlap_chunk.insert(0, prev_para)
+                overlap_count += len(prev_para) // chars_per_token
+                if overlap_count >= Settings.CHUNK_OVERLAP_TOKEN:
+                    break
+            
+            # Il nuovo chunk parte dall'overlap
+            current_chunk = overlap_chunk.copy()
+            current_length = overlap_count
+        
+        current_chunk.append(para)
+        current_length += para_tokens
+
+    if current_chunk:
+        chunks.append("\n\n".join(current_chunk))
+    
+    return chunks
+
+
+#def chunk_document(text: str) -> List[str]:
     """
     Split the document text into manageable chunks for processing.
 
@@ -59,7 +112,7 @@ def chunk_document(text: str) -> List[str]:
         if not para.strip():
             continue
         para_tokens = len(para) // chars_per_token
-        if current_length + para_tokens > settings.MAX_CHUNK_TOKENS and current_chunk:
+        if current_length + para_tokens > settings.MAX_CHARS_PER_CHUNK and current_chunk:
             chunks.append("\n\n".join(current_chunk))
             current_chunk = [para]
             current_length = para_tokens
@@ -71,7 +124,7 @@ def chunk_document(text: str) -> List[str]:
         chunks.append("\n\n".join(current_chunk))
     return chunks
 
-async def analyze_content_per_section(chunks: List[str]) -> List[str]:
+#async def analyze_content_per_section(chunks: List[str]) -> List[str]:
     """
     Process each text chunk to extract key information.
 
@@ -98,9 +151,9 @@ async def analyze_content_per_section(chunks: List[str]) -> List[str]:
     
     return chunk_summaries
 
-async def generate_coherent_summary(
-    content_analysis: List[str], file_path: str
-) -> Tuple[str, Path]:
+#async def generate_coherent_summary(
+#    content_analysis: List[str], file_path: str
+#) -> Tuple[str, Path]:
     """
     Generate a coherent summary based on the content analysis.
 
@@ -146,7 +199,10 @@ async def generate_coherent_summary(
     
     return summary, summary_path
 
-async def summarize_folder(folder_path: str) -> List[Dict[str, Any]]:
+
+
+
+#async def summarize_folder_(folder_path: str) -> List[Dict[str, Any]]:
     """
     Process all supported documents in a folder and generate summaries.
 

@@ -7,27 +7,26 @@ from pydantic import BaseModel, Field
 
 class TaskStatus(str, Enum):
     """Enum for task processing status."""
-    PENDING = "pending"
-    PROCESSING = "processing"
-    EXTRACTING = "extracting"
-    ANALYZING = "analyzing"
-    SUMMARIZING = "summarizing"
-    DONE = "done"
-    FAILED = "failed"
+    PENDING = "PENDING"
+    EXTRACTING = "EXTRACTING_TEXT"
+    SUMMARIZING = "GENERATING_SUMMARY"
+    DONE = "DONE"
+    FAILED = "FAILED"
 
 class TaskDocument(BaseModel):
     """Database model for a document summarization task."""
-    task_id: uuid.UUID = Field(default_factory=uuid.uuid4)
-    file_path: str
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, alias="_id") # Use UUID, map to _id
+    task_id: uuid.UUID = Field(..., description="Public facing task identifier") # Redundant but useful for query
+    file_name: str
     status: TaskStatus = TaskStatus.PENDING
-    error_message: Optional[str] = None
-    summary: Optional[str] = None
-    summary_path: Optional[str] = None
     created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
     updated_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
+    error_message: Optional[str] = None
+    summary: Optional[str] = None
+
     
     class Config:
-        populate_by_name = True
+        populate_by_name = True # allow alias
         json_encoders = {
             uuid.UUID: str,
             datetime.datetime: lambda v: v.isoformat()
@@ -47,9 +46,8 @@ class TaskResultResponse(BaseModel):
     """API response model for task result."""
     task_id: uuid.UUID
     status: TaskStatus
-    file_path: str
+    file_name: str
     summary: Optional[str] = None
-    summary_path: Optional[str] = None
     error: Optional[str] = None
     created_at: datetime.datetime
     updated_at: datetime.datetime

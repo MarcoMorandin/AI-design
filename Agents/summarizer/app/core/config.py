@@ -1,34 +1,58 @@
-# app/core/config.py
 import os
 from pydantic_settings import BaseSettings
-from typing import Optional
+from pathlib import Path
+from typing import List # Import List for type hinting
 
 class Settings(BaseSettings):
-    # API Configuration
+    APP_NAME: str = "Summarize documetn API"
     API_V1_STR: str = "/api"
-    PROJECT_NAME: str = "Document Summarization API"
+
+    # Temporary file directory
+    # Use Path for better path manipulation
+    TEMP_DIR: Path = Path("temp_files")
+
+    # Whisper settings
+    WHISPER_MODEL: str = 'base'
+
+    # Ollama settings
+    OLLAMA_API_URL: str = 'http://localhost:11434/api/generate'
+    OLLAMA_MODEL: str = 'phi3.5' # Or your preferred default
+    OLLAMA_TIMEOUT: float = 300.0 # Timeout in seconds
+
+    # Chunking settings
+    MAX_TOKEN_PER_CHUNK: int = 4000
+    CHUNK_OVERLAP_TOKEN: int = 250
+
+    # Logging Level (e.g., INFO, DEBUG, WARNING)
+    LOG_LEVEL: str = "INFO"
+
+    #MAX_DOWNLOAD_SIZE_MB: int = 200 # Limit in Megabytes
+    #DOWNLOAD_TIMEOUT: float = 120.0 # Timeout for download connection/read
+
+    # Define allowed content types (lowercase) - check starts of MIME types
+    ALLOWED_VIDEO_CONTENT_TYPES: List[str] = [
+        "pdf",
+        "docx",
+        "doc",
+        "md"
+    ]
     
-    # MongoDB Configuration
-    MONGODB_URL: str = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
-    MONGODB_DB_NAME: str = os.getenv("MONGODB_DB_NAME", "summarizer_db")
-    
-    # Logging
-    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "info")
-    
-    # Google Gemini API
-    GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
-    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
-    
-    # File Storage
-    TEMP_FILES_DIR: str = os.getenv("TEMP_FILES_DIR", "temp_files")
-    SUMMARY_RESULTS_DIR: str = os.getenv("SUMMARY_RESULTS_DIR", "summary_results")
-    
-    # Processing Configuration
-    MAX_CHUNK_TOKENS: int = int(os.getenv("MAX_CHUNK_TOKENS", "4000"))
-    MAX_WORKERS: int = int(os.getenv("MAX_WORKERS", "5"))
+    MONGODB_URL: str = "mongodb+srv://test:<db_password>@ai-designing.psxhnz0.mongodb.net/"
+    MONGODB_DB_NAME: str = "test"
+    MONGODB_TASK_COLLECTION: str = "tasks"
     
     class Config:
+        # Reads variables from a .env file if present
         env_file = ".env"
-        case_sensitive = True
+        env_file_encoding = 'utf-8'
+        # Makes TEMP_DIR relative to the project root if not absolute
+        # This assumes you e project root dirrun the app from thectory
+        # Adjust if needed based on your execution context
+        # TEMP_DIR = Path(__file__).parent.parent.parent / "temp_files"
 
+
+# Create a single settings instance to be imported
 settings = Settings()
+
+# Ensure temp directory exists
+settings.TEMP_DIR.mkdir(parents=True, exist_ok=True)

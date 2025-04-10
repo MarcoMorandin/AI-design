@@ -2,23 +2,32 @@
 import logging
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase, AsyncIOMotorCollection
 from app.core.config import settings
+from bson import UuidRepresentation
 
 logger = logging.getLogger(__name__)
 
-# Global variables for database connection
-client: AsyncIOMotorClient = None
-database: AsyncIOMotorDatabase = None
+class MongoDB:
+    client: AsyncIOMotorClient = None
+    db: AsyncIOMotorDatabase = None
+
+db_manager = MongoDB()
 
 async def connect_to_mongo():
-    """Create database connection."""
-    global client, database
+    logger.info("Connecting to MongoDB...")
     try:
-        client = AsyncIOMotorClient(settings.MONGODB_URL)
-        database = client[settings.MONGODB_DB_NAME]
-        logger.info("Connected to MongoDB")
+        db_manager.client = AsyncIOMotorClient(
+            settings.MONGODB_URL,
+            uuidRepresentation='standard'
+        )
+        
+        db_manager.db = db_manager.client[settings.MONGODB_DB_NAME]
+        # Optional: Ping server to verify connection
+        await db_manager.client.admin.command('ping')
+        logger.info("Successfully connected to MongoDB.")
     except Exception as e:
-        logger.error(f"Failed to connect to MongoDB: {e}")
-        raise
+        logger.exception(f"Could not connect to MongoDB: {e}")
+        # Decide if the app should fail to start if DB connection fails
+        # raise
 
 async def close_mongo_connection():
     """Close database connection."""
@@ -28,13 +37,14 @@ async def close_mongo_connection():
         logger.info("Closed MongoDB connection")
 
 def get_database() -> AsyncIOMotorDatabase:
-    """Get database instance."""
-    return database
+    if db_manager.db is None:
+        # This should ideally not happen if connect_to_mongo ran successfully
+        logger.error("Database not initialized. Call connect_to_mongo first.")
+        # Depending on strategy, could try reconnecting or raise an error
+        # For simplicity here, we assume it's initialized at startup
+        raise RuntimeError("Database connection is not available.")
+    return db_manager.db
 
-def get_task_collection() -> AsyncIOMotorCollection:
-    """Get tasks collection."""
-    return database["tasks"]
-
-def get_summary_collection() -> AsyncIOMotorCollection:
-    """Get summaries collection."""
-    return database["summaries"]
+def get_task_collection():
+    db = get_database()
+    return db[settings.MONGODB_TASK_COLLECTION]
