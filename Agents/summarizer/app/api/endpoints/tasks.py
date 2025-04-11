@@ -4,7 +4,7 @@ import uuid
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Body, Path as FastApiPath
 from typing import Optional
 
-from app.models.request import DocumentRequest, FolderRequest
+from app.models.request import DocumentRequest
 from app.models.task import TaskStatus, TaskCreationResponse, TaskStatusResponse, TaskResultResponse
 from app.services import task_manager
 
@@ -29,7 +29,7 @@ async def submit_document_task(
         background_tasks.add_task(
             task_manager.process_document_task,
             task_id,
-            request_data.file_path
+            request_data.file_name
         )
         logger.info(f"Scheduled background processing for task_id: {task_id}")
 
@@ -37,36 +37,7 @@ async def submit_document_task(
         return TaskCreationResponse(task_id=task_id)
 
     except Exception as e:
-        logger.exception(f"Failed to submit task for document {request_data.file_path}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create processing task.")
-
-#@router.post("/folder", response_model=TaskCreationResponse, status_code=202)
-#async def submit_folder_task(
-#    background_tasks: BackgroundTasks,
-#    request_data: FolderRequest = Body(...)
-#):
-    """
-    Accepts a folder path containing documents, creates a background task for processing,
-    and returns the task ID.
-    """
-    logger.info(f"Received task submission for folder: {request_data.folder_path}")
-    try:
-        # Create task entry in DB (status: PENDING)
-        task_id = await task_manager.create_folder_task_in_db(request_data.folder_path)
-
-        # Add the processing function to background tasks
-        background_tasks.add_task(
-            task_manager.process_folder_task,
-            task_id,
-            request_data.folder_path
-        )
-        logger.info(f"Scheduled background processing for folder task_id: {task_id}")
-
-        # Return the task ID immediately
-        return TaskCreationResponse(task_id=task_id)
-
-    except Exception as e:
-        logger.exception(f"Failed to submit task for folder {request_data.folder_path}: {e}")
+        logger.exception(f"Failed to submit task for document {request_data.file_name}: {e}")
         raise HTTPException(status_code=500, detail="Failed to create processing task.")
 
 @router.get("/{task_id}/status", response_model=TaskStatusResponse)
@@ -107,7 +78,7 @@ async def get_task_result(
     return TaskResultResponse(
          task_id=task_data['_id'],
          status=TaskStatus(task_data['status']),
-         file_path=task_data['file_path'],
+         file_name=task_data['file_name'],
          summary=task_data.get('summary'),
          summary_path=task_data.get('summary_path'),
          error=task_data.get('error_message'),

@@ -19,3 +19,6 @@ google-generativeai>=0.3.0
 # Utilities
 python-multipart>=0.0.6  # For file uploads
 httpx>=0.25.0  # For HTTP requests
+
+PyMuPDF
+python-docx

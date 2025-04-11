@@ -9,6 +9,7 @@ from app.db.mongodb import get_task_collection
 from app.models.task import TaskStatus, TaskDocument
 from app.core.config import settings
 from app.services import document_processing, llm
+from app.services.document_processing import extract_markdown
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ async def create_task_in_db(file_name: str) -> uuid.UUID:
     insert_data['_id'] = task_id
     
     await collection.insert_one(insert_data)
-    logger.info(f"Created task {task_id} for document {file_path} in DB.")
+    logger.info(f"Created task {task_id} for document {file_name} in DB.")
     return task_id
 
 async def create_folder_task_in_db(folder_path: str) -> uuid.UUID:
@@ -124,10 +125,12 @@ async def process_document_task(task_id: uuid.UUID, file_path: str):
         await update_task_status(task_id, TaskStatus.SUMMARIZING)
 
         summary = await llm.generate_final_summary(chunks)
-        
+
+        markdown_summary=extract_markdown(summary)
+
         logger.info(f"[Task:{task_id}] Summary generation successful.")
 
-        await update_task_result(task_id, summary)
+        await update_task_result(task_id, markdown_summary)
         logger.info(f"[Task:{task_id}] Task completed successfully.")
 
         
@@ -136,8 +139,8 @@ async def process_document_task(task_id: uuid.UUID, file_path: str):
         logger.error(f"[Task:{task_id}] {error_msg}")
         await update_task_status(task_id, TaskStatus.FAILED, error_msg)
 
-
-#async def process_folder_task(task_id: uuid.UUID, folder_path: str):
+'''
+async def process_folder_task(task_id: uuid.UUID, folder_path: str):
     """The background task for processing all documents in a folder."""
     logger.info(f"[Task:{task_id}] Starting background processing for folder: {folder_path}")
 
@@ -173,3 +176,4 @@ async def process_document_task(task_id: uuid.UUID, file_path: str):
         error_msg = f"Error processing folder: {str(e)}"
         logger.error(f"[Task:{task_id}] {error_msg}")
         await update_task_status(task_id, TaskStatus.FAILED, error_msg)
+'''

@@ -37,7 +37,7 @@ class Settings(BaseSettings):
         "md"
     ]
     
-    MONGODB_URL: str = "mongodb+srv://test:<db_password>@ai-designing.psxhnz0.mongodb.net/"
+    MONGODB_URL: str = "mongodb+srv://test:test@ai-designing.psxhnz0.mongodb.net/"
     MONGODB_DB_NAME: str = "test"
     MONGODB_TASK_COLLECTION: str = "tasks"
     
