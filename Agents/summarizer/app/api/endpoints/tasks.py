@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 @router.post("/", response_model=TaskCreationResponse, status_code=202)
 async def submit_document_task(
-    background_tasks: oundTasks,
+    background_tasks: BackgroundTasks,
     request_data: DocumentRequest = Body(...)
 ):
     """
@@ -23,13 +23,16 @@ async def submit_document_task(
     logger.info(f"Received task submission for document: {request_data.file_name}")
     try:
         # Create task entry in DB (status: PENDING)
-        task_id = await task_manager.create_task_in_db(request_data.file_name)
+        task_id = await task_manager.create_task_in_db(
+            request_data.file_name,
+            request_data.summary_type)
 
         # Add the processing function to background tasks
         background_tasks.add_task(
             task_manager.process_document_task,
             task_id,
-            request_data.file_name
+            request_data.file_name,
+            request_data.summary_type
         )
         logger.info(f"Scheduled background processing for task_id: {task_id}")
 
@@ -80,7 +83,7 @@ async def get_task_result(
          status=TaskStatus(task_data['status']),
          file_name=task_data['file_name'],
          summary=task_data.get('summary'),
-         summary_path=task_data.get('summary_path'),
+         summary_type=task_data['summary_type'],
          error=task_data.get('error_message'),
          created_at=task_data['created_at'],
          updated_at=task_data['updated_at']

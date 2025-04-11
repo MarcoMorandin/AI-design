@@ -1,12 +1,14 @@
 # app/services/llm.py
 import logging
 from typing import Optional
+from app.models.request import SummaryType
 import httpx
 
 from app.core.config import settings
 from app.utils import prompts
 from typing import List
 from app.services.document_processing import extract_markdown
+import asyncio
 
 
 logger = logging.getLogger(__name__)
@@ -39,7 +41,13 @@ async def call_ollama(prompt:str, model_str=settings.OLLAMA_MODEL):
         logger.error(f"An unexpected error occurred during Ollama call: {type(e).__name__} - {str(e)}", exc_info=True)
         raise RuntimeError(f"An unexpected error occurred during Ollama API call: {str(e)}") from e
 
-async def generate_final_summary(chunks: List[str]) -> List[str]:
+async def _process_chunk(chunk, index):
+    prompt = prompts.generate_chunk_summary_prompt(chunk)
+    summary = await call_ollama(prompt, model_str=settings.OLLAMA_MODEL)
+    logger.info(f"Chunk {index + 1} summary generated.")
+    return summary
+
+async def generate_final_summary(chunks: List[str], summary_type:SummaryType) -> List[str]:
     """
     Process each text chunk to extract key information.
 
@@ -49,17 +57,25 @@ async def generate_final_summary(chunks: List[str]) -> List[str]:
     Returns:
         A list of analysis results for each chunk.
     """
+
     try:
+
+
         chunk_summaries=[]
-
-
+        # Process all chunks in parallel
+        #tasks = [_process_chunk(chunk, i) for i, chunk in enumerate(chunks)]
+        #chunk_summaries = await asyncio.gather(*tasks)
+        
         for i, chunk in enumerate(chunks):
-            prompt =prompts.generate_chunk_essay_prompt(chunk)
+            prompt =prompts.generate_chunk_summary_prompt(chunk, summary_type)
             summary = await call_ollama(prompt, model_str=settings.OLLAMA_MODEL)
             chunk_summaries.append(summary)
+            logger.info(f"Chunk {i + 1} summary generated.")
+
             with open("summary.txt", "w", encoding="utf-8") as file:
                 file.write(summary)
-            logger.info(f"Chunk {i + 1} summary generated.")
+                
+        logger.info(f"Chunks summaries generated.")
 
         concat_summary = "\n\n".join(chunk_summaries)
         logger.info("Generating final summary from chunk summaries...")
@@ -70,8 +86,8 @@ async def generate_final_summary(chunks: List[str]) -> List[str]:
         with open("concat_summary.txt", "w", encoding="utf-8") as file:
             file.write(concat_summary)
 
-        final_prompt = prompts.generate_final_essay(concat_summary)
-        markdown_summary = await call_ollama(final_prompt, model_str=settings.OLLAMA_MODEL)
+        final_prompt = prompts.generate_final_summary(concat_summary, summary_type)
+        summary = await call_ollama(final_prompt, model_str=settings.OLLAMA_MODEL)
         logger.info("Generating correct markdown...")
         markdown_summary=await call_ollama(prompts.clean_markdown_prompt(summary), model_str=settings.OLLAMA_MODEL)
         return markdown_summary

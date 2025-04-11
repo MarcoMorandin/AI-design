@@ -23,6 +23,7 @@ from fastapi import HTTPException
 # Example:
 # from your_project import settings, logger, cleanup_files
 logger = logging.getLogger(__name__)
+logging.getLogger("pdfminer").setLevel(logging.ERROR)
 
 
 def cleanup_files(*file_paths: Union[Path, str, None]):

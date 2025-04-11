@@ -25,3 +25,4 @@ python-docx
 camelot-py
 pdfplumber
 certifi
+asyncio

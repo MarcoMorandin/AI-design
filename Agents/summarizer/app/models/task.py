@@ -4,6 +4,7 @@ import datetime
 from enum import Enum
 from typing import Optional, Dict, Any
 from pydantic import BaseModel, Field
+from app.models.request import SummaryType
 
 class TaskStatus(str, Enum):
     """Enum for task processing status."""
@@ -20,6 +21,7 @@ class TaskDocument(BaseModel):
     task_id: uuid.UUID = Field(..., description="Public facing task identifier") # Redundant but useful for query
     file_name: str
     status: TaskStatus = TaskStatus.PENDING
+    summary_type: SummaryType = SummaryType.STANDARD # Store the requested type
     created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
     updated_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
     error_message: Optional[str] = None
@@ -48,6 +50,7 @@ class TaskResultResponse(BaseModel):
     task_id: uuid.UUID
     status: TaskStatus
     file_name: str
+    summary_type: SummaryType
     summary: Optional[str] = None
     error: Optional[str] = None
     created_at: datetime.datetime

@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     OLLAMA_TIMEOUT: float = 300.0 # Timeout in seconds
 
     # Chunking settings
-    MAX_TOKEN_PER_CHUNK: int = 4000
+    MAX_TOKEN_PER_CHUNK: int = 10000
     CHUNK_OVERLAP_TOKEN: int = 500
 
     # Logging Level (e.g., INFO, DEBUG, WARNING)

@@ -10,16 +10,18 @@ from app.models.task import TaskStatus, TaskDocument
 from app.core.config import settings
 from app.services import document_processing, llm
 from app.services.document_processing import extract_markdown
+from app.models.request import SummaryType
 
 logger = logging.getLogger(__name__)
 
-async def create_task_in_db(file_name: str) -> uuid.UUID:
+async def create_task_in_db(file_name: str, summary_type:SummaryType) -> uuid.UUID:
     """Creates a new task record in MongoDB and returns its task_id."""
     task_id = uuid.uuid4()
     task_doc = TaskDocument(
         task_id=task_id,
         file_name=file_name,
         status=TaskStatus.PENDING,
+        summary_type=summary_type, # Convert enu
         created_at=datetime.datetime.now(datetime.timezone.utc),
         updated_at=datetime.datetime.now(datetime.timezone.utc)
     )
@@ -37,29 +39,6 @@ async def create_task_in_db(file_name: str) -> uuid.UUID:
     logger.info(f"Created task {task_id} for document {file_name} in DB.")
     return task_id
 
-async def create_folder_task_in_db(folder_path: str) -> uuid.UUID:
-    """Creates a new folder processing task record in MongoDB and returns its task_id."""
-    task_id = uuid.uuid4()
-    task_doc = TaskDocument(
-        task_id=task_id,
-        file_path=folder_path,  # Using file_path for folder path as well
-        status=TaskStatus.PENDING,
-        created_at=datetime.datetime.now(datetime.timezone.utc),
-        updated_at=datetime.datetime.now(datetime.timezone.utc)
-    )
-    collection = get_task_collection()
-    
-    insert_data = task_doc.model_dump(
-        mode='json',
-        by_alias=True,
-        exclude={'id'}
-    )
-    
-    insert_data['_id'] = task_id
-    
-    await collection.insert_one(insert_data)
-    logger.info(f"Created folder task {task_id} for folder {folder_path} in DB.")
-    return task_id
 
 async def update_task_status(task_id: uuid.UUID, status: TaskStatus, error_message: Optional[str] = None):
     """Updates the status and updated_at time of a task in MongoDB."""
@@ -106,7 +85,7 @@ async def get_task_from_db(task_id: uuid.UUID) -> Optional[dict]:
     return task_data
 
 # --- Main Background Processing Functions ---
-async def process_document_task(task_id: uuid.UUID, file_path: str):
+async def process_document_task(task_id: uuid.UUID, file_path: str, summary_type:SummaryType):
     """The background task performing the full document summarization pipeline."""
     logger.info(f"[Task:{task_id}] Starting background processing for document: {file_path}")
 
@@ -127,7 +106,8 @@ async def process_document_task(task_id: uuid.UUID, file_path: str):
         print(len(chunks))
         await update_task_status(task_id, TaskStatus.SUMMARIZING)
 
-        summary = await llm.generate_final_summary(chunks)
+        logger.info(f"Generating summary")
+        summary = await llm.generate_final_summary(chunks, summary_type)
 
         #correct_markdown_summary=extract_markdown(summary)
 
