@@ -4,7 +4,7 @@ import uuid
 import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any, List
-
+from app.utils import file_handler
 from app.db.mongodb import get_task_collection
 from app.models.task import TaskStatus, TaskDocument
 from app.core.config import settings
@@ -80,12 +80,12 @@ async def update_task_status(task_id: uuid.UUID, status: TaskStatus, error_messa
     else:
         logger.info(f"Updated task {task_id} status to {status.value}" + (f" with error: {error_message}" if error_message else ""))
 
-async def update_task_result(task_id: uuid.UUID, summary: str, summary_path: str):
+async def update_task_result(task_id: uuid.UUID, summary: str):
     """Updates the task with the final summary and sets status to DONE."""
     collection = get_task_collection()
     update_fields = {
         "summary": summary,
-        "summary_path": summary_path,
+        #"summary_path": summary_path,
         "status": TaskStatus.DONE.value,
         "updated_at": datetime.datetime.now(datetime.timezone.utc),
         "error_message": None
@@ -111,26 +111,29 @@ async def process_document_task(task_id: uuid.UUID, file_path: str):
     logger.info(f"[Task:{task_id}] Starting background processing for document: {file_path}")
 
     try:
+        await update_task_status(task_id, TaskStatus.DOWNLOADING)
+        file_tmp_path=await file_handler.download_document_from_url(file_path)
         # 1. Update status: EXTRACTING
         await update_task_status(task_id, TaskStatus.EXTRACTING)
-        
+        #temp_video_path = await file_handler.download_video_from_url(video_url)
         # 2. Extract text from document
-        text = await document_processing.extract_text_from_document(file_path)
+        text = await document_processing.extract_text_from_document(file_tmp_path)
+
         logger.info(f"[Task:{task_id}] Text extracted from document")
         
         
         # 4. Chunk document and analyze content
         chunks = document_processing.chunk_document(text)
-
+        print(len(chunks))
         await update_task_status(task_id, TaskStatus.SUMMARIZING)
 
         summary = await llm.generate_final_summary(chunks)
 
-        markdown_summary=extract_markdown(summary)
+        #correct_markdown_summary=extract_markdown(summary)
 
         logger.info(f"[Task:{task_id}] Summary generation successful.")
 
-        await update_task_result(task_id, markdown_summary)
+        await update_task_result(task_id, summary)
         logger.info(f"[Task:{task_id}] Task completed successfully.")
 
         
