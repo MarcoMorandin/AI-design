@@ -30,11 +30,10 @@ async def connect_to_mongo():
         # raise
 
 async def close_mongo_connection():
-    """Close database connection."""
-    global client
-    if client:
-        client.close()
-        logger.info("Closed MongoDB connection")
+    if db_manager.client:
+        logger.info("Closing MongoDB connection...")
+        db_manager.client.close()
+        logger.info("MongoDB connection closed.")
 
 def get_database() -> AsyncIOMotorDatabase:
     if db_manager.db is None:

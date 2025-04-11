@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import List
 
-from app.utils.file_handler import extract_from_pdf, extract_from_word, extract_from_text
+from app.utils.file_handler import extract_from_pdf, extract_from_word, extract_from_text, extract_pdf_content
 from app.core.config import Settings, settings
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ async def extract_text_from_document(file_name: str) -> str:
     file_extension = Path(file_name).suffix.lower()
     try:
         if file_extension == ".pdf":
-            return extract_from_pdf(file_name)
+            return extract_pdf_content(file_name)
         elif file_extension in [".docx", ".doc"]:
             return extract_from_word(file_name)
         elif file_extension in [".txt", ".md"]:
@@ -47,13 +47,42 @@ def chunk_document(text: str) -> List[str]:
     
     Returns:
         Una lista di chunk di testo.
+            tokens = text.split()
+    chunks = []
+    start = 0
+
+    while start < len(tokens)*4:
+        # Determine the end index for the current chunk.
+        end = start + (settings.MAX_TOKEN_PER_CHUNK//4)
+        chunk_tokens = tokens[start:end]
+        chunk = " ".join(chunk_tokens)
+        chunks.append(chunk)
+
+        if end >= len(tokens)*4:
+            break
+        
+        # Prepare the starting index for the next chunk.
+        start = end - (settings.CHUNK_OVERLAP_TOKEN//4)
+    with open("chunks.json", "w") as f:
+        json.dump(chunks, f, indent=4)
+    return chunks
     """
-    paragraphs = text.split("\n\n")
+
+    #paragraphs = text.split("")
     chunks = []
     current_chunk = []
     current_length = 0
     chars_per_token = 4  # Stima approssimativa: 4 caratteri per token
-
+    if len(text) < settings.MAX_TOKEN_PER_CHUNK:
+        chunks.append(text)
+        return chunks
+    start=0
+    while start < len(text):
+        end = min(start + settings.MAX_TOKEN_PER_CHUNK, len(text))
+        chunks.append(text[start:end])
+        start += settings.MAX_TOKEN_PER_CHUNK - settings.CHUNK_OVERLAP_TOKEN
+        if end==len(text): break
+    return chunks
     for para in paragraphs:
         para = para.strip()
         if not para:
@@ -82,11 +111,13 @@ def chunk_document(text: str) -> List[str]:
         
         current_chunk.append(para)
         current_length += para_tokens
+    with open("chunks.json", "w") as f:
+        json.dump(chunks, f, indent=4)
 
-    if current_chunk:
-        chunks.append("\n\n".join(current_chunk))
+    #if current_chunk:
+    #    chunks.append("\n\n".join(current_chunk))
     
-    return chunks
+    return current_chunk
 
 def extract_markdown(text):
     # Common Markdown start indicators

@@ -22,3 +22,6 @@ httpx>=0.25.0  # For HTTP requests
 
 PyMuPDF
 python-docx
+camelot-py
+pdfplumber
+certifi

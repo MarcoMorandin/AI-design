@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 class TaskStatus(str, Enum):
     """Enum for task processing status."""
+    DOWNLOADING="DOWNLOADING"
     PENDING = "PENDING"
     EXTRACTING = "EXTRACTING_TEXT"
     SUMMARIZING = "GENERATING_SUMMARY"

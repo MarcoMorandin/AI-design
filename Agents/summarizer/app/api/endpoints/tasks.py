@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 @router.post("/", response_model=TaskCreationResponse, status_code=202)
 async def submit_document_task(
-    background_tasks: BackgroundTasks,
+    background_tasks: oundTasks,
     request_data: DocumentRequest = Body(...)
 ):
     """

@@ -16,21 +16,21 @@ class Settings(BaseSettings):
 
     # Ollama settings
     OLLAMA_API_URL: str = 'http://localhost:11434/api/generate'
-    OLLAMA_MODEL: str = 'phi3.5' # Or your preferred default
+    OLLAMA_MODEL: str = 'llama3.2:1b' # Or your preferred default
     OLLAMA_TIMEOUT: float = 300.0 # Timeout in seconds
 
     # Chunking settings
     MAX_TOKEN_PER_CHUNK: int = 4000
-    CHUNK_OVERLAP_TOKEN: int = 250
+    CHUNK_OVERLAP_TOKEN: int = 500
 
     # Logging Level (e.g., INFO, DEBUG, WARNING)
     LOG_LEVEL: str = "INFO"
 
-    #MAX_DOWNLOAD_SIZE_MB: int = 200 # Limit in Megabytes
-    #DOWNLOAD_TIMEOUT: float = 120.0 # Timeout for download connection/read
+    MAX_DOWNLOAD_SIZE_MB: int = 200 # Limit in Megabytes
+    DOWNLOAD_TIMEOUT: float = 120.0 # Timeout for download connection/read
 
     # Define allowed content types (lowercase) - check starts of MIME types
-    ALLOWED_VIDEO_CONTENT_TYPES: List[str] = [
+    ALLOWED_DOCUMENT_CONTENT_TYPES: List[str] = [
         "pdf",
         "docx",
         "doc",

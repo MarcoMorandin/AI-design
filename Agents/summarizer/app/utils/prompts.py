@@ -1,51 +1,71 @@
-def generate_chunk_summary_prompt(chunk_text):
-        prompt=f"""You are an expert summarizer with a keen eye for extracting essential information. Your task is to read and analyze the following document and produce a concise and accurate summary. Please adhere to the following guidelines:
-                1. **Focus on Core Ideas:** Identify and capture the main arguments, key themes, and significant conclusions.
-                2. **Be Concise and Clear:** Summarize the document in your own words without including unnecessary details or excessive repetition.
-                3. **Maintain Logical Flow:** Organize your summary into coherent paragraphs or bullet points (whichever best suits the content) while preserving the logical progression of ideas.
-                4. **Retain Essential Details:** Ensure that any critical data, technical points, or conclusions are included, but do not overwhelm the summary with minor details.
-                5. **Respect the Original Tone:** Preserve the original tone and context where possible, ensuring that the summary reflects the intent of the document.
-                6. **Self-Contained Output:** Craft a summary that makes sense independently, without requiring further context from the original document.
+def generate_chunk_essay_prompt(chunk_text):
+    prompt = f"""You are an expert writer tasked with crafting a section of a structured essay based on the provided document chunk. Your goal is to analyze and expand on the content to contribute to a cohesive essay. 
 
-                --- CHUNK TEXT ---- 
-                {chunk_text}
-                --- CHUNK TEXT ----
+--- CHUNK TEXT ---- 
+{chunk_text}
+--- CHUNK TEXT ----
+"""
+    return prompt
 
-                THE RESULT MUST BE PROVIDE IN MARKDOWN. Only the markdown, no any other sentences
-                Please generate your summary below.
-                """
-        return prompt
+def generate_final_essay(essay_sections_text):
+    prompt = f"""You are an expert writer tasked with combining multiple essay sections into a single, cohesive, and well-structured essay. Your goal is to create a unified document that reads as a complete academic essay. Follow these guidelines:
 
-def generate_final_summary(summaries_text):
-        prompt=f"""
-        Your task is to integrate multiple summaries into one unified document. Follow these guidelines:
-
-        - **Unified Narrative:** Seamlessly weave all the provided summaries into a single narrative. Do not separate them into distinct sections. Instead, use smooth transitions to connect the ideas and themes from each summary.
-        - **Clear Introduction and Conclusion:** Begin with an introduction that sets the context for the document. End with a conclusion that encapsulates the overall insights drawn from the aggregated content.
-        - **Consistent Tone and Style:** Ensure that the final document maintains a consistent voice and style throughout. Edit the summaries as necessary so they read as parts of a continuous text.
-        - **Logical Flow:** Organize the content so that themes, arguments, and conclusions follow logically from one another. Use transitional phrases to guide the reader through the narrative.
-        - **Self-Contained Output:** The final document should be self-explanatory and complete, providing all necessary context without referencing separated, standalone summary documents.
-
-        ---
-
-        ## Final Document Structure
-
-        1. **Introduction:**  
-        Start with a brief overview explaining the purpose of the document and outlining the main topics covered in the aggregated summaries.
-
-        2. **Integrated Content:**  
-        Merge the content of each individual summary into a single, flowing narrative. Ensure that the transitions between different topics and summaries are smooth so that the document reads like one continuous piece.
-
-        3. **Conclusion:**  
-        End with a conclusion that synthesizes the key takeaways. Reflect on how the integrated information provides a comprehensive understanding of the subject matter.
-
-        THE RESULT MUST BE PROVIDE IN MARKDOWN. Only the markdown, no any other sentences
-        ---
-
-        --- SUMMARIES ---
-        {summaries_text}
-        --- SUMMARIES ---
+1. **Craft a Central Thesis:** Develop a clear, overarching thesis statement that ties together the arguments from the individual sections.
+2. **Seamless Integration:** Blend the provided sections into a single narrative, reworking content as needed to avoid repetition and ensure smooth transitions between ideas.
+3. **Structured Format**: Organize the essay with a clear introduction, body, and conclusion:
+   - **Introduction**: Introduce the topic, provide context, and present the thesis statement.
+   - **Body**: Divide into logical sections (based on the provided content), each exploring a distinct aspect of the thesis with clear transitions.
+   - **Conclusion**: Synthesize the key arguments, reflect on their significance, and offer a final perspective or call to action.
+4. **Consistent Tone and Style:** Maintain a formal, academic tone throughout, ensuring clarity and coherence across all sections.
+5. **Engage and Persuade**: Write in a way that captivates the reader while building a compelling case for the thesis.
+6. **Self-Contained Output:** Ensure the final essay is complete and understandable without requiring reference to the original sections.
 
 
-        """
-        return prompt
+**Provide the result using the Markdown.**
+
+--- ESSAY SECTIONS ---
+{essay_sections_text}
+--- ESSAY SECTIONS ---
+"""
+    return prompt
+
+"""
+
+1. **Correct Syntax Errors**:
+   - Fix incorrect or unbalanced headers (e.g., `#Header` instead of `# Header`, or mismatched `#` counts).
+   - Repair improper list formatting (e.g., `-item` to `- item`, or inconsistent indentation).
+   - Correct emphasis issues (e.g., `_italic_` to `*italic*`, or unmatched `*`/`_` symbols).
+   - Fix broken links or images (e.g., `[text](url` to `[text](url)`).
+   - Ensure proper spacing around Markdown elements (e.g., `##Header` to `## Header`).
+
+2. **Standardize Formatting**:
+   - Use consistent header levels (e.g., `#` for main headings, `##` for subheadings).
+   - Prefer `*` for emphasis (italics `*text*`, bold `**text**`) unless the original intent clearly uses `_`.
+   - Ensure lists use consistent markers (e.g., `-` for unordered lists, `1.` for ordered lists) and proper indentation.
+   - Add blank lines between different Markdown elements (e.g., between paragraphs and lists) for clarity.
+
+3. **Preserve Content**:
+   - Do not alter the meaning, wording, or intent of the text unless it’s necessary to resolve ambiguity caused by formatting errors.
+   - Retain the original structure (e.g., paragraph breaks, list hierarchy) unless it’s malformed and needs correction.
+
+4. **Handle Common Issues**:
+   - Remove stray Markdown symbols (e.g., random `#`, `*`, or `_` not used correctly).
+   - Fix code blocks (e.g., ensure triple backticks ``` are properly closed).
+   - Correct tables by aligning columns and ensuring proper separators (e.g., `| text | text |` with `-` for headers).
+
+5. **Output Only Markdown**:
+   - The result must be valid Markdown that renders correctly in standard Markdown parsers.
+   - Do not include explanations, comments, or any text outside the corrected Markdown.
+"""
+def clean_markdown_prompt(markdown_text):
+    prompt = f"""You are an expert in Markdown formatting tasked with cleaning and standardizing a provided Markdown text. 
+    Your goal is to identify and fix any errors or inconsistencies in the Markdown syntax while PRESERVING the original content and structure. Just fix the error in markdown and return the correct markdown with nothing else.
+
+
+
+
+   --- MARKDOWN TEXT ---
+   {markdown_text}
+   --- MARKDOWN TEXT ---
+   """
+    return prompt

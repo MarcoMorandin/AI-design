@@ -51,20 +51,30 @@ async def generate_final_summary(chunks: List[str]) -> List[str]:
     """
     try:
         chunk_summaries=[]
+
+
         for i, chunk in enumerate(chunks):
-            prompt =prompts.generate_chunk_summary_prompt(chunk)
+            prompt =prompts.generate_chunk_essay_prompt(chunk)
             summary = await call_ollama(prompt, model_str=settings.OLLAMA_MODEL)
             chunk_summaries.append(summary)
+            with open("summary.txt", "w", encoding="utf-8") as file:
+                file.write(summary)
             logger.info(f"Chunk {i + 1} summary generated.")
 
-        concat_summary = "\n\n---\n\n".join(chunk_summaries)
+        concat_summary = "\n\n".join(chunk_summaries)
         logger.info("Generating final summary from chunk summaries...")
-        if len(chunks) ==1:
+
+        if len(chunks) == 1:
             return concat_summary
-        final_prompt = prompts.generate_final_summary(concat_summary)
-        summary = await call_ollama(final_prompt, model_str=settings.OLLAMA_MODEL)
-        
-        return summary
+
+        with open("concat_summary.txt", "w", encoding="utf-8") as file:
+            file.write(concat_summary)
+
+        final_prompt = prompts.generate_final_essay(concat_summary)
+        markdown_summary = await call_ollama(final_prompt, model_str=settings.OLLAMA_MODEL)
+        logger.info("Generating correct markdown...")
+        markdown_summary=await call_ollama(prompts.clean_markdown_prompt(summary), model_str=settings.OLLAMA_MODEL)
+        return markdown_summary
     
     except (ConnectionError, ValueError, RuntimeError) as e:
          # Errors from call_ollama or value errors are caught here
