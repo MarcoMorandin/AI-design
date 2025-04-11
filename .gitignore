@@ -79,6 +79,6 @@ token.json
 *.mp4
 
 .venv
-venv
+.temp
 
 __pycache__/
