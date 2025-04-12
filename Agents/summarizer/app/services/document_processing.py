@@ -3,7 +3,8 @@ import enum
 import logging
 import json
 from pathlib import Path
-from typing import List
+from typing import List, Dict
+import fitz  # PyMuPDF
 
 #from app.utils.file_handler import extract_from_pdf, extract_from_word, extract_from_text, extract_pdf_content
 from app.core.config import settings
@@ -86,12 +87,29 @@ def extract_pdf_content(file_path: str) -> str:
         print(f"Si è verificato un errore generico: {e}")
     """
 
-def chunk_document_cosine_(text:str)->List[str]:
+def chunk_document_cosine(text:str, images_caption)->List[str]:
+    # reverse order otherwise the char_offset increse after inserting the caption
+    for img_caption in images_caption[::-1]:
+        text=_insert_img_caption(text, img_caption)
+
     chunks=get_initial_chunks(text)
     if len(chunks)>=1:
         distances, chunks=_cosine_distance(chunks)
         indices_above_trheshold=_indices_above_treshold_distance(distances)
-        document_chunks=self._group_chunks(indices_above_trheshold, chunks)
+        chunks=_group_chunks(indices_above_trheshold, chunks)
+        chunks=_remove_artifacts(chunks)
+
+def _insert_img_caption(text, img_caption):
+    temp_text = [text[:img_caption['char_offset']], img_caption['img_caption'], text[img_caption['char_offset']:]]
+    return ''.join(temp_text)
+
+def _remove_artifacts(chunks):
+    # remove artifacts
+    for sentence in chunks:
+        # Remove index and sentence field in the list of dictionary
+        sentence.pop('index', None)
+        sentence.pop('sentence')
+    return chunks
 
 
 
@@ -104,7 +122,7 @@ def get_initial_chunks(text:str):
     chunks=_do_embedding(chunks)
     return chunks
 
-def __group_chunks(self, indices, sentences):
+def _group_chunks(indices, sentences):
     # initialize the start index
     start_index = 0
     # create a list to hold the grouped sentences
@@ -129,12 +147,12 @@ def _check_len(chunk):
     if len(chunk)*0.75>1024:
         docs_split=chunk_document(chunk)
         # get new embeddings for the new chunks
-        return _et_new_chunk(len(docs_split), docs_split)
+        return _get_new_chunk(len(docs_split), docs_split)
     else:
         #st.write("Sotto i 1024")
-        return _get_new_chunk(1, document)
+        return _get_new_chunk(1, chunk)
 
-def _get_new_chunk(self, leng, chunks):
+def _get_new_chunk(leng, chunks):
     splitted_chunks = []
     # get strings from documents
     string_text = [chunks for i in range(leng)]
@@ -232,3 +250,66 @@ def chunk_document(text: str) -> List[str]:
         start += settings.MAX_TOKEN_PER_CHUNK - settings.CHUNK_OVERLAP_TOKEN
         if end==len(text): break
     return chunks
+
+
+def get_image_info(file_name: str) -> List[Dict[int, str]]:
+    image_positions  = []
+        
+    try:
+        # Open PDF
+        doc = fitz.open(Path(file_name))
+
+        
+        for page_num, page in enumerate(doc):
+            # Ottieni blocchi di testo con informazioni di formattazione
+            blocks = page.get_text("dict")["blocks"]
+            #sort by readi
+            sorted_blocks = sorted(blocks, key=lambda b: (b["bbox"][1], b["bbox"][0]))
+            char_count=0
+            images_in_page = [] #image info
+            
+            for block in sorted_blocks:
+                if block["type"] == 0:  # text block
+                    for line in block["lines"]:
+                        # concat text
+                        line_text = "".join(span["text"] for span in line["spans"])
+                        char_count += len(line_text)
+                
+                elif block["type"] == 1:  # image block
+                    xref = block.get("image") or block.get("xref")
+                    if xref:
+                        # Estrazione dell'immagine dal PDF
+                        base_image = doc.extract_image(xref)
+                        image_bytes = base_image["image"]
+                        image_caption=_generate_caption_with_blip(Image.open(io.BytesIO(image_bytes)))
+                    images_in_page.append({
+                        "char_offset": char_count,
+                        "img_caption": image_caption,
+                    })
+            
+            image_positions.append(images_in_page)
+
+        doc.close()
+        return image_positions
+        
+    except Exception as e:
+        logger.error(f"Errore nell'estrazione del testo: {e}")
+        return {}
+
+def _generate_caption_with_blip(byte_image):
+    model_name = "Salesforce/blip-image-captioning-base"
+    processor = BlipProcessor.from_pretrained(model_name)
+    model = BlipForConditionalGeneration.from_pretrained(model_name)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = model.to(device)
+    model.eval()
+
+    with torch.no_grad():
+
+        # Conditional caption
+        conditional_inputs = processor(byte_image, text="Describe the imag", return_tensors="pt").to(device)
+        with autocast():
+            conditional_outputs = model.generate(**conditional_inputs)
+        conditional_caption = processor.decode(conditional_outputs[0], skip_special_tokens=True)
+
+    return conditional_caption

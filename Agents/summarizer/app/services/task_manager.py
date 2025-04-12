@@ -97,7 +97,8 @@ async def process_document_task(task_id: uuid.UUID, file_path: str, summary_type
         await update_task_status(task_id, TaskStatus.EXTRACTING)
         #temp_video_path = await file_handler.download_video_from_url(video_url)
         # 2. Extract text from document
-        #text = await document_processing.extract_text_from_document(file_tmp_path)
+        #image_caption=document_processing.get_image_info(file_tmp_path)
+        #text = await document_processing.extract_text_from_document(file_tmp_path, image_caption)
 
         logger.info(f"[Task:{task_id}] Text extracted from document")
 
