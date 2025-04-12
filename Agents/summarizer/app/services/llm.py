@@ -7,7 +7,7 @@ import httpx
 from app.core.config import settings
 from app.utils import prompts
 from typing import List
-from app.services.document_processing import extract_markdown
+#from app.services.document_processing import extract_markdown
 import asyncio
 
 

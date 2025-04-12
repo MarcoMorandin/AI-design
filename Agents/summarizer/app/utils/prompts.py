@@ -42,8 +42,7 @@ def _get_summary_type_prompt(summary_type: SummaryType) -> str:
    return prompt
 def generate_final_summary(summary_sections_text, summary_type: SummaryType):
    summary_type_prompt = _get_summary_type_prompt(summary_type)
-   prompt = f"""You are an expert writer tasked with combining multiple summaries sections into a single, cohesive, and well-structured summaries. Your goal is to create a unified document that reads as a complete academic summary"""
-   +summary_type_prompt +f"""
+   prompt = f"""You are an expert writer tasked with combining multiple summaries sections into a single, cohesive, and well-structured summaries. Your goal is to create a unified document that reads as a complete academic summary
 
       --- SUMMARIES SECTIONS ---
       {summary_sections_text}

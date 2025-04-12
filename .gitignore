@@ -77,7 +77,7 @@ credentials.json
 token.json
 
 *.mp4
-
+venv
 .venv
 .temp
 

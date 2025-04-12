@@ -1,0 +1,25 @@
+The optimization problem for the UAV controller is:
+
+\[\mathbf{P1}\mathbf{:} \underset{\boldsymbol{g},\boldsymbol{\lambda},X_{i,j}}{\text{max}} \quad U_{con}, \tag{8}\] \[\text{s.t.} \quad E_{j}^{\mathrm{comp}}+E_{j}^{\mathrm{hov}}\leq\varepsilon, \forall j\in\mathcal{J},\] \[(5),(6),\]
+
+where constraint (8) indicates that the energy consumption can not exceed the UAV battery budget.
+
+## III Game Theory Based Problem Analysis
+
+### _Stackelberg Game Model_
+
+Since the UAV controller has a competitive relationship with UEs, the interaction between UEs and the UAV controller is modeled as a Stackelberg game with a single leader and multiple followers, as depicted in Fig. 2. The game is described in two stages. In the first stage, each UE submits the task information and the UAV controller sets the resource prices \(\boldsymbol{\lambda}=\{\lambda_{1},\lambda_{2},\ldots,\lambda_{I}\}\) based on the information provided by the UEs. In the second stage, each UE determines the data offloading strategy \(\boldsymbol{g}=\{g_{1},g_{2},\ldots,g_{I}\}\), according to the specified pricing scheme.
+
+### _Optimization of UE_
+
+We apply a backward induction method to deal with the game-theoretic problem. The proof of the existence and uniqueness of Nash equilibrium is given as follows.
+
+**Definition 1**.: _There exists Nash equilibrium among EUs with \(\boldsymbol{g}^{*}=\{g_{1}^{*},g_{2}^{*},...,g_{N}^{*}\}\). At this point, there is a utility function \(U_{i}\left(g_{i}^{*},g_{-i}^{*}\right)>U_{i}\left(g_{i},g_{-i}^{*}\right)\), where \(g_{-i}^{*}\) is the best strategy for other UEs excluding EU \(i\)._
+
+**Theorem 1**.: _In the Stackelberg game, there exists a unique Nash equilibrium point when the utility function of UE \(i\) adheres to Eq. (2). In this case, the optimal offloading strategy of UE \(i\) is denoted by_
+
+\[g_{i}^{*}=\frac{\delta_{i}}{\frac{p_{i}}{r_{i,j}}-\varepsilon_{i}+\lambda_{i}}-1. \tag{9}\]
+
+**Proof**.: _The first and second partial derivatives of the utility function \(U_{i}\) with respect to \(g_{i}\) can be obtained as follows_
+
+\[\frac{\partial U_{i}}{\partial g_{i}}=\frac{\delta_{i}}{1+g_{i}}-\frac{p_{i}} {r_{i,j}}+\varepsilon_{i}-\lambda_{i}, \tag{10}\]

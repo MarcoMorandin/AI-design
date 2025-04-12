@@ -1,0 +1,32 @@
+Fig. 4 illustrates the iterative process of the proposed PSOPSSL. Fig. 4(a) shows the iterative convergence process for the UE. As iterations increases, the utility progressively improves, reaching the stable convergence after 10 iterations. Similarly, as shown in Fig. 4(b), the convergence is achieved after approximately 10 iterations as the number of iterations increases. It is noted that PSOPSSL converges faster than particle swarm optimization (PSO) and gradient descent (GD).
+
+To assess the performance of the proposed CPPO method, we compare it with three alternative scenarios: 1) the CCPO algorithm without the ULAR mechanism (NU-CPPO), 2) uploading strategies determined via game theory (OSRS), and 3) pricing strategies determined via game theory (PSRS). In detail, Fig. 5(a) and 5(b) compare the mean utility of UEs for all users and the utilize of the UAV controller under four different offloading strategies, respectively. The CPPO scheme significantly improves the utility of UEs and the UAV controller compared to the OSRS and PSRS. Compared to the NU-CPPO strategy, the results of the comparison highlight the necessity of implementing the ULAR mechanism.
+
+## VI Conclusions
+
+This paper presents a novel framework in which a ground-based UAV controller coordinates the deployment of UAV-MECs within 3D corridors and efficiently allocates computational resources to support damaged UEs in disaster areas. Considering that there is a competitive relationship between the UAV controller and UEs, it is modeled as a Stackelberg game problem. We design a ULAR mechanism to optimize UAV placement and resource allocation. To deal with the formulated Stackelberg game problem, we propose a CPPO algorithm. Extensive simulations are conducted to assess the performance of the proposed methods, with results showing that the proposed algorithms outperform other baseline approaches.
+
+## References
+
+* IEEE International Conference on Communications_, Rome, Italy, Oct. 2023.
+* [2] Z. Ning, Y. Yang, X. Wang, L. Guo, X. Gao, S. Guo, and G. Wang, "Dynamic Computation Offloading and Server Deployment for UAV-Enabled Multi-Access Edge Computing," _IEEE Trans. Mob. Comput._, vol. 22, no. 5, pp. 2628-2644, Nov. 2023.
+* [3] Z. Jia, Y. Cao, L. He, Q. Wu, Q. Zhu, D. Niyato, and Z. Han, "Service Function Chain Dynamic Scheduling in Space-Air-Ground Integrated Networks," _IEEE Trans. Veh. Technol._, pp. 1-15, Feb. 2025.
+* [4] Y. He, K. Xiang, X. Cao, and M. Guizani, "Task Scheduling and Trajectory Optimization Based on Fairness and Communication Security for Multi-UAV-MEC System," _IEEE Internet Things J._, vol. 11, no. 19, pp. 30 510-30 523, Jun. 2024.
+* [5] S. Karimi-Bidhendi, G. Geraci, and H. Jafarkhani, "Optimizing Cellular Networks for UAV Corridors via Quantization Theory," _IEEE Trans. Wireless Commun._, vol. 23, no. 10, pp. 14 924-14 939, Jul. 2024.
+* [6] N. Ruseno, C.-Y. Lin, and S.-C. Chang, "UAS Traffic Management Communications: The Legacy of ADS-B, New Establishment of Remote ID, or Leverage of ADS-B-Like Systems?" _Drones_, vol. 6, no. 3, p. 57, Feb. 2022.
+* [7] Z. Jia, J. You, C. Dong, Q. Wu, F. Zhou, D. Niyato, and Z. Han, "Cooperative Cognitive Dynamic System in UAV Swarms: Reconfigurable Mechanism and Framework," _IEEE Veh. Technol. Mag._, vol. 19, no. 3, pp. 90-101, Jul. 2024.
+* [8] T. Fang, F. Yuan, L. Ao, and J. Chen, "Joint Task Offloading, D2D Pairing, and Resource Allocation in Device-Enhanced MEC: A Potential Game Approach," _IEEE Internet Things J._, vol. 9, no. 5, pp. 3226-3237, Jul. 2021.
+* [9] L. Geng, H. Zhao, and C. Zou, "Stackelberg Game-Based Computation Offloading and Pricing in UAV Assisted Vehicular Networks," _IEEE Trans. Reliab._, pp. 1-15, May 2024.
+* [10] Y. Zhang, X. Hou, H. Du, L. Zhang, J. Du, and W. Men, "Joint Trajectory and Resource Optimization for UAV and D2D-Enabled Heterogeneous Edge Computing Networks," _IEEE Trans. Veh. Technol._, vol. 73, no. 9, pp. 13 816-13 827, May 2024.
+* [11] N. Cheri, W. Jafari, H. Yanikomeroglu, and A. Yongacoglu, "3D Aerial Highway: The Key Enabler of the Retail Industry Transformation," _IEEE Commun. Mag._, vol. 59, no. 9, pp. 65-71, Oct. 2021.
+* [12] D. Chao, Y. Zhang, J. Zijye, L. Yiyang, L. Zhang, and W. Qihui, "Three-dimension Collision-free Trajectory Planning of UAVs Based on ADS-B Information in Low-altitude Urban Airspace," _Chim. J. Aeronaut._, vol. 38, no. 2, p. 103170, Aug. 2024.
+* [13] M. Wang, L. Zhang, P. Gao, X. Yang, K. Wang, and K. Yang, "Stackelberg-Game-Based Intelligent Offloading Incentive Mechanism for a Multi-UAV-Assisted Mobile-Edge Computing System," _IEEE Internet Things J._, vol. 10, no. 17, pp. 15 679-15 689, Apr. 2023.
+* [14] K. Zhang, X. Gui, D. Ren, and D. Li, "Energy-Latency Tradeoff for Computation Offloading in UAV-Assisted Multiaccess Edge Computing System," _IEEE Internet Things J._, vol. 8, no. 8, pp. 6709-6719, Jun. 2021.
+* [15] K. Najim and A. S. Poznyak, _Learning Automata: Theory and Applications_. Elsevier, 2014.
+
+Fig. 4: Iterations of PSOPSSL algorithm.
+
+Fig. 5: Comparison of different algorithms.
+
+Fig. 3: The Stackelberg equilibrium.
+

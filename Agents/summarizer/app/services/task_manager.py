@@ -9,7 +9,7 @@ from app.db.mongodb import get_task_collection
 from app.models.task import TaskStatus, TaskDocument
 from app.core.config import settings
 from app.services import document_processing, llm
-from app.services.document_processing import extract_markdown
+#from app.services.document_processing import extract_markdown
 from app.models.request import SummaryType
 
 logger = logging.getLogger(__name__)
@@ -91,16 +91,20 @@ async def process_document_task(task_id: uuid.UUID, file_path: str, summary_type
 
     try:
         await update_task_status(task_id, TaskStatus.DOWNLOADING)
-        file_tmp_path=await file_handler.download_document_from_url(file_path)
+        #file_tmp_path=await file_handler.download_document_from_url(file_path)
+
         # 1. Update status: EXTRACTING
         await update_task_status(task_id, TaskStatus.EXTRACTING)
         #temp_video_path = await file_handler.download_video_from_url(video_url)
         # 2. Extract text from document
-        text = await document_processing.extract_text_from_document(file_tmp_path)
+        #text = await document_processing.extract_text_from_document(file_tmp_path)
 
         logger.info(f"[Task:{task_id}] Text extracted from document")
-        
-        
+
+        text = ""        
+        with open('test2.mmd', 'r', encoding='utf-8') as file:
+           text = file.read()
+
         # 4. Chunk document and analyze content
         chunks = document_processing.chunk_document(text)
         print(len(chunks))

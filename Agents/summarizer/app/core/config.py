@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     MAX_TOKEN_PER_CHUNK: int = 10000
     CHUNK_OVERLAP_TOKEN: int = 500
 
+
+    NOUGAT_URL:str='http://127.0.0.1:8503/predict/'
     # Logging Level (e.g., INFO, DEBUG, WARNING)
     LOG_LEVEL: str = "INFO"
 
