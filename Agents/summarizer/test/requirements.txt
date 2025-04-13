@@ -1,0 +1,7 @@
+PyMuPDF
+requests
+scikit-learn
+torch
+sentence-transformers
+pydantic-settings
+torch
