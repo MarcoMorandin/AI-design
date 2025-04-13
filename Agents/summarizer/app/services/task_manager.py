@@ -102,10 +102,12 @@ async def process_document_task(task_id: uuid.UUID, file_path: str, summary_type
 
         logger.info(f"[Task:{task_id}] Text extracted from document")
 
+        """
         text = ""        
         with open('test2.mmd', 'r', encoding='utf-8') as file:
            text = file.read()
-
+        """
+        
         # 4. Chunk document and analyze content
         chunks=document_processing.chunk_document_cosine(text)
         #chunks = document_processing.chunk_document(text)

@@ -95,12 +95,6 @@ async def read_root():
 # --- Uvicorn runner (for direct execution, e.g., python app/main.py) ---
 # Usually you run with `uvicorn app.main:app --reload` from the project root
 if __name__ == "__main__":
-    """
-    file_path = "test.pdf"
-    extracted_text = extract_pdf_content(file_path)
-    with open("output.txt", "w", encoding="utf-8") as file:
-        file.write(extracted_text)
-    """
     import uvicorn
     logger.info("Running Uvicorn directly from main.py (for development only)...")
     uvicorn.run(

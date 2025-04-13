@@ -138,22 +138,18 @@ Response:
   "status": "done",
   "file_path": "/path/to/document.pdf",
   "summary": "# Document Summary\n\n## Key Points\n...\n",
-  "summary_path": "/path/to/summary_results/document_summary.md",
   "error": null,
   "created_at": "2023-06-01T11:00:00Z",
   "updated_at": "2023-06-01T12:00:00Z"
 }
 ```
+## Running the Application
+Once installed and configured, run the FastAPI application using Uvicorn:
 
-## Dependencies
+```bash
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
 
-- FastAPI: Web framework for building APIs
-- Motor: Asynchronous MongoDB driver
-- PyMuPDF: PDF processing library
-- python-docx: Word document processing
-- EasyOCR: Optical character recognition for images (optional)
-- Google Generative AI: Gemini API client
+## API usage
 
-## License
-
-MIT
+Go to ***http://localhost:8000/docs*** to view api documentation
