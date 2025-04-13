@@ -1,13 +1,14 @@
-from pathlib import Path
-from typing import List, Dict
-import fitz  # PyMuPDF
-from config import settings
-import requests
+from typing import List
+from app.core.config import settings
 from sklearn.metrics.pairwise import cosine_similarity
 import torch
-from sentence_transformers import SentenceTransformer
+#from sentence_transformers import SentenceTransformer → problems wit transfoermrs 4.38.2 that is needed fot OCR analysis
+# The commended function is for using sentenceTransformers
 import torch
 import torch.nn.functional as F
+from app.utils.chucker.standardar_chuncker import chunk_document
+
+#
 #model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
 
@@ -200,25 +201,3 @@ def _combine_sentences(chunks:str, buffer_size):
         chunks[i]['section'] = combined_sentence
     return chunks
 
-def chunk_document(text: str) -> List[str]:
-    """
-    Suddivide il testo del documento in chunk gestibili per l'elaborazione,
-    introducendo anche un overlapping tra i chunk in base al valore impostato in settings.OVERLAP.
-    
-    Args:
-        text: Testo completo del documento.
-    
-    Returns:
-        Una lista di chunk di testo
-    """
-    chunks = []
-    if len(text) < settings.MAX_LENGTH_PER_CHUNK:
-        chunks.append(text)
-        return chunks
-    start=0
-    while start < len(text):
-        end = min(start + settings.MAX_LENGTH_PER_CHUNK, len(text))
-        chunks.append(text[start:end])
-        start += settings.MAX_LENGTH_PER_CHUNK - settings.OVERLAPP_CHUNK
-        if end==len(text): break
-    return chunks

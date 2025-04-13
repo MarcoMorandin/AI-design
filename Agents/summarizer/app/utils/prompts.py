@@ -24,7 +24,7 @@ def _get_summary_type_prompt(summary_type: SummaryType) -> str:
    elif summary_type == SummaryType.TECHNICAL:
       prompt = """
       **Summary Type:** Technical Summary
-      **Instructions:** Generate a structured summary focusing on the technical aspects. Include key objectives, methodology (if applicable), main technical findings or specifications, and technical conclusions. Preserve essential technical terminology. If formulas or specific data were mentioned in the sections, describe their significance or list key values and report them.
+      **Instructions:** Generate a structured summary focusing on the technical aspects. Include key objectives, methodology (if applicable), main technical findings or specifications, and technical conclusions. Preserve essential technical terminology. If formulas or specific data were mentioned in the sections, you MUST report them, describe their significance or list key values.
       **Output Format:** Use clear headings if appropriate for structure. Use Markdown for formatting.
       """
    elif summary_type == SummaryType.KEY_POINTS:
@@ -49,43 +49,14 @@ def generate_final_summary(summary_sections_text, summary_type: SummaryType):
       --- SUMMARIES SECTIONS ---
 
 
-      Follow these guidelines:"""+summary_type_prompt
+      Follow these guidelines:
+      """+summary_type_prompt
    return prompt
 
-"""
 
-
-1. **Correct Syntax Errors**:
-   - Fix incorrect or unbalanced headers (e.g., `#Header` instead of `# Header`, or mismatched `#` counts).
-   - Repair improper list formatting (e.g., `-item` to `- item`, or inconsistent indentation).
-   - Correct emphasis issues (e.g., `_italic_` to `*italic*`, or unmatched `*`/`_` symbols).
-   - Fix broken links or images (e.g., `[text](url` to `[text](url)`).
-   - Ensure proper spacing around Markdown elements (e.g., `##Header` to `## Header`).
-
-2. **Standardize Formatting**:
-   - Use consistent header levels (e.g., `#` for main headings, `##` for subheadings).
-   - Prefer `*` for emphasis (italics `*text*`, bold `**text**`) unless the original intent clearly uses `_`.
-   - Ensure lists use consistent markers (e.g., `-` for unordered lists, `1.` for ordered lists) and proper indentation.
-   - Add blank lines between different Markdown elements (e.g., between paragraphs and lists) for clarity.
-
-3. **Preserve Content**:
-   - Do not alter the meaning, wording, or intent of the text unless it’s necessary to resolve ambiguity caused by formatting errors.
-   - Retain the original structure (e.g., paragraph breaks, list hierarchy) unless it’s malformed and needs correction.
-
-4. **Handle Common Issues**:
-   - Remove stray Markdown symbols (e.g., random `#`, `*`, or `_` not used correctly).
-   - Fix code blocks (e.g., ensure triple backticks ``` are properly closed).
-   - Correct tables by aligning columns and ensuring proper separators (e.g., `| text | text |` with `-` for headers).
-
-5. **Output Only Markdown**:
-   - The result must be valid Markdown that renders correctly in standard Markdown parsers.
-   - Do not include explanations, comments, or any text outside the corrected Markdown.
-"""
 def clean_markdown_prompt(markdown_text):
     prompt = f"""You are an expert in Markdown formatting tasked with cleaning and standardizing a provided Markdown text. 
     Your goal is to identify and fix any errors or inconsistencies in the Markdown syntax while PRESERVING the original content and structure. Just fix the error in markdown and return the correct markdown with nothing else.
-
-
 
 
    --- MARKDOWN TEXT ---
