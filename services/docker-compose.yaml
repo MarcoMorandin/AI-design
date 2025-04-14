@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  # nougat-gpu:
+  #   build:
+  #     context: ./nougat
+  #     dockerfile: Dockerfile
+  #     target: gpu
+  #     args:
+  #       CUDA_VERSION: 11.8.0  # Set your desired CUDA version here
+  #   image: nougat-gpu
+  #   ports:
+  #     - "8503:8503"
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             capabilities: [gpu]
+  #   container_name: nougat-gpu
+  #   restart: unless-stopped
+
+  nougat-cpu:
+    build:
+      context: ./nougat
+      dockerfile: Dockerfile
+      target: cpu
+    image: nougat-cpu
+    ports:
+      - "8503:8503"  # Different host port to avoid conflict with GPU service
+    container_name: nougat-cpu
+    restart: unless-stopped
