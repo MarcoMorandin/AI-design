@@ -1,6 +1,6 @@
 # Document Summarization API
 
-A FastAPI-based service for summarizing documents using Google's Gemini AI. This API allows you to extract key information from various document formats (PDF, Word, text) and generate comprehensive summaries.
+A FastAPI-based service for summarizing documents using LLM. This API allows you to extract key information from various document formats (PDF, Word, text) and generate comprehensive summaries.
 
 ## Features
 
@@ -13,35 +13,6 @@ A FastAPI-based service for summarizing documents using Google's Gemini AI. This
 - Asynchronous task processing with status tracking
 - MongoDB integration for task and result storage
 
-## Project Structure
-
-```
-summarizer/
-├── app/
-│   ├── api/
-│   │   └── endpoints/
-│   │       └── tasks.py       # API endpoints for document processing
-│   ├── core/
-│   │   └── config.py          # Application configuration
-│   ├── db/
-│   │   └── mongodb.py         # Database connection and utilities
-│   ├── models/
-│   │   ├── request.py         # Request data models
-│   │   ├── summary.py         # Summary data models
-│   │   └── task.py            # Task processing models
-│   ├── services/
-│   │   ├── document_processing.py  # Document processing logic
-│   │   ├── llm.py             # LLM integration (Gemini)
-│   │   └── task_manager.py    # Background task management
-│   ├── utils/
-│   │   ├── file_handler.py    # File processing utilities
-│   │   └── prompts.py         # LLM prompts
-│   └── main.py                # FastAPI application entry point
-├── summary_results/           # Directory for generated summaries
-├── temp_files/                # Directory for temporary files
-├── requirements.txt           # Project dependencies
-└── README.md                  # Project documentation
-```
 
 ## Setup
 
@@ -55,14 +26,11 @@ summarizer/
    ```
    pip install -r requirements.txt
    ```
-4. Create a `.env` file with the following variables:
-   ```
-   MONGODB_URL=mongodb://localhost:27017
-   MONGODB_DB_NAME=summarizer_db
-   GOOGLE_API_KEY=your_gemini_api_key
-   GEMINI_MODEL=gemini-2.0-flash
-   LOG_LEVEL=info
-   ```
+
+4. start nougat:
+  ```
+  nougat_api
+  ```
 5. Start the API server:
    ```
    uvicorn app.main:app --reload
@@ -138,22 +106,18 @@ Response:
   "status": "done",
   "file_path": "/path/to/document.pdf",
   "summary": "# Document Summary\n\n## Key Points\n...\n",
-  "summary_path": "/path/to/summary_results/document_summary.md",
   "error": null,
   "created_at": "2023-06-01T11:00:00Z",
   "updated_at": "2023-06-01T12:00:00Z"
 }
 ```
+## Running the Application
+Once installed and configured, run the FastAPI application using Uvicorn:
 
-## Dependencies
+```bash
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
 
-- FastAPI: Web framework for building APIs
-- Motor: Asynchronous MongoDB driver
-- PyMuPDF: PDF processing library
-- python-docx: Word document processing
-- EasyOCR: Optical character recognition for images (optional)
-- Google Generative AI: Gemini API client
+## API usage
 
-## License
-
-MIT
+Go to ***http://localhost:8000/docs*** to view api documentation

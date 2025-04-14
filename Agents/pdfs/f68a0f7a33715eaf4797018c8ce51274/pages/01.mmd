@@ -1,0 +1,33 @@
+
+
+# Torchfx: A Modern Approach to Audio DSP with Pytorch and GPU Acceleration
+
+###### Abstract
+
+The burgeoning complexity and real-time processing demands of audio signals necessitate optimized algorithms that harness the computational prowess of Graphics Processing Units (GPUs). Existing Digital Signal Processing (DSP) libraries often fall short in delivering the requisite efficiency and flexibility, particularly in integrating Artificial Intelligence (AI) models. In response, we introduce Torchfx: a GPU-accelerated Python library for DSP, specifically engineered to facilitate sophisticated audio signal processing. Built atop the PyTorch framework, Torchfx offers an Object-Oriented interface that emulates the usability of torchaudio, enhancing functionality with a novel pipe operator for intuitive filter chaining. This library provides a comprehensive suite of Finite Impulse Response (FIR) and Infinite Impulse Response (IIR) filters, with a focus on multichannel audio files, thus facilitating the integration of DSP and AI-based approaches. Our benchmarking results demonstrate significant efficiency gains over traditional libraries like SciPy, particularly in multichannel contexts. Despite current limitations in GPU compatibility, ongoing developments promise broader support and real-time processing capabilities. Torchfx aims to become a useful tool for the community, contributing to innovation and progress in DSP with GPU acceleration. Torchfx is publicly available on GitHub at [https://github.com/matteospanio/torchfx](https://github.com/matteospanio/torchfx).
+
+Matteo Spanio and Antonio Roda Centro di Sonologia Computazionale (CSC)
+
+Dept. of Information Engineering
+
+University of Padova
+
+Padova, IT
+
+{spanio,roda}@dei.unipd.it
+
+## 1 Introduction
+
+As the applications of DSP to fields such as telecommunications, multimedia, and artificial intelligence (AI) become more complex and the demand for real-time processing intensifies, the necessity for optimized algorithms that harness the computational prowess of Graphics Processing Units (GPUs) becomes paramount.
+
+Despite the strides made in GPU technology, existing DSP libraries frequently fall short in delivering the requisite efficiency and flexibility demanded by contemporary applications. These libraries, while operational, often possess design constraints that impede the full exploitation of GPU capabilities [1, 2]. Moreover, the integration of AI models into DSP workflows necessitates a seamless and intuitive interface capable of accommodating the complexities inherent in both domains. The absence of such a library creates a void within the ecosystem, compelling researchers and practitioners to navigate cumbersome interfaces or develop bespoke solutions that may not fully leverage GPU acceleration when developing complex AI systems.
+
+In response to this critical need, we present Torchfx, an innovative Python library constructed atop the PyTorch framework, specifically engineered to facilitate GPU-accelerated DSP for audio signals. This library is designed to provide an Object-Oriented interface that emulates the usability of torchaudio, ensuring compatibility while enhancing functionality. By prioritizing user experience, Torchfx incorporates operator overloading, enabling the intuitive chaining of filters through the use of the bitwise OR (\(\mid\)) operator. This design choice not only simplifies the construction of complex audio processing pipelines but also aligns with the burgeoning trend of modularity in software design, as exemplified by frameworks like Langchain [3] in natural language processing (NLP).
+
+TorchFX offers a comprehensive suite of filters, including both Finite Impulse Response (FIR) and Infinite Impulse Response (IIR) filters, to address the diverse requirements of audio manipulation, with a particular focus on multichannel audio files. This capability is indispensable in today's multimedia environment, where audio content frequently spans multiple channels and necessitates precise processing to achieve the desired output. By bridging the gap between DSP and AI, Torchfx aims to empower researchers and developers by facilitating the implementation of advanced audio processing techniques.
+
+The structure of this paper is organized to provide an understanding of Torchfx and its contributions to the DSP landscape. Section 2 presents a comprehensive survey of the background, highlighting the evolution of GPU-accelerated libraries and existing DSP solutions. In Section 3, we delve into the design principles and core features of TorchFX, elucidating how it addresses the limitations of current libraries. Section 4 provides a thorough evaluation of the library, demonstrating the efficiency of TorchFX and showcasing its capabilities through real-world examples. Finally, Section 5 concludes the paper by summarizing our findings and outlining potential directions for future research and development.
+
+## 2 Background and Related Works
+
+In the realm of Digital Signal Processing (DSP) for audio, the introduction of a new tool into the already diverse landscape of Python libraries presents both challenges and opportunities. Existing solutions, while varied, often fail to comprehensively address all potential use cases, particularly in terms of functionality and tool design. To elucidate the current state of the art and identify gaps, we conducted a literature review focusing on Python li
