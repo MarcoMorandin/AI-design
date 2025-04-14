@@ -1,14 +1,8 @@
-
-import fitz  # PyMuPDF
-import camelot
-import pdfplumber
 from docx import Document
-from typing import Dict, Any
 import logging
-import zipfile  # Importato per estrarre i file da un DOCX (che è un file ZIP)
 from pathlib import Path
 from app.core.config import settings
-from typing import List, Tuple, Union
+from typing import Union
 import easyocr
 import certifi
 
@@ -19,9 +13,6 @@ import uuid
 from pathlib import Path
 import httpx
 from fastapi import HTTPException
-# Ensure that your settings, logger, and any cleanup utility functions (like cleanup_files) are properly imported.
-# Example:
-# from your_project import settings, logger, cleanup_files
 logger = logging.getLogger(__name__)
 logging.getLogger("pdfminer").setLevel(logging.ERROR)
 
@@ -63,7 +54,7 @@ async def download_document_from_url(pdf_url: str) -> Path:
                 # Optional: Check Content-Type to ensure it's a PDF
                 content_type = response.headers.get("content-type", "").lower()
                 # Use a list of allowed PDF MIME types. This could be defined in your settings.
-                #allowed_pdf_types = getattr(settings, "ALLOWED_PDF_CONTENT_TYPES", ["application/pdf"])
+                allowed_pdf_types = getattr(settings, "ALLOWED_PDF_CONTENT_TYPES", ["application/pdf"])
                 if settings.ALLOWED_DOCUMENT_CONTENT_TYPES and not any(allowed_type in content_type for allowed_type in settings.ALLOWED_DOCUMENT_CONTENT_TYPES):
                     # Allow a generic stream (e.g., application/octet-stream) as a fallback.
                     if content_type != "application/octet-stream":

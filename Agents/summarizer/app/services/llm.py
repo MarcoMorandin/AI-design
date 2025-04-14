@@ -9,12 +9,21 @@ from app.utils import prompts
 from typing import List
 #from app.services.document_processing import extract_markdown
 import asyncio
-
+from google import genai
 
 logger = logging.getLogger(__name__)
+"""
+client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
+async def call_gemini(prompt:str, model_str=settings.GEMINI_MODEL_NAME):
+    response = client.models.generate_content(
+        model=model_str,
+        contents=prompt
+    )
+    return response.text
+"""
 async def call_ollama(prompt:str, model_str=settings.OLLAMA_MODEL):
-    """Sends a prompt to the Ollama API using httpx and returns the response."""
+    #Sends a prompt to the Ollama API using httpx and returns the response
     data = {"model": model_str, "prompt": prompt, "stream": False}
     timeout = httpx.Timeout(settings.OLLAMA_TIMEOUT) # Use configured timeout
     try:
@@ -41,11 +50,7 @@ async def call_ollama(prompt:str, model_str=settings.OLLAMA_MODEL):
         logger.error(f"An unexpected error occurred during Ollama call: {type(e).__name__} - {str(e)}", exc_info=True)
         raise RuntimeError(f"An unexpected error occurred during Ollama API call: {str(e)}") from e
 
-async def _process_chunk(chunk, index):
-    prompt = prompts.generate_chunk_summary_prompt(chunk)
-    summary = await call_ollama(prompt, model_str=settings.OLLAMA_MODEL)
-    logger.info(f"Chunk {index + 1} summary generated.")
-    return summary
+
 
 async def generate_final_summary(chunks: List[str], summary_type:SummaryType) -> List[str]:
     """

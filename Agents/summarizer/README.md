@@ -63,7 +63,11 @@ summarizer/
    GEMINI_MODEL=gemini-2.0-flash
    LOG_LEVEL=info
    ```
-5. Start the API server:
+5. start nougat:
+  ```
+  nougat_api
+  ```
+6. Start the API server:
    ```
    uvicorn app.main:app --reload
    ```

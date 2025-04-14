@@ -11,7 +11,7 @@ from app.api.endpoints import tasks as tasks_router # Import new tasks router
 from app.core.config import settings
 from app.db.mongodb import connect_to_mongo, close_mongo_connection # Import DB functions
 from app.core.config import settings
-from app.utils.file_handler import extract_pdf_content
+#from app.utils.file_handler import extract_pdf_content
 
 # Configure logging
 # You could put this dict in a separate logging_config.py

@@ -1,4 +1,3 @@
-from app.utils import prompts
 from app.models.request import SummaryType
 
 def generate_chunk_summary_prompt(chunk_text, summary_type: SummaryType):
@@ -65,17 +64,3 @@ def clean_markdown_prompt(markdown_text):
    """
     return prompt
 
-
-"""
-    You are an expert writer tasked with combining multiple essay sections into a single, cohesive, and well-structured essay. Your goal is to create a unified document that reads as a complete academic essay. Follow these guidelines:
-
-1. **Craft a Central Thesis:** Develop a clear, overarching thesis statement that ties together the arguments from the individual sections.
-2. **Seamless Integration:** Blend the provided sections into a single narrative, reworking content as needed to avoid repetition and ensure smooth transitions between ideas.
-3. **Structured Format**: Organize the essay with a clear introduction, body, and conclusion:
-   - **Introduction**: Introduce the topic, provide context, and present the thesis statement.
-   - **Body**: Divide into logical sections (based on the provided content), each exploring a distinct aspect of the thesis with clear transitions.
-   - **Conclusion**: Synthesize the key arguments, reflect on their significance, and offer a final perspective or call to action.
-4. **Consistent Tone and Style:** Maintain a formal, academic tone throughout, ensuring clarity and coherence across all sections.
-5. **Engage and Persuade**: Write in a way that captivates the reader while building a compelling case for the thesis.
-6. **Self-Contained Output:** Ensure the final essay is complete and understandable without requiring reference to the original sections.
-"""

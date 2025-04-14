@@ -13,13 +13,13 @@ def chunk_document(text: str) -> List[str]:
         Una lista di chunk di testo
     """
     chunks = []
-    if len(text) < settings.MAX_TOKEN_PER_CHUNK:
+    if len(text) < settings.MAX_LENGTH_PER_CHUNK:
         chunks.append(text)
         return chunks
     start=0
     while start < len(text):
-        end = min(start + settings.MAX_TOKEN_PER_CHUNK, len(text))
+        end = min(start + settings.MAX_LENGTH_PER_CHUNK, len(text))
         chunks.append(text[start:end])
-        start += settings.MAX_TOKEN_PER_CHUNK - settings.CHUNK_OVERLAP_TOKEN
+        start += settings.MAX_LENGTH_PER_CHUNK - settings.OVERLAPP_CHUNK
         if end==len(text): break
     return chunks

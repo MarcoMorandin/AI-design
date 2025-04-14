@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     MONGODB_URL: str = "mongodb+srv://test:test@ai-designing.psxhnz0.mongodb.net/"
     MONGODB_DB_NAME: str = "test"
     MONGODB_TASK_COLLECTION: str = "tasks"
+
+    CHUNCKER_TYPE: str="standard" #cosine
     
     class Config:
         # Reads variables from a .env file if present

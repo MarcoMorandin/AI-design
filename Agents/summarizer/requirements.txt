@@ -28,3 +28,6 @@ certifi
 asyncio
 nougat-ocr
 transformers==4.38.2
+comtypes
+#google-generativeai
+#google-genai

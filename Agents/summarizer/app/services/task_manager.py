@@ -97,27 +97,22 @@ async def process_document_task(task_id: uuid.UUID, file_path: str, summary_type
         await update_task_status(task_id, TaskStatus.EXTRACTING)
 
         # 2. Extract text from document
-        image_caption=document_processing.get_image_info(file_tmp_path)
-        text = await document_processing.extract_text_from_document(file_tmp_path, image_caption)
+        #image_captions=document_processing.get_image_info(file_tmp_path)
+        image_captions=[]
+        text = await document_processing.extract_text_from_document(file_tmp_path, image_captions)
 
         logger.info(f"[Task:{task_id}] Text extracted from document")
 
-        """
-        text = ""        
-        with open('test2.mmd', 'r', encoding='utf-8') as file:
-           text = file.read()
-        """
-        
         # 4. Chunk document and analyze content
-        chunks=document_processing.chunk_document_cosine(text)
+        #chunks=document_processing.chunk_document(text)
+        if settings.CHUNCKER_TYPE=='standard':
+            chunks=document_processing.chunk_document(text)
+        else:
+            chunks=document_processing.chunk_document_cosine(text)
         #chunks = document_processing.chunk_document(text)
-        print(len(chunks))
         await update_task_status(task_id, TaskStatus.SUMMARIZING)
-
         logger.info(f"Generating summary")
         summary = await llm.generate_final_summary(chunks, summary_type)
-
-        #correct_markdown_summary=extract_markdown(summary)
 
         logger.info(f"[Task:{task_id}] Summary generation successful.")
 
@@ -129,42 +124,3 @@ async def process_document_task(task_id: uuid.UUID, file_path: str, summary_type
         error_msg = f"Error processing document: {str(e)}"
         logger.error(f"[Task:{task_id}] {error_msg}")
         await update_task_status(task_id, TaskStatus.FAILED, error_msg)
-
-'''
-async def process_folder_task(task_id: uuid.UUID, folder_path: str):
-    """The background task for processing all documents in a folder."""
-    logger.info(f"[Task:{task_id}] Starting background processing for folder: {folder_path}")
-
-    try:
-        # 1. Update status: PROCESSING
-        await update_task_status(task_id, TaskStatus.PROCESSING)
-        
-        # 2. Process all documents in the folder
-        results = await document_processing.summarize_folder(folder_path)
-        
-        # 3. Update task with result summary
-        summary_text = f"Processed {len(results)} documents in folder {folder_path}\n\n"
-        for result in results:
-            if "error" in result:
-                summary_text += f"- {result['file_path']}: ERROR - {result['error']}\n"
-            else:
-                summary_text += f"- {result['file_path']}: Summary saved to {result['summary_path']}\n"
-        
-        # 4. Save the summary report
-        folder_name = Path(folder_path).name
-        summary_filename = f"{folder_name}_summary_report.md"
-        summary_dir = Path(settings.SUMMARY_RESULTS_DIR)
-        summary_dir.mkdir(exist_ok=True)
-        summary_path = summary_dir / summary_filename
-        
-        with open(summary_path, "w", encoding="utf-8") as f:
-            f.write(summary_text)
-        
-        # 5. Update task with result
-        await update_task_result(task_id, summary_text, str(summary_path))
-        
-    except Exception as e:
-        error_msg = f"Error processing folder: {str(e)}"
-        logger.error(f"[Task:{task_id}] {error_msg}")
-        await update_task_status(task_id, TaskStatus.FAILED, error_msg)
-'''

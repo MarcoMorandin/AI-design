@@ -1,0 +1,27 @@
+onds to 10 minutes, and altering the number of channels from 1 to 12. The processed signal comprised white noise, generated via the numpy.random.randn function, sampled at a frequency of 44100 Hz--a sampling rate commonly supported by contemporary computer audio cards.
+
+Figure 2 illustrates the results, showing that, overall, for single-channel and extremely short signals, filter application is more efficiently executed using SciPy. This efficiency is due to the underutilization of the GPU's parallel computing capabilities and the additional overhead incurred by VRAM memory transfers. However, as the number of channels increases, the execution time for the SciPy implementation escalates linearly, whereas TorchFX, both with and without GPU acceleration, demonstrates significantly enhanced efficiency, the exact performance numbers are displayed in table 2 for FIR results and 3 for IIR results.
+
+Unsurprisingly, as the dimensions of the input increase, the CPU time of SciPy algorithms escalates dramatically. This phenomenon can be attributed to the inherent limitations of CPU processing, which struggles to efficiently handle larger datasets due to its sequential execution model. In stark contrast, the GPU implementation of TorchFX, leveraging its parallel processing capabilities, consistently maintains execution times well below one second, even for extensive input signals. This remarkable efficiency underscores the advantages of utilizing GPU acceleration for digital signal processing tasks, particularly when dealing with high-dimensional data. It is also important to note that the CPU implementation of TorchFX remains competitive, particularly for larger signals. This is largely due to its optimization for multi-core processing, allowing it to effectively utilize all available CPU cores. As a result, even in scenarios where GPU acceleration may not be feasible, TorchFX's CPU performance provides a viable alternative, ensuring that users can achieve efficient processing without the need for specialized hardware. Furthermore, the benchmarking results highlight a critical aspect of digital signal processing: the choice of implementation can significantly impact performance. While SciPy excels in scenarios involving single-channel and short-duration signals, its performance deteriorates as the complexity of the input increases. In contrast, TorchFX demonstrates a more scalable approach, maintaining efficiency across varying input sizes and channel counts. This scalability is particularly beneficial for applications requiring real-time processing or handling of multi-channel audio, where the ability to manage increased computational demands without sacrificing performance is paramount.
+
+The comparative analysis of interface efficiency was conducted on a signal sampled at 44100 Hz, encompassing 8 channels, with a duration of 2 minutes. This signal was synthetically generated in a random manner, and the average execution time was calculated from 50 algorithm repetitions using the Python time module. The filter series comprised a chain of two Butterworth filters and two Chebyshev1 filters. In this scenario, the SciPy implementation was found to be slower than all other implementations, which exhibited closely aligned performance metrics. Table 4 demonstrates that the various implementations based on TorchFX achieved an average execution time of \(1.56\pm 0.01\) seconds, approximately half a second faster than the SciPy implementation.
+
+## 5 Conclusions
+
+In this article, we introduced TorchFX, a novel Python library designed to provide high-level programming interfaces to design
+
+\begin{table}
+\begin{tabular}{c c c c c} \hline \hline Time (s) & Channels & GPU & CPU & SciPy \\ \hline
+5 & 1 & 0.014247 & 0.033221 & 0.020940 \\
+5 & 2 & 0.009029 & 0.032975 & 0.041547 \\
+5 & 4 & 0.001824 & 0.035984 & 0.087344 \\
+5 & 8 & 0.003292 & 0.034048 & 0.171197 \\
+5 & 12 & 0.004809 & 0.073933 & 0.251341 \\
+60 & 1 & 0.004731 & 0.464397 & 0.261466 \\
+60 & 2 & 0.009341 & 0.438233 & 0.525599 \\
+60 & 4 & 0.014847 & 0.469470 & 1.006187 \\
+60 & 8 & 0.053108 & 0.526290 & 0.254205 \\
+60 & 12 & 0.079765 & 1.030621 & 3.03699 \\
+180 & 1 & 0.013415 & 1.401418 & 0.777573 \\
+180 & 2 & 0.039879 & 1.340833 & 1.585332 \\
+180 & 4 & 0.079396 & 1.430514 & 3.1296

@@ -8,20 +8,22 @@ import torch
 import torch.nn.functional as F
 from app.utils.chucker.standardar_chuncker import chunk_document
 
+from transformers import AutoModel, AutoTokenizer
 #
 #model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+
+from google import genai
+
 
 
 model_name = "sentence-transformers/all-MiniLM-L6-v2"
 model = AutoModel.from_pretrained(model_name)
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-def chunk_document_cosine(text:str, images_caption)->List[str]:
-    # reverse order otherwise the char_offset increse after inserting the caption
-    for img_caption in images_caption[::-1]:
-        text=_insert_img_caption(text, img_caption)
+def chunk_document_cosine(text:str)->List[str]:
 
     chunks=get_initial_chunks(text)
+    print(len(chunks))
     if len(chunks)>=1:
         distances, chunks=_cosine_distance(chunks)
         indices_above_trheshold=_indices_above_treshold_distance(distances)
@@ -134,39 +136,30 @@ def _mean_pooling(model_output, attention_mask):
     input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
     return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
 
+
 def _do_embedding(chunks):
     embeddings = []
     for i, chunk in enumerate(chunks):
         # Tokenize the text
-        inputs = tokenizer(chunk['section'], padding=True, truncation=True, 
+        encoded_input = tokenizer(chunk['section'], padding=True, truncation=True, 
                            return_tensors="pt")
         
         # Get model outputs
         with torch.no_grad():
-            outputs = model(**inputs)
+            model_output = model(**encoded_input)
         
         # Perform pooling
         sentence_embeddings = _mean_pooling(model_output, encoded_input['attention_mask'])
 
-        # Normalize embeddings
-        embeddings.append(F.normalize(sentence_embeddings, p=2, dim=1))
-        """
-        # Get all token embeddings
-        token_embeddings = outputs.last_hidden_state
+        # Normalize embeddings and convert to numpy array
+        normalized_embeddings = F.normalize(sentence_embeddings, p=2, dim=1)
+        embeddings.append(normalized_embeddings.squeeze().detach().cpu().numpy())
         
-        # Create attention mask to ignore padding tokens
-        attention_mask = inputs['attention_mask']
-        
-        # Apply mean pooling - take attention mask into account for correct averaging
-        input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-        sentence_embedding = torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
-        
-        # Convert to numpy and store
-        embeddings.append(sentence_embedding.squeeze().numpy())
-        """
     for i, chunk in enumerate(chunks):
         chunk['embedding'] = embeddings[i]
     return chunks
+
+
 """
 def _do_embedding(chunks):
     print("Embeddings")
