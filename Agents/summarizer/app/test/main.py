@@ -1,44 +1,60 @@
 
-from transformers import BlipProcessor, BlipForConditionalGeneration
-from PIL import Image
-import requests
-from typing import List, Dict
-import fitz
 from pathlib import Path
+import io
+import logging
+from typing import List, Dict
+import fitz  # PyMuPDF
+from PIL import Image
+import torch
+from torch.cuda.amp import autocast
+from transformers import BlipProcessor, BlipForConditionalGeneration
 
-
-def get_image_info(file_name: str) -> List[Dict[int, str]]:
-
+def get_image_info(file_name: str) -> List[List[Dict]]:
+    """
+    Extract images from PDF and their positions in terms of character count.
+    
+    Args:
+        file_name: Path to the PDF file
+        
+    Returns:
+        List of lists, where each inner list contains dictionaries with image information for each page
+    """
     image_positions = []
         
     try:
         # Open PDF
         doc = fitz.open(Path(file_name))
-        print(len(doc))
+        print(f"Number of pages: {len(doc)}")
+        
         for page_num, page in enumerate(doc):
-            # Ottieni blocchi di testo con informazioni di formattazione
+            # Get text blocks with formatting information
             blocks = page.get_text("dict")["blocks"]
-            # sort by reading order
+            # Sort by reading order
             sorted_blocks = sorted(blocks, key=lambda b: (b["bbox"][1], b["bbox"][0]))
             char_count = 0
-            images_in_page = [] # image info
+            images_in_page = []  # image info for this page
             
             for block in sorted_blocks:
                 if block["type"] == 0:  # text block
                     for line in block["lines"]:
-                        # concat text
+                        # Concatenate text from spans
                         line_text = "".join(span["text"] for span in line["spans"])
                         char_count += len(line_text)
                 
                 elif block["type"] == 1:  # image block
-                    xref = block.get("image", 0) or block.get("xref", 0)
+                    # Get image reference number
+                    xref = block.get("image", 0)
+                    if not xref:
+                        xref = block.get("xref", 0)
                     if xref and isinstance(xref, int):  # Ensure xref is an integer
                         try:
-                            # Estrazione dell'immagine dal PDF
+                            # Extract image from PDF
                             base_image = doc.extract_image(xref)
+                            print(f"Base image: {base_image}")
                             if base_image and "image" in base_image:
                                 image_bytes = base_image["image"]
-                                image_caption = _generate_caption_with_blip(Image.open(io.BytesIO(image_bytes)))
+                                pil_image = Image.open(io.BytesIO(image_bytes))
+                                image_caption = _generate_caption_with_blip(pil_image)
                                 images_in_page.append({
                                     "char_offset": char_count,
                                     "img_caption": image_caption,
@@ -50,14 +66,13 @@ def get_image_info(file_name: str) -> List[Dict[int, str]]:
 
         doc.close()
         return image_positions
-        
     except Exception as e:
+        logger.error(f"Error extracting text from document: {str(e)}")
         raise Exception(f"Error extracting text from document: {str(e)}")
-        #logger.error(f"Errore nell'estrazione del testo: {e}")
 
 
 def _generate_caption_with_blip(byte_image):
-
+    print("generate_caption")
     try:
         device = "cuda" if torch.cuda.is_available() else "cpu"
         model = model.to(device)
@@ -77,39 +92,6 @@ def _generate_caption_with_blip(byte_image):
         logger.error(f"Errore nell'estrazione del testo: {e}")
         return []  # Return empty list instead of empty dict to match return type
 
-def extract_pdf_content(file_path: str, images_caption) -> str:
-    """
-    Estrae il testo dal file PDF specificato.
-
-    Args:
-        file_name: Nome del file PDF.
-
-    Returns:
-        Testo estratto dal file PDF.
-
-    Raises:
-        Exception: Se si verifica un errore durante l'estrazione del testo.
-    """
-    # Open the PDF file in binary mode
-    #file_name=os.path.splitext(file_path)[0]+os.path.splitext(file_path)[1]
-    #print("File_name_weith_estension", file_name)
-    #with open(file_path, 'rb') as f:
-    #files = {'file': (file_name, f, 'application/pdf')}
-    # Send the POST request
-    try:
-        str_file_path=str(file_path)
-        with open(str_file_path, 'rb') as f:
-            files = {'file': (str_file_path, f, 'application/pdf')}
-            response = requests.post("http://127.0.0.1:8503/predict/", files=files)
-            # reverse order otherwise the char_offset increse after inserting the caption
-        #for img_caption in images_caption[::-1]:
-        #    response=_insert_img_caption(response.text, img_caption)
-        print(response.json())
-        with open('test_ocr.mmd', 'w') as md_file:
-            md_file.write(response.json())
-        return response.text
-    except Exception as e:
-        raise Exception(f"Error extracting text from document: {str(e)}")
 
 if __name__ == "__main__":
     model_name = "Salesforce/blip-image-captioning-base"
