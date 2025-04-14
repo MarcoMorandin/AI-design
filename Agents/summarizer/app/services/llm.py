@@ -12,8 +12,12 @@ import asyncio
 from google import genai
 
 logger = logging.getLogger(__name__)
-"""
+
+
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
+
+def get_client():
+    return client
 
 async def call_gemini(prompt:str, model_str=settings.GEMINI_MODEL_NAME):
     response = client.models.generate_content(
@@ -21,7 +25,7 @@ async def call_gemini(prompt:str, model_str=settings.GEMINI_MODEL_NAME):
         contents=prompt
     )
     return response.text
-"""
+
 async def call_ollama(prompt:str, model_str=settings.OLLAMA_MODEL):
     #Sends a prompt to the Ollama API using httpx and returns the response
     data = {"model": model_str, "prompt": prompt, "stream": False}
@@ -73,7 +77,8 @@ async def generate_final_summary(chunks: List[str], summary_type:SummaryType) ->
         
         for i, chunk in enumerate(chunks):
             prompt =prompts.generate_chunk_summary_prompt(chunk, summary_type)
-            summary = await call_ollama(prompt, model_str=settings.OLLAMA_MODEL)
+            summary = await call_gemini(prompt, model_str=settings.GEMINI_MODEL_NAME)
+            #summary = await call_ollama(prompt, model_str=settings.OLLAMA_MODEL)
             chunk_summaries.append(summary)
             logger.info(f"Chunk {i + 1} summary generated.")
 
@@ -92,9 +97,12 @@ async def generate_final_summary(chunks: List[str], summary_type:SummaryType) ->
             file.write(concat_summary)
 
         final_prompt = prompts.generate_final_summary(concat_summary, summary_type)
-        summary = await call_ollama(final_prompt, model_str=settings.OLLAMA_MODEL)
+        summary=await call_gemini(final_prompt, model_str=settings.GEMINI_MODEL_NAME)
+        #summary = await call_ollama(final_prompt, model_str=settings.OLLAMA_MODEL)
+
         logger.info("Generating correct markdown...")
-        markdown_summary=await call_ollama(prompts.clean_markdown_prompt(summary), model_str=settings.OLLAMA_MODEL)
+        markdown_summary=await call_gemini(prompts.clean_markdown_prompt(summary), model_str=settings.GEMINI_MODEL_NAME)
+        #markdown_summary=await call_ollama(prompts.clean_markdown_prompt(summary), model_str=settings.OLLAMA_MODEL)
         return markdown_summary
     
     except (ConnectionError, ValueError, RuntimeError) as e:
