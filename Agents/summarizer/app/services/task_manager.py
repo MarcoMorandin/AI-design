@@ -90,35 +90,44 @@ async def process_document_task(task_id: uuid.UUID, file_path: str, summary_type
     logger.info(f"[Task:{task_id}] Starting background processing for document: {file_path}")
 
     try:
-        await update_task_status(task_id, TaskStatus.DOWNLOADING)
-        file_tmp_path=await file_handler.download_document_from_url(file_path)
+        if settings.TEST_PHASE==False:
+            await update_task_status(task_id, TaskStatus.DOWNLOADING)
+            file_tmp_path=await file_handler.download_document_from_url(file_path)
 
-        # 1. Update status: EXTRACTING
-        await update_task_status(task_id, TaskStatus.EXTRACTING)
+            # 1. Update status: EXTRACTING
+            await update_task_status(task_id, TaskStatus.EXTRACTING)
 
-        # 2. Extract text from document
-        #image_captions=document_processing.get_image_info(file_tmp_path)
-        image_captions=[]
-        text = await document_processing.extract_text_from_document(file_tmp_path, image_captions)
+            # 2. Extract text from document
+            #image_captions=document_processing.get_image_info(file_tmp_path)
+            image_captions=[]
+            text = await document_processing.extract_text_from_document(file_tmp_path, image_captions)
 
-        logger.info(f"[Task:{task_id}] Text extracted from document")
+            logger.info(f"[Task:{task_id}] Text extracted from document")
 
-        # 4. Chunk document and analyze content
-        #chunks=document_processing.chunk_document(text)
-        if settings.CHUNCKER_TYPE=='standard':
-            chunks=document_processing.chunk_document(text)
+            # 4. Chunk document and analyze content
+            #chunks=document_processing.chunk_document(text)
+            if settings.CHUNCKER_TYPE=='standard':
+                chunks=document_processing.chunk_document(text)
+            else:
+                chunks=document_processing.chunk_document_cosine(text)
+            #chunks = document_processing.chunk_document(text)
+            await update_task_status(task_id, TaskStatus.SUMMARIZING)
+            logger.info(f"Generating summary")
+            summary = await llm.generate_final_summary(chunks, summary_type)
+
+            logger.info(f"[Task:{task_id}] Summary generation successful.")
+
+            await update_task_result(task_id, summary)
+            logger.info(f"[Task:{task_id}] Task completed successfully.")
         else:
-            chunks=document_processing.chunk_document_cosine(text)
-        #chunks = document_processing.chunk_document(text)
-        await update_task_status(task_id, TaskStatus.SUMMARIZING)
-        logger.info(f"Generating summary")
-        summary = await llm.generate_final_summary(chunks, summary_type)
-
-        logger.info(f"[Task:{task_id}] Summary generation successful.")
-
-        await update_task_result(task_id, summary)
-        logger.info(f"[Task:{task_id}] Task completed successfully.")
-
+            await update_task_status(task_id, TaskStatus.DOWNLOADING)
+            await update_task_status(task_id, TaskStatus.EXTRACTING)
+            await update_task_status(task_id, TaskStatus.SUMMARIZING)
+            temp_file_path = settings.TEMP_DIR / f"test.md"
+            with open(temp_file_path, 'r') as md_file:
+                content=md_file.read()
+            await update_task_result(content, temp_file_path)
+            
         
     except Exception as e:
         error_msg = f"Error processing document: {str(e)}"

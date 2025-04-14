@@ -21,9 +21,9 @@ class Settings(BaseSettings):
 
     # Chunking settings
         # Chunking settings
-    MAX_LENGTH_PER_CHUNK: int = 200
+    MAX_LENGTH_PER_CHUNK: int = 10000
     MAX_TOKEN_PER_CHUNK_GROUPED: int = 512
-    OVERLAPP_CHUNK: int = 30
+    OVERLAPP_CHUNK: int = 250
 
 
     NOUGAT_URL:str='http://127.0.0.1:8503/predict/'
@@ -46,6 +46,7 @@ class Settings(BaseSettings):
     MONGODB_TASK_COLLECTION: str = "tasks"
 
     CHUNCKER_TYPE: str="standard" #cosine
+    TEST_PHASE: bool= True
     
     class Config:
         # Reads variables from a .env file if present

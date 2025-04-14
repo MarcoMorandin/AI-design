@@ -1,6 +1,6 @@
 # Document Summarization API
 
-A FastAPI-based service for summarizing documents using Google's Gemini AI. This API allows you to extract key information from various document formats (PDF, Word, text) and generate comprehensive summaries.
+A FastAPI-based service for summarizing documents using LLM. This API allows you to extract key information from various document formats (PDF, Word, text) and generate comprehensive summaries.
 
 ## Features
 
@@ -13,35 +13,6 @@ A FastAPI-based service for summarizing documents using Google's Gemini AI. This
 - Asynchronous task processing with status tracking
 - MongoDB integration for task and result storage
 
-## Project Structure
-
-```
-summarizer/
-├── app/
-│   ├── api/
-│   │   └── endpoints/
-│   │       └── tasks.py       # API endpoints for document processing
-│   ├── core/
-│   │   └── config.py          # Application configuration
-│   ├── db/
-│   │   └── mongodb.py         # Database connection and utilities
-│   ├── models/
-│   │   ├── request.py         # Request data models
-│   │   ├── summary.py         # Summary data models
-│   │   └── task.py            # Task processing models
-│   ├── services/
-│   │   ├── document_processing.py  # Document processing logic
-│   │   ├── llm.py             # LLM integration (Gemini)
-│   │   └── task_manager.py    # Background task management
-│   ├── utils/
-│   │   ├── file_handler.py    # File processing utilities
-│   │   └── prompts.py         # LLM prompts
-│   └── main.py                # FastAPI application entry point
-├── summary_results/           # Directory for generated summaries
-├── temp_files/                # Directory for temporary files
-├── requirements.txt           # Project dependencies
-└── README.md                  # Project documentation
-```
 
 ## Setup
 
@@ -55,19 +26,12 @@ summarizer/
    ```
    pip install -r requirements.txt
    ```
-4. Create a `.env` file with the following variables:
-   ```
-   MONGODB_URL=mongodb://localhost:27017
-   MONGODB_DB_NAME=summarizer_db
-   GOOGLE_API_KEY=your_gemini_api_key
-   GEMINI_MODEL=gemini-2.0-flash
-   LOG_LEVEL=info
-   ```
-5. start nougat:
+
+4. start nougat:
   ```
   nougat_api
   ```
-6. Start the API server:
+5. Start the API server:
    ```
    uvicorn app.main:app --reload
    ```
