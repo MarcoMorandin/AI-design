@@ -20,8 +20,10 @@ class Settings(BaseSettings):
     OLLAMA_TIMEOUT: float = 300.0 # Timeout in seconds
 
     # Chunking settings
-    MAX_TOKEN_PER_CHUNK: int = 10000
-    CHUNK_OVERLAP_TOKEN: int = 500
+        # Chunking settings
+    MAX_LENGTH_PER_CHUNK: int = 200
+    MAX_TOKEN_PER_CHUNK_GROUPED: int = 512
+    OVERLAPP_CHUNK: int = 30
 
 
     NOUGAT_URL:str='http://127.0.0.1:8503/predict/'
