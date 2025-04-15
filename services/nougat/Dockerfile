@@ -1,19 +1,16 @@
 # GPU version
-ARG CUDA_VERSION=11.8.0
-FROM nvidia/cuda:${CUDA_VERSION}-cudnn8-devel-ubuntu22.04 as gpu
-# Note: Set CUDA_VERSION at build time with --build-arg CUDA_VERSION=<version> (e.g., 12.1.0).
-# Check your CUDA version with 'nvcc -V'.
+FROM nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04 as gpu
 
 RUN apt-get update
 RUN apt-get install -y python3
 RUN apt-get -y install python3-pip git
-RUN pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu${CUDA_VERSION//./}
+RUN pip3 install torch torchvision torchaudio
 # Note: The above dynamically removes dots from CUDA_VERSION (e.g., 11.8.0 -> cu118) for PyTorch URL.
 
 RUN mkdir workspace
 WORKDIR /workspace
 
-RUN pip3 install fastapi uvicorn[standard] fsspec[http]==2023.1.0
+RUN pip3 install fastapi uvicorn[standard] fsspec[http]==2023.5.0 python-multipart albumentations==1.3.0 transformers==4.36.0 "nougat-ocr[api]"
 RUN git clone https://github.com/facebookresearch/nougat.git
 WORKDIR /workspace/nougat
 
@@ -34,7 +31,7 @@ RUN pip3 install torch torchvision torchaudio --index-url https://download.pytor
 RUN mkdir workspace
 WORKDIR /workspace
 
-RUN pip3 install fastapi uvicorn[standard] fsspec[http]==2023.1.0
+RUN pip3 install fastapi uvicorn[standard] fsspec[http]==2023.5.0 python-multipart albumentations==1.3.0 transformers==4.36.0 "nougat-ocr[api]"
 RUN git clone https://github.com/facebookresearch/nougat.git
 WORKDIR /workspace/nougat
 
