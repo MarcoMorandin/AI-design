@@ -51,9 +51,8 @@ class SummaryResultResponse(BaseModel):
     """API response model for task result."""
     summary_id: uuid.UUID
     status: SummaryStatus
-    file_name: str
-    summary_type: SummaryType
     summary: Optional[str] = None
+    summary_type: SummaryType
     error: Optional[str] = None
     created_at: datetime.datetime
     updated_at: datetime.datetime
