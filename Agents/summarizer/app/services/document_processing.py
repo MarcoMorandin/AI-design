@@ -7,6 +7,7 @@ from transformers import BlipProcessor, BlipForConditionalGeneration
 from PIL import Image
 #from app.utils.file_handler import extract_from_pdf, extract_from_word, extract_from_text, extract_pdf_content
 import os
+import io
 from app.core.config import settings
 import requests
 import torch
@@ -14,6 +15,10 @@ from app.utils.chucker.standardar_chuncker import chunk_document as standardar_c
 from app.utils.chucker.cosine_chuncker import chunk_document_cosine as cosine_chuncker
 
 logger = logging.getLogger(__name__)
+
+model_name = settings.IMAGE_DESCRIPTION_EXTRACTION_MODEL
+processor = BlipProcessor.from_pretrained(model_name)
+model = BlipForConditionalGeneration.from_pretrained(model_name)
 
 async def extract_text_from_document(file_name: str, images_caption) -> str:
     """
@@ -35,7 +40,7 @@ async def extract_text_from_document(file_name: str, images_caption) -> str:
             return extract_pdf_content(file_name, images_caption)
         elif file_extension in [".docx", ".doc"]:
             return extract_pdf_content(_convert_to_pdf(file_name, "Word.Application"), images_caption)
-        elif file_extension in [".ppt"]:
+        elif file_extension in [".ppt", ".pptx"]:
             return extract_pdf_content(_convert_to_pdf(file_name, "Powerpoint.Application"), images_caption)
         elif file_extension in [".txt", ".md"]:
             return _extract_from_text(file_name)
@@ -51,14 +56,25 @@ def _extract_from_text(file_name):
 
     return content
 
-def _convert_to_pdf(file_name, application_type):
+def _convert_to_pdf(file_path, application_type):
     path_without_extension = os.path.splitext(file_path)[0]
-    word = comtypes.client.CreateObject(application_type)
-    word.Visible = False
-    doc = word.Documents.Open(file_name)
-    doc.SaveAs(path_without_extension+".pdf", FileFormat=17) # 17 is PDF format
-    doc.Close()
-    word.Quit()
+    pdf_path = path_without_extension + ".pdf"
+    
+    app = comtypes.client.CreateObject(application_type)
+    
+    if application_type == "Word.Application":
+        app.Visible = False
+        doc = app.Documents.Open(os.path.abspath(file_path))
+        doc.SaveAs(os.path.abspath(pdf_path), FileFormat=17)  # 17 is PDF format
+        doc.Close()
+    elif application_type == "PowerPoint.Application":
+        # For PowerPoint, don't set Visible = False as it causes errors
+        presentation = app.Presentations.Open(os.path.abspath(file_path), WithWindow=False)
+        presentation.SaveAs(os.path.abspath(pdf_path), 32)  # 32 is PDF format for PowerPoint
+        presentation.Close()
+    
+    app.Quit()
+    return pdf_path
 
 def extract_pdf_content(file_path: str, images_caption) -> str:
     """
@@ -78,12 +94,16 @@ def extract_pdf_content(file_path: str, images_caption) -> str:
         with open(str_file_path, 'rb') as f:
             files = {'file': (str_file_path, f, 'application/pdf')}
             response = requests.post("http://127.0.0.1:8503/predict/", files=files)
-            # reverse order otherwise the char_offset increse after inserting the caption
-        #for img_caption in images_caption[::-1]:
-        #    response=_insert_img_caption(response.text, img_caption)
+
+        response=response.json()
+        # reverse order otherwise the char_offset increse after inserting the caption
+        for img_caption in images_caption[::-1]:
+            response=_insert_img_caption(response, img_caption)
+        # just to check
         with open('test_ocr.mmd', 'w') as md_file:
-            md_file.write(response.json())
-        return response.json()
+            md_file.write(response)
+
+        return response
     except Exception as e:
         raise Exception(f"Error extracting text from document: {str(e)}")
 
@@ -111,68 +131,61 @@ def chunk_document(text: str) -> List[str]:
     return standardar_chuncker(text)
 
 
-def get_image_info(file_name: str) -> List[Dict[int, str]]:
-    image_positions = []
-        
+def get_image_info(file_name: str) -> List[Dict]:
+    image_captions = []
     try:
         # Open PDF
         doc = fitz.open(Path(file_name))
 
         for page_num, page in enumerate(doc):
             # Ottieni blocchi di testo con informazioni di formattazione
-            blocks = page.get_text("dict")["blocks"]
-            # sort by reading order
-            sorted_blocks = sorted(blocks, key=lambda b: (b["bbox"][1], b["bbox"][0]))
-            char_count = 0
-            images_in_page = [] # image info
+            text = page.get_text()
+            char_count = len(text)
+            image_list = page.get_images()  # Changed from getImageList() to get_images()
             
-            for block in sorted_blocks:
-                if block["type"] == 0:  # text block
-                    for line in block["lines"]:
-                        # concat text
-                        line_text = "".join(span["text"] for span in line["spans"])
-                        char_count += len(line_text)
+            if not image_list:
+                logger.info(f"No images found on page {page_num+1}")
+                continue
                 
-                elif block["type"] == 1:  # image block
-                    xref = block.get("image", 0) or block.get("xref", 0)
-                    if xref and isinstance(xref, int):  # Ensure xref is an integer
-                        try:
-                            # Estrazione dell'immagine dal PDF
-                            base_image = doc.extract_image(xref)
-                            if base_image and "image" in base_image:
-                                image_bytes = base_image["image"]
-                                image_caption = _generate_caption_with_blip(Image.open(io.BytesIO(image_bytes)))
-                                images_in_page.append({
-                                    "char_offset": char_count,
-                                    "img_caption": image_caption,
-                                })
-                        except Exception as img_error:
-                            logger.warning(f"Failed to process image on page {page_num+1}, xref {xref}: {img_error}")
-            
-            image_positions.append(images_in_page)
-
+            for image_index, img in enumerate(image_list, start=1):
+                # get the XREF of the image
+                xref = img[0]
+                try:
+                    # extract the image bytes
+                    base_image = doc.extract_image(xref)  # Changed from extractImage to extract_image
+                    image_bytes = base_image["image"]
+                    
+                    # Process the image
+                    pil_image = Image.open(io.BytesIO(image_bytes))
+                    image_caption = _generate_caption_with_blip(pil_image)
+                    
+                    image_captions.append({
+                        "char_offset": char_count,
+                        "img_caption": " Image description: "+image_caption,
+                    })
+                    logger.info(f"Processed image {image_index} on page {page_num+1}")
+                except Exception as e:
+                    logger.error(f"Error processing image {image_index} on page {page_num+1}: {e}")
+        
         doc.close()
-        return image_positions
+        return image_captions
         
     except Exception as e:
-        logger.error(f"Errore nell'estrazione del testo: {e}")
-        return []  # Return empty list instead of empty dict to match return type
+        logger.error(f"Error extracting text: {e}")
+        return []
 
 
-def _generate_caption_with_blip(byte_image):
+def _generate_caption_with_blip(pil_image):
+    global processor, model
+    
     try:
-
-        model_name = "Salesforce/blip-image-captioning-base"
-        processor = BlipProcessor.from_pretrained(model_name)
-        model = BlipForConditionalGeneration.from_pretrained(model_name)
         device = "cuda" if torch.cuda.is_available() else "cpu"
         model = model.to(device)
         model.eval()
 
         with torch.no_grad():
-
             # Conditional caption
-            conditional_inputs = processor(byte_image, text="Describe the imag", return_tensors="pt").to(device)
+            conditional_inputs = processor(pil_image, text="Describe the image", return_tensors="pt").to(device)
             with autocast():
                 conditional_outputs = model.generate(**conditional_inputs)
             conditional_caption = processor.decode(conditional_outputs[0], skip_special_tokens=True)
@@ -180,5 +193,5 @@ def _generate_caption_with_blip(byte_image):
         return conditional_caption
 
     except Exception as e:
-        logger.error(f"Errore nell'estrazione del testo: {e}")
-        return []  # Return empty list instead of empty dict to match return type
+        logger.error(f"Error generating caption: {e}")
+        return "No caption available"  # Return a default string instead of empty list

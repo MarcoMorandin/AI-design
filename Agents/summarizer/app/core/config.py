@@ -20,10 +20,13 @@ class Settings(BaseSettings):
     OLLAMA_TIMEOUT: float = 300.0 # Timeout in seconds
 
     # Chunking settings
-        # Chunking settings
-    MAX_LENGTH_PER_CHUNK: int = 10000
-    MAX_TOKEN_PER_CHUNK_GROUPED: int = 512
-    OVERLAPP_CHUNK: int = 250
+    MAX_LENGTH_PER_CHUNK: int = 20000
+    MAX_TOKEN_PER_CHUNK_GROUPED: int = 2048
+    OVERLAPP_CHUNK: int = 500
+
+    GEMINI_API_KEY:str="AIzaSyBSrT4FjRJB9l7Itgk1DqyJeyQ3Gm4eNNE"
+    GEMINI_MODEL_NAME:str="gemini-2.0-flash"
+    GEMINI_EMBEDDING_MODEL:str="models/text-embedding-004"
 
 
     NOUGAT_URL:str='http://127.0.0.1:8503/predict/'
@@ -38,6 +41,8 @@ class Settings(BaseSettings):
         "pdf",
         "docx",
         "doc",
+        "ppt",
+        "pptx",
         "md"
     ]
     
@@ -45,9 +50,10 @@ class Settings(BaseSettings):
     MONGODB_DB_NAME: str = "test"
     MONGODB_TASK_COLLECTION: str = "tasks"
 
-    CHUNCKER_TYPE: str="standard" #cosine
-    TEST_PHASE: bool= True
+    CHUNCKER_TYPE: str="cosine" #standard or cosine
+    TEST_PHASE: bool= False
     
+    IMAGE_DESCRIPTION_EXTRACTION_MODEL: str = "Salesforce/blip-image-captioning-large"
     class Config:
         # Reads variables from a .env file if present
         env_file = ".env"

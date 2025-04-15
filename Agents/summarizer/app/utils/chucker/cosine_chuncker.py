@@ -7,19 +7,21 @@ import torch
 import torch
 import torch.nn.functional as F
 from app.utils.chucker.standardar_chuncker import chunk_document
-
+from app.services.llm import get_client
 from transformers import AutoModel, AutoTokenizer
+from google import genai
+from google.genai import types
 #
 #model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
 from google import genai
 
 
-
+"""
 model_name = "sentence-transformers/all-MiniLM-L6-v2"
 model = AutoModel.from_pretrained(model_name)
 tokenizer = AutoTokenizer.from_pretrained(model_name)
-
+"""
 def chunk_document_cosine(text:str)->List[str]:
 
     chunks=get_initial_chunks(text)
@@ -29,6 +31,7 @@ def chunk_document_cosine(text:str)->List[str]:
         indices_above_trheshold=_indices_above_treshold_distance(distances)
         chunks=_group_chunks(indices_above_trheshold, chunks)
         chunks=_remove_artifacts(chunks)
+    #llm_client=get_client()
     return chunks
 
 def _insert_img_caption(text, img_caption):
@@ -75,11 +78,14 @@ def _group_chunks(indices, sentences):
     return final_chunks
 
 def _check_len(chunk):
+    # token count
+    llm_client=get_client()
+    token_count=llm_client.models.count_tokens(model=settings.GEMINI_MODEL_NAME, contents=chunk)
     #tokenizer=model.tokenizer
-    tokens = tokenizer(chunk, return_tensors="pt")
-    token_count = tokens.input_ids.shape[1]
+    #tokens = tokenizer(chunk, return_tensors="pt")
+    #token_count = tokens.input_ids.shape[1]
     # chek if the amount of token id above the limit
-    if token_count >settings.MAX_TOKEN_PER_CHUNK_GROUPED:
+    if token_count.total_tokens >settings.MAX_TOKEN_PER_CHUNK_GROUPED:
         docs_split=chunk_document(chunk)
         # get new embeddings for the new chunks
         return _get_new_chunk(len(docs_split), docs_split)
@@ -136,7 +142,7 @@ def _mean_pooling(model_output, attention_mask):
     input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
     return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
 
-
+"""
 def _do_embedding(chunks):
     embeddings = []
     for i, chunk in enumerate(chunks):
@@ -163,15 +169,23 @@ def _do_embedding(chunks):
 """
 def _do_embedding(chunks):
     print("Embeddings")
+    client=get_client()
+    client
     embeddings = []
     for i, chunk in enumerate(chunks):
         print(f"chunck {i}")
-        embedding = model.encode(chunk['section'], show_progress_bar=False)
+        result = client.models.embed_content(
+            model=settings.GEMINI_EMBEDDING_MODEL,
+            contents=chunk['section'],
+            config=types.EmbedContentConfig(task_type="SEMANTIC_SIMILARITY")
+        )
+        embedding = result.embeddings[0].values
+        #embedding = model.encode(chunk['section'], show_progress_bar=False)
         embeddings.append(embedding)
     for i, chunk in enumerate(chunks):
         chunk['embedding'] = embeddings[i]
     return chunks
-"""
+
 #buffer size: number of sentence before and after the current one to be joined
 def _combine_sentences(chunks:str, buffer_size):
     for i in range(len(chunks)):
