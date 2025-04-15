@@ -263,3 +263,43 @@ exports.uploadDocuments=async(req,res)=>{
     }
   }
 }
+
+
+exports.getFileComment=async(req, res)=>{
+  try{
+    const fileId=req.params.fileId;
+    if (!fileId){
+      return res.status(400).json({
+        success: false,
+        error: "Invalid request body",
+      });
+    }
+    const drive=await getDriveClientForUser(req.user);
+    const response = await drive.comments.list({
+      fileId: fileId,
+      fields: 'comments(id,content,createdTime,modifiedTime,author)',
+      pageSize: 150
+    });
+    const comments=response.data.comments;
+    return res.status(200).json({
+      success: true,
+      comments: comments,
+    });
+  }catch (error) {
+    console.error("Error fetching file comments:", error.message);
+    
+    // Handle specific errors
+    if (error.message.includes("File not found")) {
+      return res.status(404).json({ 
+        success: false, 
+        error: "File not found or you don't have permission to access it" 
+      });
+    }
+    
+    return res.status(500).json({
+      success: false,
+      error: "Failed to fetch comments from Google Drive",
+      details: error.message
+    });
+  }
+}
