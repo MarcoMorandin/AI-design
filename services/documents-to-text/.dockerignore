@@ -1,0 +1,15 @@
+# .dockerignore
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.git
+.gitignore
+.pytest_cache/
+venv/
+*.log
+temp_files/ # Don't copy local temp files, the Dockerfile creates the dir
+*.md # If you have markdown docs not needed in the image
+# Add any other files/folders not needed in the final image
