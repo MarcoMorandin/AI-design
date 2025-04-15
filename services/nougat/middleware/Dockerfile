@@ -2,7 +2,7 @@
 
 # Use an official Node.js runtime as a parent image
 # Choose a specific LTS version (e.g., 18) and Alpine for smaller size
-FROM node:23-slim
+FROM node:23-alpine
 
 # Set the working directory in the container
 WORKDIR /usr/src/app
@@ -26,4 +26,4 @@ RUN node -v
 RUN npm -v
 
 # Define the command to run your app
-CMD [ "node", "server.js" ]
+CMD [ "node", "index.js" ]
