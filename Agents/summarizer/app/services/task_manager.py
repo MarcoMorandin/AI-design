@@ -14,14 +14,14 @@ from app.models.request import SummaryType
 
 logger = logging.getLogger(__name__)
 
-async def create_task_in_db(file_name: str, summary_type:SummaryType) -> uuid.UUID:
+async def create_task_in_db(file_name: str) -> uuid.UUID:
     """Creates a new task record in MongoDB and returns its task_id."""
     task_id = uuid.uuid4()
     task_doc = TaskDocument(
         task_id=task_id,
         file_name=file_name,
         status=TaskStatus.PENDING,
-        summary_type=summary_type, # Convert enu
+        #summary_type=summary_type, # Convert enu
         created_at=datetime.datetime.now(datetime.timezone.utc),
         updated_at=datetime.datetime.now(datetime.timezone.utc)
     )
@@ -59,12 +59,11 @@ async def update_task_status(task_id: uuid.UUID, status: TaskStatus, error_messa
     else:
         logger.info(f"Updated task {task_id} status to {status.value}" + (f" with error: {error_message}" if error_message else ""))
 
-async def update_task_result(task_id: uuid.UUID, summary: str):
+async def update_task_result(task_id: uuid.UUID, text: str):
     """Updates the task with the final summary and sets status to DONE."""
     collection = get_task_collection()
     update_fields = {
-        "summary": summary,
-        #"summary_path": summary_path,
+        "text": text,
         "status": TaskStatus.DONE.value,
         "updated_at": datetime.datetime.now(datetime.timezone.utc),
         "error_message": None
@@ -84,9 +83,43 @@ async def get_task_from_db(task_id: uuid.UUID) -> Optional[dict]:
     task_data = await collection.find_one({"_id": task_id})
     return task_data
 
+async def extract_text_with_image_description(task_id: uuid.UUID, file_path: str):
+    """The background task performing the full document summarization pipeline."""
+    logger.info(f"[Task:{task_id}] Starting background processing for document: {file_path}")
+
+    try:
+        if settings.TEST_PHASE==False:
+            await update_task_status(task_id, TaskStatus.DOWNLOADING)
+            file_tmp_path=await file_handler.download_document_from_url(file_path)
+
+            # 1. Update status: EXTRACTING
+            await update_task_status(task_id, TaskStatus.EXTRACTING)
+
+            # 2. Extract text from document
+            image_captions=document_processing.get_image_info(file_tmp_path)            
+            text = await document_processing.extract_text_from_document(file_tmp_path, image_captions)
+            logger.info(f"[Task:{task_id}] Text extracted from document")
+
+            await update_task_result(task_id, text)
+            logger.info(f"[Task:{task_id}] Task completed successfully.")
+        else:
+            await update_task_status(task_id, TaskStatus.DOWNLOADING)
+            await update_task_status(task_id, TaskStatus.EXTRACTING)
+            temp_file_path = settings.TEMP_DIR / f"test.md"
+            with open(temp_file_path, 'r') as md_file:
+                content=md_file.read()
+            await update_task_result(content, temp_file_path)
+            
+    except Exception as e:
+        error_msg = f"Error processing document: {str(e)}"
+        logger.error(f"[Task:{task_id}] {error_msg}")
+        await update_task_status(task_id, TaskStatus.FAILED, error_msg)
+
+
+"""
 # --- Main Background Processing Functions ---
 async def process_document_task(task_id: uuid.UUID, file_path: str, summary_type:SummaryType):
-    """The background task performing the full document summarization pipeline."""
+    #The background task performing the full document summarization pipeline.
     logger.info(f"[Task:{task_id}] Starting background processing for document: {file_path}")
 
     try:
@@ -135,3 +168,4 @@ async def process_document_task(task_id: uuid.UUID, file_path: str, summary_type
         error_msg = f"Error processing document: {str(e)}"
         logger.error(f"[Task:{task_id}] {error_msg}")
         await update_task_status(task_id, TaskStatus.FAILED, error_msg)
+"""

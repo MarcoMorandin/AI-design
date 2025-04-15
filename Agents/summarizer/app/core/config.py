@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     MONGODB_URL: str = "mongodb+srv://test:test@ai-designing.psxhnz0.mongodb.net/"
     MONGODB_DB_NAME: str = "test"
     MONGODB_TASK_COLLECTION: str = "tasks"
+    MONGODB_SUMMARY_COLLECTION: str = "summary"
 
     CHUNCKER_TYPE: str="cosine" #standard or cosine
     TEST_PHASE: bool= False

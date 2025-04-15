@@ -1,4 +1,5 @@
 # app/models/request.py
+import uuid
 from pydantic import Field
 from pydantic import BaseModel, FilePath, DirectoryPath
 from typing import Optional, Union
@@ -10,7 +11,11 @@ class SummaryType(str, Enum):
     KEY_POINTS = "key_points"
     LAYMAN = "simple"
 
-class DocumentRequest(BaseModel):
+class TaskRequest(BaseModel):
+    """Request model for testing document extraction."""
+    file_path: Union[FilePath, DirectoryPath] = Field(..., description="Path to the document to extract")
+
+class SummaryRequest(BaseModel):
     """Request model for document summarization."""
-    file_name: str = Field(..., description="Name of the document to to summarize")
+    task_id: uuid.UUID = Field(..., description="Name of the document to to summarize")
     summary_type: SummaryType=Field(..., description="Type of summary to generate (standard, technical, key_points, simple)")

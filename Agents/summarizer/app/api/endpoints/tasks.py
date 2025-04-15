@@ -4,35 +4,37 @@ import uuid
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Body, Path as FastApiPath
 from typing import Optional
 
-from app.models.request import DocumentRequest
+from app.models.request import SummaryRequest, TaskRequest
 from app.models.task import TaskStatus, TaskCreationResponse, TaskStatusResponse, TaskResultResponse
-from app.services import task_manager
+from app.models.summary import SummaryStatus, SummaryCreationResponse, SummaryStatusResponse, SummaryResultResponse
+from app.services import task_manager, summary_manager
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-@router.post("/", response_model=TaskCreationResponse, status_code=202)
+@router.post("/text", response_model=TaskCreationResponse, status_code=202)
 async def submit_document_task(
     background_tasks: BackgroundTasks,
-    request_data: DocumentRequest = Body(...)
+    request_data: TaskRequest = Body(...)
 ):
     """
     Accepts a document file path, creates a background task for processing,
     and returns the task ID.
     """
-    logger.info(f"Received task submission for document: {request_data.file_name}")
+    logger.info(f"Received task submission for document: {request_data.file_path}")
     try:
         # Create task entry in DB (status: PENDING)
         task_id = await task_manager.create_task_in_db(
-            request_data.file_name,
-            request_data.summary_type)
+            request_data.file_path,
+            #request_data.summary_type
+        )
 
         # Add the processing function to background tasks
         background_tasks.add_task(
-            task_manager.process_document_task,
+            task_manager.extract_text_with_image_description,
             task_id,
-            request_data.file_name,
-            request_data.summary_type
+            request_data.file_path,
+            #request_data.summary_type
         )
         logger.info(f"Scheduled background processing for task_id: {task_id}")
 
@@ -40,8 +42,41 @@ async def submit_document_task(
         return TaskCreationResponse(task_id=task_id)
 
     except Exception as e:
-        logger.exception(f"Failed to submit task for document {request_data.file_name}: {e}")
+        logger.exception(f"Failed to submit task for document {request_data.file_path}: {e}")
         raise HTTPException(status_code=500, detail="Failed to create processing task.")
+
+@router.post("/summary", response_model=SummaryCreationResponse, status_code=202)
+async def submit_document_summary(
+    background_tasks: BackgroundTasks,
+    request_data: SummaryRequest = Body(...)
+):
+    """
+    Accepts a document file path, creates a background task for processing,
+    and returns the task ID.
+    """
+    logger.info(f"Received task submission for document: {request_data.task_id}")
+    try:
+        # Create task entry in DB (status: PENDING)
+        summary_id = await summary_manager.create_summary_in_db(
+            request_data.task_id,
+            request_data.summary_type)
+
+        # Add the processing function to background tasks
+        background_tasks.add_task(
+            summary_manager.generate_summary,
+            summary_id,
+            request_data.task_id,
+            request_data.summary_type
+        )
+        logger.info(f"Scheduled background processing for task_id: {summary_id}")
+
+        # Return the task ID immediately
+        return SummaryCreationResponse(summary_id=summary_id)
+
+    except Exception as e:
+        logger.exception(f"Failed to submit task for document {request_data.task_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create processing task.")
+
 
 @router.get("/{task_id}/status", response_model=TaskStatusResponse)
 async def get_task_status(
