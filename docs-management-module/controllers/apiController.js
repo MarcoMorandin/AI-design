@@ -195,6 +195,81 @@ exports.getDriveTree=async(req,res)=>{
   } 
 }
 
+exports.fromMdToDocs=async(req,res)=>{
+  try{
+    //Default → root folder
+    const folderName = req.body.folderName || req.user.driveFolderName;
+    if (!folderName){
+      return res.status(400).json({
+        success: false,
+        error: "Invalid request body",
+      });
+    }
+    if (!req.file){
+      return res.status(400).json({
+        success: false,
+        error: "No files uploaded",
+      });
+    }
+    const drive=await getDriveClientForUser(req.user);
+    const folderId= await getFolderIdByName(drive, folderName);
+
+    //Convert to HTML
+    const md=req.file.buffer.toString('utf8');
+    const html = new MarkdownIt().render(md);
+
+    const bufferStream = new Readable()
+    bufferStream.push(html)
+    bufferStream.push(null)
+
+    const fileMetadata = {
+      name: documentName,
+      parents: [folderId],
+      mimeType: 'application/vnd.google-apps.document'
+    };
+    const media = {
+      mimeType: 'text/html',
+      body: htmlStream
+    };
+    
+    const response =await drive.files.create({
+      resource: fileMetadata,
+      media: media,
+      fields: "id, name, parents",
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "File uploaded successfully",
+      fileId: response.data.id,
+    });
+
+  }catch(error){
+    console.error(
+      `API Error fetching folder tree for user ${req.user?.id}:`,
+      error
+    );
+    // Check for specific errors potentially thrown by getDriveClientForUser or getFolderTree
+    if (
+      error.message.includes("linked") ||
+      error.message.includes("credential") ||
+      error.message.includes("decrypt")
+    ) {
+      res.status(400).json({
+        success: false,
+        error: `Drive access error: ${error.message}`,
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: "Internal server error while uploading document.",
+      });
+    }
+  }
+}
+
+
+
 
 exports.uploadDocuments=async(req,res)=>{
   try{
