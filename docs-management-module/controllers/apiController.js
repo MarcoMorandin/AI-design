@@ -3,7 +3,7 @@ const User = require("../models/User");
 const { decrypt } = require("../utils/encryption");
 require("dotenv").config();
 const { Readable } = require("stream");
-
+const MarkdownIt = require('markdown-it');
 
 
 // Helper getDriveClientForUser(user) uses user.googleTokens from DB
@@ -199,7 +199,9 @@ exports.fromMdToDocs=async(req,res)=>{
   try{
     //Default → root folder
     const folderName = req.body.folderName || req.user.driveFolderName;
-    if (!folderName){
+    const summary_id=req.body.summary_id
+    const fileName=req.body.fileName
+    if (!folderName || !summary_id ||!fileName){
       return res.status(400).json({
         success: false,
         error: "Invalid request body",
@@ -223,13 +225,16 @@ exports.fromMdToDocs=async(req,res)=>{
     bufferStream.push(null)
 
     const fileMetadata = {
-      name: documentName,
+      name: fileName,
       parents: [folderId],
-      mimeType: 'application/vnd.google-apps.document'
+      mimeType: 'application/vnd.google-apps.document',
+      appProperties: {
+        'summary_id': summary_id
+      },
     };
     const media = {
       mimeType: 'text/html',
-      body: htmlStream
+      body: bufferStream
     };
     
     const response =await drive.files.create({

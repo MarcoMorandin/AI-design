@@ -1,7 +1,5 @@
-import os
 from pydantic_settings import BaseSettings
 from pathlib import Path
-from typing import List # Import List for type hinting
 
 class Settings(BaseSettings):
     APP_NAME: str = "Upload documents"
@@ -28,7 +26,7 @@ class Settings(BaseSettings):
     GEMINI_MODEL_NAME:str="gemini-2.0-flash"
     GEMINI_EMBEDDING_MODEL:str="models/text-embedding-004"
 
-    UPLOAD_DOCUMENTS_URL='http://localhost:3000/api/documents/upload'
+    UPLOAD_DOCUMENTS_URL:str='http://localhost:3000/api/documents/uploadMd'
 
     NOUGAT_URL:str='http://127.0.0.1:8503/predict/'
     # Logging Level (e.g., INFO, DEBUG, WARNING)

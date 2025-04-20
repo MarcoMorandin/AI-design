@@ -1,8 +1,7 @@
 # app/db/mongodb.py
 import logging
-from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase, AsyncIOMotorCollection
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from app.core.config import settings
-from bson import UuidRepresentation
 
 logger = logging.getLogger(__name__)
 

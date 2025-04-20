@@ -3,14 +3,11 @@ import logging
 import uuid
 import datetime
 from typing import Optional
-from app.utils import file_handler
-from app.db.mongodb import get_summary_collection, get_task_collection, get_upload_collection
+from app.db.mongodb import  get_upload_collection
 from app.models.task import TaskStatus, TaskDocument
 from app.core.config import settings
-from app.services import document_processing, llm
-#from app.services.document_processing import extract_markdown
-from app.models.request import SummaryType
 import httpx
+from app.utils.get_summary import get_text_by_id, create_md_file
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +32,7 @@ async def create_task_in_db(summary_id: str) -> uuid.UUID:
     insert_data['_id'] = task_id
     
     await collection.insert_one(insert_data)
-    logger.info(f"Created task {task_id} for document {file_name} in DB.")
+    logger.info(f"Created task {task_id}  in DB.")
     return task_id
 
 
@@ -58,11 +55,17 @@ async def update_task_status(task_id: uuid.UUID, status: TaskStatus, error_messa
     else:
         logger.info(f"Updated task {task_id} status to {status.value}" + (f" with error: {error_message}" if error_message else ""))
 
-async def update_task_result(task_id: uuid.UUID, text: str):
+async def update_task_result(task_id: uuid.UUID, document_id: str):
+    """Updates the task with the final summary and sets status to DONE."""
+    collection = get_upload_collection()
+    update_fields = {
+        
+    }
     """Updates the task with the final summary and sets status to DONE."""
     collection = get_upload_collection()
     update_fields = {
         "status": TaskStatus.DONE.value,
+        "created_document_id": document_id,
         "updated_at": datetime.datetime.now(datetime.timezone.utc),
         "error_message": None
     }
@@ -82,14 +85,14 @@ async def get_task_from_db(task_id: uuid.UUID) -> Optional[dict]:
     return task_data
 
 
-async def upload_document(summary_id: uuid.UUID, file_name:str, document_folder:str = None):
+async def upload_document(jwt_token:str, task_id:uuid.UUID,  summary_id: uuid.UUID, file_name:str, document_folder:str = None):
     """Uploads a document to the specified folder and returns the summary_id."""
     try:
-        await update_task_status(summary_id, TaskStatus.GETTING_TEXT, error_msg)
-        summary_text=extract_text(summary_id)
+        await update_task_status(task_id, TaskStatus.GETTING_TEXT)
+        summary_text=await get_text_by_id(summary_id)
         
-        await update_task_status(summary_id, TaskStatus.UPLOADING, error_msg)
-        md_file_path=create_md_file(summary_text)
+        await update_task_status(task_id, TaskStatus.UPLOADING)
+        md_file_path=create_md_file(summary_text, summary_id)
 
         files = {
             'markdownFile': (file_name,
@@ -98,23 +101,33 @@ async def upload_document(summary_id: uuid.UUID, file_name:str, document_folder:
         }
         data = {
             'fileName': file_name,
-            'folderName': document_folder or None
+            'folderName': document_folder or None,
+            'summary_id': str(summary_id)
+        }
+
+        headers={
+            'Authorization': f'Bearer {jwt_token}'
         }
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                'http://localhost:3000/api/documents/upload',
+                settings.UPLOAD_DOCUMENTS_URL,
                 files=files,
                 data=data,
+                headers=headers,
                 timeout=30.0
             )
             response.raise_for_status()
 
+            response_data = response.json()
+            document_id = response_data.get('fileId')
+        
+        update_task_result(task_id, document_id)
         logger.info(f"[Task:{summary_id}] Uploaded document via API, received status {response.status_code}")    
     except Exception as e:
         error_msg = f"Error uploading document: {str(e)}"
         logger.error(f"[Task:{summary_id}] {error_msg}")
-        await update_task_status(summary_id, TaskStatus.FAILED, error_msg)
+        await update_task_status(task_id, TaskStatus.FAILED, error_msg)
 
 
 

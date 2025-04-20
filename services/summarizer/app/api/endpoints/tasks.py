@@ -5,9 +5,8 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks, Body, Path as Fas
 from typing import Optional
 
 from app.models.request import SummaryRequest, TaskRequest
-#from app.models.task import TaskStatus, TaskCreationResponse, TaskStatusResponse, TaskResultResponse
 from app.models.summary import SummaryStatus, SummaryCreationResponse, SummaryStatusResponse, SummaryResultResponse
-from app.services import task_manager, summary_manager
+from app.services import summary_manager
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
