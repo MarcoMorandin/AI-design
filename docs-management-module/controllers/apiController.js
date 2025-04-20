@@ -216,27 +216,31 @@ exports.fromMdToDocs=async(req,res)=>{
     const drive=await getDriveClientForUser(req.user);
     const folderId= await getFolderIdByName(drive, folderName);
 
-    //Convert to HTML
+    // --- EDIT START ---
     const md=req.file.buffer.toString('utf8');
     const html = new MarkdownIt().render(md);
 
+    // Create a stream directly from the uploaded file buffer
     const bufferStream = new Readable()
-    bufferStream.push(html)
+    bufferStream.push(html) // Use the original Markdown buffer
     bufferStream.push(null)
+    // --- EDIT END ---
 
     const fileMetadata = {
       name: fileName,
       parents: [folderId],
-      mimeType: 'application/vnd.google-apps.document',
+      mimeType: 'application/vnd.google-apps.document', // Request Google Doc format
       appProperties: {
         'summary_id': summary_id
       },
     };
     const media = {
-      mimeType: 'text/html',
+      // --- EDIT START ---
+      mimeType: 'text/markdown', // Specify the source format is Markdown
+      // --- EDIT END ---
       body: bufferStream
     };
-    
+
     const response =await drive.files.create({
       resource: fileMetadata,
       media: media,
@@ -245,7 +249,7 @@ exports.fromMdToDocs=async(req,res)=>{
 
     res.status(200).json({
       success: true,
-      message: "File uploaded successfully",
+      message: "File uploaded and converted successfully",
       fileId: response.data.id,
     });
 
