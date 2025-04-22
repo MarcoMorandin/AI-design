@@ -16,8 +16,7 @@ class TaskStatus(str, Enum):
 class TaskDocument(BaseModel):
     """Database model for a document summarization task."""
     id: uuid.UUID = Field(default_factory=uuid.uuid4, alias="_id") # Use UUID, map to _id
-    task_id: uuid.UUID = Field(..., description="Public facing task identifier") # Redundant but useful for query
-    file_name: str
+    url: str
     status: TaskStatus = TaskStatus.PENDING
     created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
     updated_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
@@ -45,7 +44,7 @@ class TaskResultResponse(BaseModel):
     """API response model for task result."""
     task_id: uuid.UUID
     status: TaskStatus
-    file_name: str
+    url: str
     text: Optional[str] = None
     error: Optional[str] = None
     created_at: datetime.datetime

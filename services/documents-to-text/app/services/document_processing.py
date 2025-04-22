@@ -16,9 +16,9 @@ model_name = settings.IMAGE_DESCRIPTION_EXTRACTION_MODEL
 processor = BlipProcessor.from_pretrained(model_name)
 model = BlipForConditionalGeneration.from_pretrained(model_name)
 
-def _extract_from_text(file_name):
+def _extract_from_text(url):
 
-    with open(file_name, 'r') as file:
+    with open(url, 'r') as file:
         content = file.read()
 
     return content
@@ -83,11 +83,11 @@ def _insert_img_caption(text, img_caption):
     return ''.join(temp_text)
 
 
-def _get_image_info(file_name: str) -> List[Dict]:
+def _get_image_info(url: str) -> List[Dict]:
     image_captions = []
     try:
         # Open PDF
-        doc = fitz.open(Path(file_name))
+        doc = fitz.open(Path(url))
 
         for page_num, page in enumerate(doc):
             # Ottieni blocchi di testo con informazioni di formattazione
@@ -145,8 +145,8 @@ def _extract_pdf_content(file_path: str) -> str:
     except Exception as e:
         raise Exception(f"Error extracting text from document: {str(e)}")
 
-async def extract_text_from_document(file_name: str) -> str:
-    file_path_obj = Path(file_name)
+async def extract_text_from_document(url: str) -> str:
+    file_path_obj = Path(url)
     file_extension = file_path_obj.suffix.lower()
     pdf_to_process = None
     converted = False
@@ -173,8 +173,8 @@ async def extract_text_from_document(file_name: str) -> str:
              raise Exception("No processable file path determined.")
 
     except Exception as e:
-        logger.error(f"Error processing document {file_name}: {e}")
-        raise Exception(f"Error extracting text from document {file_name}: {str(e)}")
+        logger.error(f"Error processing document {url}: {e}")
+        raise Exception(f"Error extracting text from document {url}: {str(e)}")
     finally:
         if converted and pdf_to_process and Path(pdf_to_process).exists():
             try:

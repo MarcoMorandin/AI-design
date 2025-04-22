@@ -19,23 +19,23 @@ async def submit_document_task(
     Accepts a document file path, creates a background task for processing,
     and returns the task ID.
     """
-    logger.info(f"Received task submission for document: {request_data.file_name}")
+    logger.info(f"Received task submission for document: {request_data.url}")
     try:
         # Create task entry in DB (status: PENDING)
-        task_id = await task_manager.create_task_in_db(request_data.file_name)
+        task_id = await task_manager.create_task_in_db(request_data.url)
 
         # Add the processing function to background tasks
         background_tasks.add_task(
             task_manager.process_document_task,
             task_id,
-            request_data.file_name)
+            request_data.url)
         logger.info(f"Scheduled background processing for task_id: {task_id}")
 
         # Return the task ID immediately
         return TaskCreationResponse(task_id=task_id)
 
     except Exception as e:
-        logger.exception(f"Failed to submit task for document {request_data.file_name}: {e}")
+        logger.exception(f"Failed to submit task for document {request_data.url}: {e}")
         raise HTTPException(status_code=500, detail="Failed to create processing task.")
 
 @router.get("/{task_id}/status", response_model=TaskStatusResponse)
@@ -73,7 +73,7 @@ async def get_task_result(
     return TaskResultResponse(
          task_id=task_data['_id'],
          status=TaskStatus(task_data['status']),
-         file_name=task_data['file_name'],
+         url=task_data['url'],
          text=task_data.get('text'),
          error=task_data.get('error_message'),
          created_at=task_data['created_at'],
