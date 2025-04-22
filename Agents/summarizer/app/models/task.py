@@ -11,9 +11,10 @@ class TaskStatus(str, Enum):
     DOWNLOADING="DOWNLOADING"
     PENDING = "PENDING"
     EXTRACTING = "EXTRACTING_TEXT"
-    SUMMARIZING = "GENERATING_SUMMARY"
     DONE = "DONE"
     FAILED = "FAILED"
+
+
 
 class TaskDocument(BaseModel):
     """Database model for a document summarization task."""
@@ -21,11 +22,11 @@ class TaskDocument(BaseModel):
     task_id: uuid.UUID = Field(..., description="Public facing task identifier") # Redundant but useful for query
     file_name: str
     status: TaskStatus = TaskStatus.PENDING
-    summary_type: SummaryType = SummaryType.STANDARD # Store the requested type
+    #summary_type: SummaryType = SummaryType.STANDARD # Store the requested type
     created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
     updated_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
     error_message: Optional[str] = None
-    summary: Optional[str] = None
+    text: Optional[str] = None
 
     
     class Config:
@@ -50,8 +51,8 @@ class TaskResultResponse(BaseModel):
     task_id: uuid.UUID
     status: TaskStatus
     file_name: str
-    summary_type: SummaryType
-    summary: Optional[str] = None
+    #summary_type: SummaryType
+    text: Optional[str] = None
     error: Optional[str] = None
     created_at: datetime.datetime
     updated_at: datetime.datetime

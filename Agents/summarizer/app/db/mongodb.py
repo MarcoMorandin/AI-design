@@ -47,3 +47,7 @@ def get_database() -> AsyncIOMotorDatabase:
 def get_task_collection():
     db = get_database()
     return db[settings.MONGODB_TASK_COLLECTION]
+
+def get_summary_collection():
+    db = get_database()
+    return db[settings.MONGODB_SUMMARY_COLLECTION]

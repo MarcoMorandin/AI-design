@@ -266,21 +266,31 @@ exports.uploadDocuments=async(req,res)=>{
 
 
 exports.getFileComment=async(req, res)=>{
+  let pageToken=null
+  let allComments=[];
   try{
-    const fileId=req.params.fileId;
-    if (!fileId){
-      return res.status(400).json({
-        success: false,
-        error: "Invalid request body",
+    do{
+      const fileId=req.params.fileId;
+      if (!fileId){
+        return res.status(400).json({
+          success: false,
+          error: "Invalid request body",
+        });
+      }
+      const drive=await getDriveClientForUser(req.user);
+      const response = await drive.comments.list({
+        fileId: fileId,
+        fields: 'nextPageToken, comments(id,content,createdTime,modifiedTime,author)',
+        includeDeleted: False,
+        pageToken: pageToken,
+        pageSize: 100
       });
-    }
-    const drive=await getDriveClientForUser(req.user);
-    const response = await drive.comments.list({
-      fileId: fileId,
-      fields: 'comments(id,content,createdTime,modifiedTime,author)',
-      pageSize: 150
-    });
-    const comments=response.data.comments;
+      // if more then 100 comments
+      if (response.data.comments && response.data.comments.length > 0) {
+        allComments = allComments.concat(response.data.comments);
+      }
+      pageToken = response.data.nextPageToken
+    }while(pageToken)
     return res.status(200).json({
       success: true,
       comments: comments,

@@ -25,7 +25,6 @@ tokenizer = AutoTokenizer.from_pretrained(model_name)
 def chunk_document_cosine(text:str)->List[str]:
 
     chunks=get_initial_chunks(text)
-    print(len(chunks))
     if len(chunks)>=1:
         distances, chunks=_cosine_distance(chunks)
         indices_above_trheshold=_indices_above_treshold_distance(distances)
@@ -168,12 +167,10 @@ def _do_embedding(chunks):
 
 """
 def _do_embedding(chunks):
-    print("Embeddings")
     client=get_client()
     client
     embeddings = []
     for i, chunk in enumerate(chunks):
-        print(f"chunck {i}")
         result = client.models.embed_content(
             model=settings.GEMINI_EMBEDDING_MODEL,
             contents=chunk['section'],
