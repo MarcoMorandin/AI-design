@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     GEMINI_MODEL_NAME:str="gemini-2.0-flash"
     GEMINI_EMBEDDING_MODEL:str="models/text-embedding-004"
 
-    UPLOAD_DOCUMENTS_URL:str='http://localhost:3000/api/documents/uploadMd'
+    UPLOAD_DOCUMENTS_URL:str='http://localhost:3000/api/documents/uploadMarkdown'
 
     NOUGAT_URL:str='http://127.0.0.1:8503/predict/'
     # Logging Level (e.g., INFO, DEBUG, WARNING)

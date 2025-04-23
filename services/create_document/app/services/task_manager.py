@@ -8,6 +8,9 @@ from app.models.task import TaskStatus, TaskDocument
 from app.core.config import settings
 import httpx
 from app.utils.get_summary import get_text_by_id, create_md_file
+from app.utils.get_formulas import *
+import json
+
 
 logger = logging.getLogger(__name__)
 
@@ -92,76 +95,58 @@ async def upload_document(jwt_token:str, task_id:uuid.UUID,  summary_id: uuid.UU
         summary_text=await get_text_by_id(summary_id)
         
         await update_task_status(task_id, TaskStatus.UPLOADING)
-        md_file_path=create_md_file(summary_text, summary_id)
 
-        files = {
-            'markdownFile': (file_name,
-                             open(md_file_path, 'rb'),
-                             'text/markdown')
-        }
-        data = {
-            'fileName': file_name,
-            'folderName': document_folder or None,
-            'summary_id': str(summary_id)
-        }
+        #md_file_path=create_md_file(summary_text, summary_id)
+        #modified_text, formula_urls= extract_formulas(summary_text)
+        #modified_text, formula_urls, matches =extract_formulas(summary_text)
 
-        headers={
-            'Authorization': f'Bearer {jwt_token}'
-        }
+        process_document_with_formulas(summary_text, settings.UPLOAD_DOCUMENTS_URL, jwt_token)
+
+        """        
+        tokens=get_parsing(modified_text)
+        
+        current_index=1
+        requests=[]
+
+        for token in tokens:
+            current_index=process_token(token, current_index, requests, formula_urls)
+        
+        current_index=1
+        requests=[]
+        
+        for token in tokens:
+            current_index=process_token_v1(token, current_index, requests, formula_urls)
+        
+        
+        print(requests)
+        data={}
+        headers={}
+        if requests:
+            data = {
+                'requests': requests,
+            }
+
+            headers={
+                'Authorization': f'Bearer {jwt_token}'
+            }
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 settings.UPLOAD_DOCUMENTS_URL,
-                files=files,
+                #files=files,
                 data=data,
                 headers=headers,
                 timeout=30.0
             )
             response.raise_for_status()
 
-            response_data = response.json()
-            document_id = response_data.get('fileId')
+            #response_data = response.json()
+            #document_id = response_data.get('fileId')
         
-        update_task_result(task_id, document_id)
+        #update_task_result(task_id, document_id)
         logger.info(f"[Task:{summary_id}] Uploaded document via API, received status {response.status_code}")    
+        """
     except Exception as e:
         error_msg = f"Error uploading document: {str(e)}"
         logger.error(f"[Task:{summary_id}] {error_msg}")
         await update_task_status(task_id, TaskStatus.FAILED, error_msg)
-
-
-
-
-"""
-async def extract_text_with_image_description(task_id: uuid.UUID, file_path: str):
-    #The background task performing the full document summarization pipeline.
-    logger.info(f"[Task:{task_id}] Starting background processing for document: {file_path}")
-
-    try:
-        if settings.TEST_PHASE==False:
-            await update_task_status(task_id, TaskStatus.DOWNLOADING)
-            file_tmp_path=await file_handler.download_document_from_url(file_path)
-
-            # 1. Update status: EXTRACTING
-            await update_task_status(task_id, TaskStatus.EXTRACTING)
-
-            # 2. Extract text from document
-            image_captions=document_processing.get_image_info(file_tmp_path)            
-            text = await document_processing.extract_text_from_document(file_tmp_path, image_captions)
-            logger.info(f"[Task:{task_id}] Text extracted from document")
-
-            await update_task_result(task_id, text)
-            logger.info(f"[Task:{task_id}] Task completed successfully.")
-        else:
-            await update_task_status(task_id, TaskStatus.DOWNLOADING)
-            await update_task_status(task_id, TaskStatus.EXTRACTING)
-            temp_file_path = settings.TEMP_DIR / f"test.md"
-            with open(temp_file_path, 'r') as md_file:
-                content=md_file.read()
-            await update_task_result(content, temp_file_path)
-            
-    except Exception as e:
-        error_msg = f"Error processing document: {str(e)}"
-        logger.error(f"[Task:{task_id}] {error_msg}")
-        await update_task_status(task_id, TaskStatus.FAILED, error_msg)
-"""

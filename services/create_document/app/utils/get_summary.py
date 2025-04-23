@@ -3,6 +3,9 @@ from app.db.mongodb import get_summary_collection
 from app.core.config import settings
 import logging
 import re
+import urllib.parse
+#import markdown
+from markdown_it import MarkdownIt
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +50,9 @@ def clean_markdown_file(content):
         print(f"Error cleaning markdown file: {str(e)}")
         return None
 
+
 def create_md_file(text, summary_id):
-    temp_file_path = settings.TEMP_DIR / f"{str(summary_id)}_downloaded.mmd"
+    temp_file_path = settings.TEMP_DIR / f"{str(summary_id)}.mmd"
     with open(temp_file_path, "w") as file:
         file.write(text)
     return temp_file_path
