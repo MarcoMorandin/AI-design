@@ -10,12 +10,12 @@ from app.services import document_processing
 
 logger = logging.getLogger(__name__)
 
-async def create_task_in_db(file_name: str) -> uuid.UUID:
+async def create_task_in_db(url: str) -> uuid.UUID:
     """Creates a new task record in MongoDB and returns its task_id."""
     task_id = uuid.uuid4()
     task_doc = TaskDocument(
         task_id=task_id,
-        file_name=file_name,
+        url=url,
         status=TaskStatus.PENDING,
         created_at=datetime.datetime.now(datetime.timezone.utc),
         updated_at=datetime.datetime.now(datetime.timezone.utc)
@@ -31,7 +31,7 @@ async def create_task_in_db(file_name: str) -> uuid.UUID:
     insert_data['_id'] = task_id
     
     await collection.insert_one(insert_data)
-    logger.info(f"Created task {task_id} for document {file_name} in DB.")
+    logger.info(f"Created task {task_id} for document {url} in DB.")
     return task_id
 
 
