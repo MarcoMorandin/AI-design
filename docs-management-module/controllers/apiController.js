@@ -2,8 +2,63 @@ const { google } = require("googleapis");
 const User = require("../models/User");
 const { decrypt } = require("../utils/encryption");
 require("dotenv").config();
-const { Readable } = require("stream");
+const stream = require("stream");
 const MarkdownIt = require('markdown-it');
+
+// get Docs API
+async function getDocsClientForUser(user) {
+  if (!user || !user.googleTokens || !user.googleTokens.access_token) {
+    throw new Error("User Google Docs account is not linked.");
+  }
+
+  const oAuth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    `${process.env.BASE_URL}/connect/drive/callback`
+  );
+
+  const tokens = {
+    ...user.googleTokens,
+    refresh_token: decrypt(user.googleTokens.refresh_token),
+  };
+
+  if (user.googleTokens.refresh_token && !tokens.refresh_token) {
+    console.error(`Failed to decrypt refresh token for user ${user.id}`);
+    throw new Error("Failed to prepare Docs credentials. Decryption error.");
+  }
+
+  oAuth2Client.setCredentials(tokens);
+
+  oAuth2Client.on("tokens", async (newTokens) => {
+    console.log(`Refreshing Docs tokens for user: ${user.id}`);
+    let updatedFields = {
+      'googleTokens.access_token': newTokens.access_token,
+      'googleTokens.expiry_date': newTokens.expiry_date,
+      'googleTokens.scope': newTokens.scope || user.googleTokens.scope,
+      'googleTokens.token_type': newTokens.token_type || user.googleTokens.token_type,
+    };
+
+    if (newTokens.refresh_token) {
+      const encryptedRefreshToken = encrypt(newTokens.refresh_token);
+      if (!encryptedRefreshToken) {
+        console.error(`CRITICAL: Failed to encrypt new refresh token for user ${user.id}.`);
+        return;
+      }
+      updatedFields["googleTokens.refresh_token"] = encryptedRefreshToken;
+    } else {
+      updatedFields["googleTokens.refresh_token"] = user.googleTokens.refresh_token;
+    }
+
+    try {
+      await User.findByIdAndUpdate(user.id, { $set: updatedFields });
+      console.log(`Successfully updated tokens in DB for user: ${user.id}`);
+    } catch (dbError) {
+      console.error(`Error updating refreshed tokens in DB for user ${user.id}:`, dbError);
+    }
+  });
+
+  return google.docs({ version: "v1", auth: oAuth2Client });
+}
 
 
 // Helper getDriveClientForUser(user) uses user.googleTokens from DB
@@ -195,87 +250,215 @@ exports.getDriveTree=async(req,res)=>{
   } 
 }
 
-exports.fromMdToDocs=async(req,res)=>{
-  try{
-    //Default → root folder
-    const folderName = req.body.folderName || req.user.driveFolderName;
-    const summary_id=req.body.summary_id
-    const fileName=req.body.fileName
-    if (!folderName || !summary_id ||!fileName){
-      return res.status(400).json({
-        success: false,
-        error: "Invalid request body",
-      });
-    }
-    if (!req.file){
-      return res.status(400).json({
-        success: false,
-        error: "No files uploaded",
-      });
-    }
-    const drive=await getDriveClientForUser(req.user);
-    const folderId= await getFolderIdByName(drive, folderName);
+// Helper function to upload a base64 image to Google Drive
+async function uploadImageToDrive(base64Data, fileName, drive_const) {
 
-    // --- EDIT START ---
-    const md=req.file.buffer.toString('utf8');
-    const html = new MarkdownIt().render(md);
 
-    // Create a stream directly from the uploaded file buffer
-    const bufferStream = new Readable()
-    bufferStream.push(html) // Use the original Markdown buffer
-    bufferStream.push(null)
-    // --- EDIT END ---
-
-    const fileMetadata = {
-      name: fileName,
-      parents: [folderId],
-      mimeType: 'application/vnd.google-apps.document', // Request Google Doc format
-      appProperties: {
-        'summary_id': summary_id
-      },
-    };
-    const media = {
-      // --- EDIT START ---
-      mimeType: 'text/markdown', // Specify the source format is Markdown
-      // --- EDIT END ---
-      body: bufferStream
-    };
-
-    const response =await drive.files.create({
+  //const folderId= await getFolderIdByName(drive_const, folderName);
+  //console.log("folderId", folderId)
+  //const drive = await getDriveClientForUser(req.user);
+  // Convert base64 to buffer
+  const buffer = Buffer.from(base64Data, 'base64');
+  
+  // Create a readable stream from the buffer
+  const bufferStream = new stream.PassThrough();
+  bufferStream.end(buffer);
+  
+  // Upload to Google Drive
+  const fileMetadata = {
+    name: fileName,
+    mimeType: 'image/png'
+  };
+  
+  const media = {
+    mimeType: 'image/png',
+    body: bufferStream
+  };
+  
+  try {
+    const res = await drive_const.files.create({
       resource: fileMetadata,
       media: media,
-      fields: "id, name, parents",
+      fields: 'id'
+    });
+    
+    const fileId = res.data.id;
+
+    // Make the file public
+    await drive_const.permissions.create({
+      fileId: fileId,
+      requestBody: {
+        role: 'reader',
+        type: 'anyone'
+      }
     });
 
-    res.status(200).json({
-      success: true,
-      message: "File uploaded and converted successfully",
-      fileId: response.data.id,
-    });
-
-  }catch(error){
-    console.error(
-      `API Error fetching folder tree for user ${req.user?.id}:`,
-      error
-    );
-    // Check for specific errors potentially thrown by getDriveClientForUser or getFolderTree
-    if (
-      error.message.includes("linked") ||
-      error.message.includes("credential") ||
-      error.message.includes("decrypt")
-    ) {
-      res.status(400).json({
-        success: false,
-        error: `Drive access error: ${error.message}`,
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        error: "Internal server error while uploading document.",
-      });
-    }
+    return fileId;
+  } catch (err) {
+    console.error('Error uploading image to Drive:', err);
+    throw err;
   }
 }
+
+
+exports.uploadMarkdown=async(req,res)=>{
+  try {
+    console.log(req)
+    const { title, text, formulas } = req.body;
+    
+    if (!title || !text || !formulas) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    const docs = await getDocsClientForUser(req.user);
+    const drive=await getDriveClientForUser(req.user);
+    // 1. Create a new Google Doc
+    //const folderId= await getFolderIdByName(drive_const, req.user.driveFolderName);
+    const doc = await docs.documents.create({
+      requestBody: {
+        title: title
+      }
+    });
+    
+    const documentId = doc.data.documentId;
+
+
+    console.log(`Created new document with ID: ${documentId}`);
+    
+    // 2. Upload all formula images to Drive
+    
+    const formulaImageMap = {};
+    for (const formula of formulas) {
+      if (formula.image_data) {
+        const fileId = await uploadImageToDrive(
+          formula.image_data, 
+          `formula_${formula.placeholder.replace(/[\[\]]/g, '')}`,
+          drive
+        );
+        console.log(fileId)
+        formulaImageMap[formula.placeholder] = fileId;
+      }
+    }
+    
+    // 3. Process the document text and prepare batch update requests
+    const requests = [];
+
+    
+    let currentText = text;
+    
+    // First, insert the entire text
+    requests.push({
+      insertText: {
+        location: { index: 1 },
+        text: currentText
+      }
+    });
+    
+    // Now, replace all placeholders with images
+    let contentLength = currentText.length + 1; // +1 for the initial index
+    
+    for (const formula of formulas) {
+      const { placeholder, type } = formula;
+      const fileId = formulaImageMap[placeholder];
+      
+      if (!fileId) continue;
+      
+      // Find the position of the placeholder in the text
+      const placeholderPos = currentText.indexOf(placeholder);
+      if (placeholderPos === -1) continue;
+      
+      const placeholderIndex = placeholderPos + 1; // +1 for the initial index
+      
+      // Calculate the placeholder length
+      const placeholderLength = placeholder.length;
+      
+      // Add request to delete the placeholder text
+      requests.push({
+        deleteContentRange: {
+          range: {
+            startIndex: placeholderIndex,
+            endIndex: placeholderIndex + placeholderLength
+          }
+        }
+      });
+      
+      // Adjust content length after deletion
+      contentLength -= placeholderLength;
+      
+      // Add request to insert the image at the same position
+      requests.push({
+        insertInlineImage: {
+          location: { index: placeholderIndex },
+          uri: `https://drive.google.com/uc?export=view&id=${fileId}`,
+          objectSize: {
+            height: {
+              magnitude: type === 'INLINE_FORMULA' ? 10 : 20,
+              unit: 'PT'
+            }
+          }
+        }
+      });
+      
+      // For display formulas, ensure there are newlines before and after
+      if (type === 'DISPLAY_FORMULA') {
+        // Check if there's already a newline before/after and add if needed
+        // This is a simplified approach and might need adjustment
+        const textBefore = currentText.substring(0, placeholderPos);
+        const textAfter = currentText.substring(placeholderPos + placeholderLength);
+        
+        if (!textBefore.endsWith('\n')) {
+          requests.push({
+            insertText: {
+              location: { index: placeholderIndex },
+              text: '\n'
+            }
+          });
+          contentLength += 1;
+        }
+        
+        if (!textAfter.startsWith('\n')) {
+          requests.push({
+            insertText: {
+              location: { index: placeholderIndex + 1 }, // +1 for the image
+              text: '\n'
+            }
+          });
+          contentLength += 1;
+        }
+      }
+      
+      // Update the text by removing the processed placeholder
+      currentText = 
+        currentText.substring(0, placeholderPos) + 
+        '█'.repeat(placeholderLength) + // Use a marker to keep the string length the same
+        currentText.substring(placeholderPos + placeholderLength);
+    }
+    
+    // 4. Execute the batch update
+    if (requests.length > 0) {
+      await docs.documents.batchUpdate({
+        documentId,
+        requestBody: {
+          requests
+        }
+      });
+    }
+    
+    // 5. Return the document ID and URL
+    return res.status(200).json({
+      success: true,
+      documentId,
+      documentUrl: `https://docs.google.com/document/d/${documentId}/edit`
+    });
+    
+  } catch (error) {
+    //console.error('Error processing document:', error);
+    console.error('Error processing document:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
 
 
 

@@ -40,8 +40,7 @@ router.get("/drive/tree", verifyJwt, apiController.getDriveTree);
 
 router.post("/documents/upload", verifyJwt, upload.single("file"), apiController.uploadDocuments);
 
-router.post("/documents/uploadMd", verifyJwt, upload.single("markdownFile"), apiController.fromMdToDocs);
-
+router.post("/documents/uploadMarkdown", verifyJwt, apiController.uploadMarkdown);
 
 router.get("/documents/:fileId/getComments", verifyJwt, apiController.getFileComment);
 
