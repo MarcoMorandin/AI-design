@@ -1,6 +1,5 @@
 import json
 import copy
-import inspect
 
 import json
 from google import genai
@@ -37,56 +36,30 @@ def pretty_print_messages(messages) -> None:
             print(f"\033[95m{name}\033[0m({arg_str[1:-1]})")
 
 
-#function tool that agent can call: no input, but return Union[str, "Agent", dict]
-#it is used the forward refernce:  use a string literal to declare a name that hasn't 
-# been defined yet in the code. The annotation is stored as just the name and the 
-# reference to the object is resolved later.
-AgentFunction = Callable[[], Union[str, "Agent", dict]]
 
 class Agent(BaseModel):
-    # Just a simple class. Doesn't contain any methods out of the box
     name: str = "Agent"
-    #api_key:str="AIzaSyBSrT4FjRJB9l7Itgk1DqyJeyQ3Gm4eNNE"
-    model: str = "gemini-2.0-flash"
-    # could de a string or a function the return a string
+    model: str = "gemini-2.0-flash"   
     instructions: Union[str, Callable[[], str]] = "You are an agent that do sum"
-
     tool_manager: ToolManager = None
 
+    # since TollManager is not pydantic
     class Config:
         arbitrary_types_allowed = True
 
-    #functions: List[AgentFunction] = []
-    #tool_choice: str = None
-    #parallel_tool_calls: bool = True
-
 class Response(BaseModel):
-    # Response is used to encapsulate the entire conversation output
+    # Encapsulate the entire conversation output
     messages: List = []
     agent: Optional[Agent] = None
-    
-class Function(BaseModel):
-    #model the info related to the AgentFunction
-
-    #argomenti in JSON format (see function_to_json)
-    arguments: str
-    name: str
-
-class ChatCompletionMessageToolCall(BaseModel):
-    #AgentFunction call during the chat
-
-    id: str # The ID of the tool call
-    function: Function # The function that the model called
-    type: Literal["function"] # The type of the tool. Currently, only `function` is supported
 
 class Result(BaseModel):
-    # Result is used to encapsulate the return value of a single function/tool call
+    # Encapsulate the return value of a single function/tool call
     value: str = "" # The result value as a string.
     agent: Optional[Agent] = None # The agent instance, if applicable.
 
 
 class Swarm:
-    # Implements the core logic of orchestrating a single/multi-agent system
+    # Questo rappresenta l'orchestrator ma, TODO: ce ne sono di due tipi (manager e decentralized) → quando mettiamo più agenti poi vediamo come fare
     def __init__(
         self,
         client=None,
@@ -101,11 +74,10 @@ class Swarm:
         history: List,
         model_override: str
     ):
-        #tools = [function_to_json(f) for f in agent.functions]
+
         tools=agent.tool_manager.list_tools()
         tools_info=[tool.get_tool_info() for tool in tools]
 
-        
         system_prompt = (
             f"{agent.instructions}\n\n"
             f"Available tools:\n{tools_info}\n\n"
@@ -141,16 +113,20 @@ class Swarm:
         return response, tool_info
             
     def _parse_tool_selection(self, content: str):
+        print('#############################################')
+        print(content)
+        print('#############################################')
         """Extract tool selection information from the response text."""
         if "TOOL:" in content:
             try:
-                reasoning_match = re.search(r"REASONING:(.*?)(?=TOOL:|$)", content, re.DOTALL)
+                #il reasing per ora non ci serve
+                #reasoning_match = re.search(r"REASONING:(.*?)(?=TOOL:|$)", content, re.DOTALL)
                 tool_match      = re.search(r"TOOL:(.*?)(?=PARAMETERS:|$)", content, re.DOTALL)
                 params_match    = re.search(r"PARAMETERS:(.*?)$", content, re.DOTALL)
 
                 if tool_match:
+                    #reasoning  = reasoning_match.group(1).strip() if reasoning_match else ""
                     tool_name  = tool_match.group(1).strip()
-                    reasoning  = reasoning_match.group(1).strip() if reasoning_match else ""
                     params_str = params_match.group(1).strip() if params_match else "{}"
 
                     try:
@@ -160,7 +136,7 @@ class Swarm:
 
                     return {
                         "tool": tool_name,
-                        "reasoning": reasoning,
+                        #"reasoning": reasoning,
                         "parameters": parameters
                     }
             except Exception as e:
@@ -208,7 +184,6 @@ class Swarm:
         messages: List,
         model_override: str = None,
         max_turns: int = float("inf"),
-        execute_tools: bool = True,
     ) -> Response:
         active_agent = agent
         history = copy.deepcopy(messages)

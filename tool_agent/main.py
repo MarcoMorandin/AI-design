@@ -6,8 +6,13 @@ def add_numbers(a: int, b: int) -> int:
         #"""Add two numbers together."""
         return a + b
 
+def subtract_numbers(a: int, b: int) -> int:
+        #"""Subtract two numbers together."""
+        return a - b
+
 manager = ToolManager()
 manager.add_tool(add_numbers, "add_numbers", "add two numbers")
+manager.add_tool(subtract_numbers, "subtract_numbers", "subtract two numbers")
 
 weather_agent = Agent(
     name="Sum agent",

@@ -21,14 +21,15 @@ def get_function_info(fn, name, description):
         param_type = param.annotation
         parameters[param.name] = {"type": param_type}
 
-    #visto che il valore di default è vuoto, il parametro è obbligatorio
+    # required parameters are those without a default value
     required = [
         param.name
         for param in signature.parameters.values()
         if param.default == inspect._empty
     ]
 
-    #check if should be converted in json
+    # TODO: ---- Se vogliamo aggiungere il controllo e seguire il MCP → 
+    # forse ci sarebbe da convertirlo in json e poi da json a dict di nuovo e lavorare con pydantic ---
 
     return {
         "type": "function",
@@ -47,7 +48,6 @@ def get_function_info(fn, name, description):
 
 
 
-
 class Tool(BaseModel):
     """Internal tool registration info."""
 
@@ -55,18 +55,8 @@ class Tool(BaseModel):
     name: str = Field(description="Name of the tool")
     description: str = Field(description="Description of what the tool does")
     parameters: dict[str, Any] = Field(description="JSON schema for tool parameters")
-    #fn_metadata: FuncMetadata = Field(
-    #    description="Metadata about the function including a pydantic model for tool"
-    #    " arguments"
-    #)
-    #fn_medatada: dict[str, Any] = Field(description="Metadata about the function")
     is_async: bool = Field(description="Whether the tool is async")
 
-    tool_info: Optional[dict[str, Any]] = Field(default=None, description="JSON schema for tool info")
-
-    #context_kwarg: str | None = Field(
-    #    None, description="Name of the kwarg that should receive context"
-    #)
     
     @classmethod
     def from_function(
@@ -89,7 +79,7 @@ class Tool(BaseModel):
 
         #get metadata of the function (used to check during run)
         parameters=get_function_info(fn, name, description)
-        tool_info=parameters
+
         return cls(
             fn=fn,
             name=func_name,
@@ -99,11 +89,11 @@ class Tool(BaseModel):
         )
 
     def get_tool_info(self):
-        if self.tool_info is not None:
-            return self.tool_info
+        if self.parameters is not None:
+            return self.parameters
         else:
-            tool_info= get_function_info(self.fn, self.name, self.description)
-            return tool_info
+            parameters= get_function_info(self.fn, self.name, self.description)
+            return parameters
 
     async def run(
         self,

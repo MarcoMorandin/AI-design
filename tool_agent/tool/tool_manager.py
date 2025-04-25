@@ -63,31 +63,3 @@ class TestClass:
         self.p1 = p1
         self.p2 = p2
         self.p3 = p3
-
-async def main():
-    paramClass=TestClass("test", 1, "test")
-
-    def custom_fn(a: int, b: int, c: TestClass) -> int:
-        #"""Add two numbers together."""
-        return a + b
-
-    def other_tol(p:str) -> str:
-        return p
-    
-    name="add_numbers"      # (Optional) Name for the tool
-    description="Adds two numbers and takes a TestClass parameter."  # (Optional) Description
-    
-    manager = ToolManager()
-    manager.add_tool(custom_fn, name, description)
-    manager.add_tool(other_tol, "other_tol", "other_tol")
-    #result = await manager.call_tool("add_numbers", {"a": 1, "b": 2, "c": paramClass})
-    #sprint(result)
-    #print(manager.get_tool_info("add_numbers"))
-    tools=manager.list_tools()
-    for tool in tools:
-        print(tool.get_tool_info())
-    #print(manager.list_tools())
-    
-
-if __name__ == "__main__":
-    asyncio.run(main())
