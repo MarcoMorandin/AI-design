@@ -2,7 +2,7 @@
 import ffmpeg from 'fluent-ffmpeg';
 import path from 'path';
 import fs from 'fs-extra'; // Use fs-extra for ensureDir and promises
-import Groq from 'groq-sdk';
+import Groq from 'groq-sdk/index.mjs';
 import config from '../config/index.js';
 
 // Helper to get path for the initial full audio extraction
