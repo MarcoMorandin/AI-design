@@ -6,9 +6,9 @@ import torch
 # The commended function is for using sentenceTransformers
 import torch
 import torch.nn.functional as F
-from chunker_types.standardar_chuncker import chunk_document
+from .standardar_chuncker import chunk_document
 #from app.services.llm import get_client
-from transformers import AutoModel, AutoTokenizer
+#from transformers import AutoModel, AutoTokenizer
 from google import genai
 from google.genai import types
 

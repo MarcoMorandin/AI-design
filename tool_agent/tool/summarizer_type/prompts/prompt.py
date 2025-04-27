@@ -51,7 +51,7 @@ def generate_final_summary(summary_type: str, text_was_splitted:bool):
    return prompt
 
 
-def fix_formulas_prompt(text):
+def fix_formulas_prompt():
     prompt=f"""You must ensure that all the formulas (if present) are writtein in a correct latex format. If there is no latex format, you must convert the formulas to latex format. Just fix the error in latex format and return the correct latex with nothing else."""
     
     return prompt

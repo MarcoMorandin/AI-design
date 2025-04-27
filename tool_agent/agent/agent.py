@@ -11,6 +11,7 @@ from typing_extensions import Literal
 from typing import Union, Callable, List, Optional
 from tool.tool import Tool
 from tool.tool_manager import ToolManager
+import ast
 
 
 def pretty_print_messages(messages) -> None:
@@ -109,10 +110,12 @@ class Swarm:
 
         # Parse out any TOOL/PARAMETERS instructions
         tool_info = self._parse_tool_selection(assistant_msg)
-
+        print(f"TOOL INFO: {tool_info}")
         return response, tool_info
+
             
     def _parse_tool_selection(self, content: str):
+        print("CONTENT")
         print('#############################################')
         print(content)
         print('#############################################')
@@ -130,8 +133,15 @@ class Swarm:
                     params_str = params_match.group(1).strip() if params_match else "{}"
 
                     try:
-                        parameters = json.loads(params_str)
+                        #fixed = self._escape_invalid_json_escapes(params_str)
+                        print(f"PARAM_BEFORE_JSON: {params_str}\n")
+                        parameters=ast.literal_eval(params_str)
+                        #params_str_dumps = json.dumps(params_str)
+                        #parameters = json.loads(fixed)
+
+                        print(f'PARAMETERS: {parameters}')
                     except json.JSONDecodeError:
+                        print(f'PARAMETERS: VUOTO')
                         parameters = {}
 
                     return {
@@ -142,6 +152,7 @@ class Swarm:
             except Exception as e:
                 print(f"Error parsing tool selection: {e}")
         return None
+
 
     def handle_function_result(self, result) -> Result:
         match result:
@@ -160,8 +171,10 @@ class Swarm:
 
 
     async def handle_tool_calls(self, agent:Agent, tool_name, parameter) -> Response:
+        print(f'CALLED FUNCTION {tool_name} WITH ARGS: {parameter}')
+        
         raw_result = await agent.tool_manager.call_tool(tool_name, parameter)
-        print(f'Called function {tool_name} with args: {parameter} and obtained result: {raw_result}')
+        print(f'AND OBTAINED RESULTs: {raw_result}')
         print('#############################################')
         partial_response = Response(messages=[], agent=None)
         result: Result = self.handle_function_result(raw_result)
@@ -189,9 +202,9 @@ class Swarm:
         history = copy.deepcopy(messages)
         init_len = len(messages)
 
-        print('#############################################')
-        print(f'history: {history}')
-        print('#############################################')
+        #print('#############################################')
+        #print(f'history: {history}')
+        #print('#############################################')
         while len(history) - init_len < max_turns and active_agent:
             message, tool_info = self.get_chat_completion(
                 agent=active_agent,
@@ -204,9 +217,9 @@ class Swarm:
                 "sender": active_agent.name,
                 "content": message.text
             }
-            print(f'Active agent: {active_agent.name}')
-            print(f"message: {assistant_message}")
-            print('#############################################')
+            #print(f'Active agent: {active_agent.name}')
+            #print(f"message: {assistant_message}")
+            #print('#############################################')
             
             
             history.append(assistant_message)

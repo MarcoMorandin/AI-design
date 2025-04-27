@@ -2,7 +2,7 @@ from typing import List
 from .prompts.prompt import summary_prompt
 
 
-def get_prompt_to_summarize_chunk(summary_type: str) -> str:
+def get_prompt_to_summarize_chunk(summary_type: str="technical") -> str:
     """Return the instruction to summarize a text
     available summary types:
     - "standard": Standard Summary

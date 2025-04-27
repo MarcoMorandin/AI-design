@@ -52,4 +52,4 @@ class Settings(BaseSettings):
 settings = Settings()
 
 # Ensure temp directory exists
-settings.TEMP_DIR.mkdir(parents=True, exist_ok=True)
+#settings.TEMP_DIR.mkdir(parents=True, exist_ok=True)
