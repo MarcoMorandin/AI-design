@@ -31,6 +31,12 @@ RUN pip3 install torch torchvision torchaudio --index-url https://download.pytor
 RUN mkdir workspace
 WORKDIR /workspace
 
+ENV HF_HOME=/data/.huggingface
+ENV TORCH_HOME=/data/.torch
+
+RUN mkdir -p ${HF_HOME} ${TORCH_HOME} && \
+    chmod -R 777 /data
+
 RUN pip3 install fastapi uvicorn[standard] fsspec[http]==2023.5.0 python-multipart albumentations==1.3.0 transformers==4.36.0 "nougat-ocr[api]"
 RUN git clone https://github.com/facebookresearch/nougat.git
 WORKDIR /workspace/nougat

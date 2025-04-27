@@ -1,0 +1,32 @@
+# Web framework
+fastapi>=0.100.0
+uvicorn>=0.22.0
+
+# HTTP client
+httpx>=0.24.0
+
+# Database
+motor>=3.1.1
+pymongo>=4.3.3
+
+# Data validation and settings management
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# File handling
+python-multipart>=0.0.6
+
+# Utilities
+python-dotenv>=1.0.0
+
+# Date and time handling
+pytz>=2023.3
+
+# Logging
+logging>=0.4.9
+
+# UUID handling
+uuid>=1.30
+
+# Path handling
+pathlib>=1.0.1

@@ -1,0 +1,5 @@
+git+https://github.com/huggingface/transformers
+gradio
+git+https://github.com/facebookresearch/nougat
+python-levenshtein
+spaces
