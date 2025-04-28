@@ -4,11 +4,11 @@ from pydantic import BaseModel, Field
 import inspect
 from typing import Any, Callable, get_type_hints, Any, Optional
 import json
-from tool.func_metadata import call_fn_with_arg
+from .func_metadata import call_fn_with_arg
 
 
 def get_function_info(fn, name, description):
-        
+
     try:
         signature = inspect.signature(fn)
     except ValueError as e:
@@ -28,7 +28,7 @@ def get_function_info(fn, name, description):
         if param.default == inspect._empty
     ]
 
-    # TODO: ---- Se vogliamo aggiungere il controllo e seguire il MCP → 
+    # TODO: ---- Se vogliamo aggiungere il controllo e seguire il MCP →
     # forse ci sarebbe da convertirlo in json e poi da json a dict di nuovo e lavorare con pydantic ---
 
     return {
@@ -44,9 +44,6 @@ def get_function_info(fn, name, description):
         },
     }
 
-    
-
-
 
 class Tool(BaseModel):
     """Internal tool registration info."""
@@ -57,15 +54,14 @@ class Tool(BaseModel):
     parameters: dict[str, Any] = Field(description="JSON schema for tool parameters")
     is_async: bool = Field(description="Whether the tool is async")
 
-    
     @classmethod
     def from_function(
         cls,
         fn: Callable[..., Any],
         name: str | None = None,
         description: str | None = None,
-        #fn_medatada: dict[str, Any] | None = None,
-        #context_kwarg: str | None = None,
+        # fn_medatada: dict[str, Any] | None = None,
+        # context_kwarg: str | None = None,
     ) -> Tool:
         """Create a tool from a function."""
 
@@ -77,8 +73,8 @@ class Tool(BaseModel):
         func_doc = description or fn.__doc__ or ""
         is_async = inspect.iscoroutinefunction(fn)
 
-        #get metadata of the function (used to check during run)
-        parameters=get_function_info(fn, name, description)
+        # get metadata of the function (used to check during run)
+        parameters = get_function_info(fn, name, description)
 
         return cls(
             fn=fn,
@@ -92,7 +88,7 @@ class Tool(BaseModel):
         if self.parameters is not None:
             return self.parameters
         else:
-            parameters= get_function_info(self.fn, self.name, self.description)
+            parameters = get_function_info(self.fn, self.name, self.description)
             return parameters
 
     async def run(
@@ -101,14 +97,6 @@ class Tool(BaseModel):
     ) -> Any:
         """Run the tool with arguments."""
         try:
-            return await call_fn_with_arg(
-                self.fn,
-                self.is_async,
-                arguments
-            )
+            return await call_fn_with_arg(self.fn, self.is_async, arguments)
         except Exception as e:
             raise Exception(f"Error executing tool {self.name}: {e}") from e
-
-
-        
-        
