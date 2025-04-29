@@ -1,0 +1,17 @@
+LICENSE
+README.md
+pyproject.toml
+setup.py
+trento_agent_sdk/__init__.py
+trento_agent_sdk/example.py
+trento_agent_sdk.egg-info/PKG-INFO
+trento_agent_sdk.egg-info/SOURCES.txt
+trento_agent_sdk.egg-info/dependency_links.txt
+trento_agent_sdk.egg-info/requires.txt
+trento_agent_sdk.egg-info/top_level.txt
+trento_agent_sdk/agent/__init__.py
+trento_agent_sdk/agent/agent.py
+trento_agent_sdk/tool/__init__.py
+trento_agent_sdk/tool/func_metadata.py
+trento_agent_sdk/tool/tool.py
+trento_agent_sdk/tool/tool_manager.py

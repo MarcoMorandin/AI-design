@@ -2,7 +2,7 @@ from __future__ import annotations as _annotations
 
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
-from tool.tool import Tool
+from .tool import Tool
 import asyncio
 
 
@@ -33,7 +33,7 @@ class ToolManager:
         if existing:
             if self.warn_on_duplicate_tools:
                 print(f"Tool already exists: {tool.name}")
-                #logger.warning(f"Tool already exists: {tool.name}")
+                # logger.warning(f"Tool already exists: {tool.name}")
             return existing
         self._tools[tool.name] = tool
         return tool
@@ -49,14 +49,17 @@ class ToolManager:
             raise Exception(f"Unknown tool: {name}")
 
         return await tool.run(arguments)
-    
-    def get_tool_info(self,
-        name: str,):
+
+    def get_tool_info(
+        self,
+        name: str,
+    ):
         tool = self.get_tool(name)
         if not tool:
             raise Exception(f"Unknown tool: {name}")
 
         return tool.get_tool_info()
+
 
 class TestClass:
     def __init__(self, p1: str, p2: int, p3: str) -> None:
