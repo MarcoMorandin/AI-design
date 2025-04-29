@@ -10,7 +10,7 @@ def get_final_summary_prompt(summary_type: str, text_was_splitted:bool) -> str:
 
     Args:
         summary_type (str): The type of summary to generate.
-        text_was_splitted (bool): Whether the orignal text was splitted or not.
+        text_was_splitted (bool): Whether the orignal text was splitted or not. (True or False)
 
     Returns:
         str: Prompt to summarize a text
