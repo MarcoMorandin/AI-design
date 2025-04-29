@@ -49,114 +49,16 @@ where \(\mathbf x_p\) is a particular solution and \(\{\mathbf v_i\}\) spans \(\
 ---
 
 **2. Matrices, Determinants, and Inverses**  
-For \(A\in M_n(K)\), the determinant is  
-\[
-\det A \;=\;\sum_{\sigma\in S_n} \operatorname{sgn}(\sigma)\,\prod_{i=1}^n a_{i,\sigma(i)}.
-\]  
-Key properties:  
-\[
-\det(AB)=\det(A)\det(B),\quad 
-\det(A^T)=\det(A),\quad
-\det(A^{-1})=\det(A)^{-1}.
-\]  
-Inverse (when \(\det A\neq0\)):
-\[
-A^{-1} = \frac1{\det A}\,\operatorname{adj}(A),
-\quad
-(\operatorname{adj}(A))_{ij} = (-1)^{i+j}\det\big(A^{(j,i)}\big).
-\]  
+  
 
 ---
 
 **3. Vector Spaces and Bases**  
-A vector space \(V\) over a field \(K\) satisfies closure under addition and scalar multiplication. A subset \(\{v_1,\dots,v_k\}\subset V\) is a **basis** if it is linearly independent and spans \(V\):
-\[
-\alpha_1v_1 + \cdots + \alpha_kv_k = 0 \;\Longrightarrow\; \alpha_i=0,
-\quad
-\mathrm{span}\{v_i\}=V.
-\]  
-Dimension: \(\dim V = |\,\text{any basis}\,|\).  Coordinate map w.r.t. a basis \(B=(v_i)\):
-\[
-[v]_B = (c_1,\dots,c_n)^T,\quad v = \sum_i c_i v_i.
-\]
 
----
-
-**4. Linear Transformations and Change-of-Basis**  
-A linear map \(T:V\to W\) between finite-dimensional spaces satisfies  
-\[
-T(\alpha u + \beta v) = \alpha T(u) + \beta T(v).
-\]  
-With respect to bases \(B=\{v_i\}\) of \(V\) and \(C=\{w_j\}\) of \(W\), its matrix \( [T]_{C,B} = (t_{ji}) \) is defined by  
-\[
-T(v_i) = \sum_{j} t_{ji}\,w_j.
-\]  
-Change-of-basis: if \(P\) transforms coordinates from basis \(B\) to \(B'\), then  
-\[
-[T]_{B'} = P^{-1}\,[T]_{B}\,P.
-\]
 
 ---
 
 **5. Eigenvalues, Eigenvectors, and Diagonalization**  
-For \(A\in M_n(K)\), \(\lambda\in K\) is an **eigenvalue** if  
-\[
-\exists\,v\neq0:\quad A v = \lambda v.
-\]  
-Characteristic polynomial:
-\[
-\chi_A(\lambda) = \det(A - \lambda I) = (-1)^n\lambda^n + c_{n-1}\lambda^{n-1} + \cdots + c_0.
-\]  
-Algebraic vs. geometric multiplicity:  
-\[
-\text{alg mult}(\lambda) = \text{ord of }\lambda\text{ in }\chi_A,
-\quad
-\text{geo mult}(\lambda) = \dim\ker(A-\lambda I).
-\]  
-Diagonalizable iff there are \(n\) linearly independent eigenvectors, equivalently the minimal polynomial splits into distinct linear factors.  If \(A = S D S^{-1}\) with \(D=\operatorname{diag}(\lambda_1,\dots,\lambda_n)\), then
-\[
-A^k = S\,D^k\,S^{-1},\quad
-\exp(A) = S\,\exp(D)\,S^{-1},\quad
-\exp(D) = \operatorname{diag}(e^{\lambda_i}).
-\]
-
----
-
-**6. Polynomial Rings and Factorization**  
-The ring of polynomials \(K[x]\) is a principal ideal domain (PID).  Every non-constant
-\[
-f(x) = a_n x^n + \cdots + a_1 x + a_0
-\]
-admits a unique (up to units) factorization
-\[
-f(x) = a_n \prod_{i=1}^r (x-\alpha_i)^{e_i}
-\]
-over an algebraic closure \(\overline K\).  In \(K[x]\) itself, one has
-\[
-f(x) = g(x)\,h(x)
-\quad\Longleftrightarrow\quad
-\gcd(g,h)=1 \text{ or nontrivial common factor}.
-\]  
-Euclidean algorithm for \(\gcd(f,g)\):
-\[
-f = q_1\,g + r_1,\quad
-g = q_2\,r_1 + r_2,\;\dots,\;
-r_{k-1} = q_{k+1}\,r_k + 0,
-\]
-then \(\gcd(f,g)=r_k\).
-
----
-
-**7. Sylow Theorems (Group-Theory Glimpse)**  
-Let \(G\) be a finite group, \(|G|=p^k m\) with \(\gcd(p,m)=1\). A **Sylow \(p\)-subgroup** is any subgroup of order \(p^k\). The Sylow theorems assert:  
-1. Existence: \(\exists\,P\le G,\;|P|=p^k.\)  
-2. Conjugacy: any two Sylow \(p\)-subgroups are conjugate in \(G\).  
-3. Counting: if \(n_p\) is the number of Sylow \(p\)-subgroups, then  
-\[
-n_p \equiv 1\pmod p,
-\quad
-n_p \mid m.
-\]
 
 ---
 

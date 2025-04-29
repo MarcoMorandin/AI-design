@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 def main():
 
-    jwt_token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2ODA3YTU5YzA2MzVhZjI3MGM1ODY2ZTUiLCJnb29nbGVJZCI6IjEwMDE5NzI4OTQ0NzU3MTM5ODY5NSIsImlhdCI6MTc0NTkyNzkwNCwiZXhwIjoxNzQ2MDE0MzA0fQ.GKLnhf_B6cajnQZF19GyZzAsfm_YcSzL7snoiDQ-in4"
+    jwt_token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2ODEwZWMxZjhjYzZiOGY1OWZhMzllZDciLCJnb29nbGVJZCI6IjEwMDE5NzI4OTQ0NzU3MTM5ODY5NSIsImlhdCI6MTc0NTkzOTU2MSwiZXhwIjoxNzQ2MDI1OTYxfQ.PrAMkO_DJYW4Tw4rU8TaSP7MvsCH3ev6VYcSEthhUxE"
 
     processor=UploadDriveDocumentTool(jwt_token)
 
