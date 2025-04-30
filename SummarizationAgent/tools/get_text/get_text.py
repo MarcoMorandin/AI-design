@@ -1,10 +1,10 @@
 import os
 
-from ....services.PowerOcr.PdfProcessor.PdfTranscriptionToolGemini import (
+from .PowerOcr.PdfProcessor.PdfTranscriptionToolGemini import (
     PdfTranscriptionToolGemini,
 )
 
-from ....services.PowerOcr.VideoProcessor.VideoTranscriptionTool import (
+from .PowerOcr.VideoProcessor.VideoTranscriptionTool import (
     transcribe_video,
 )
 
@@ -30,7 +30,10 @@ def getTextFromPdf(pdf_path):
         api_key=os.environ.get("GOOGLE_API_KEY"),
     )
 
-    return processor.process(pdf_path)
+    try:
+        return processor.process(pdf_path)
+    except Exception as e:
+        raise Exception(f"Error processing PDF: {e}")
 
 
 def getTextFromVideo(video_path, language="en"):
@@ -54,4 +57,8 @@ def getTextFromVideo(video_path, language="en"):
         "model": "whisper-large-v3",
         "api_key": os.environ.get("GROQ_API_KEY"),
     }
-    return transcribe_video(test_params)
+
+    try:
+        return transcribe_video(test_params)
+    except Exception as e:
+        raise Exception(f"Error processing PDF: {e}")
