@@ -1,7 +1,6 @@
-# Import main A2A components
-from .TaskManager import TaskManager
-from .models.AgentCard import AgentCard, AgentSkill
-from .models.Task import (
+# Import all model components
+from .AgentCard import AgentCard, AgentSkill
+from .Task import (
     Task, 
     TaskStatus, 
     TaskState, 
@@ -10,9 +9,10 @@ from .models.Task import (
     FilePart, 
     DataPart, 
     Part, 
-    Artifact
+    Artifact, 
+    FileContent
 )
-from .models.Types import (
+from .Types import (
     SendTaskRequest,
     SendTaskResponse,
     GetTaskRequest,
@@ -21,5 +21,7 @@ from .models.Types import (
     CancelTaskResponse,
     TaskParams,
     GetTaskParams,
-    CancelTaskParams
+    CancelTaskParams,
+    BaseRequest,
+    BaseResponse
 )

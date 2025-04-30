@@ -12,6 +12,10 @@ trento_agent_sdk.egg-info/requires.txt
 trento_agent_sdk.egg-info/top_level.txt
 trento_agent_sdk/a2a/TaskManager.py
 trento_agent_sdk/a2a/__init__.py
+trento_agent_sdk/a2a/models/AgentCard.py
+trento_agent_sdk/a2a/models/Task.py
+trento_agent_sdk/a2a/models/Types.py
+trento_agent_sdk/a2a/models/__init__.py
 trento_agent_sdk/agent/__init__.py
 trento_agent_sdk/agent/agent.py
 trento_agent_sdk/agent/models.py
