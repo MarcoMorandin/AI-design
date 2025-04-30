@@ -1,9 +1,9 @@
+const Showdown = require('showdown');
 const { google } = require("googleapis");
 const User = require("../models/User");
 const { decrypt } = require("../utils/encryption");
 require("dotenv").config();
 const stream = require("stream");
-const MarkdownIt = require('markdown-it');
 
 // get Docs API
 async function getDocsClientForUser(user) {
@@ -300,33 +300,120 @@ async function uploadImageToDrive(base64Data, fileName, drive_const) {
   }
 }
 
+function findPlaceholders(doc, placeholder) {
+  const ranges = [];
+  doc.body.content.forEach(block => {
+    if (block.paragraph && block.paragraph.elements) {
+      block.paragraph.elements.forEach(el => {
+        if (el.textRun && el.textRun.content.includes(placeholder)) {
+          const start = el.startIndex + el.textRun.content.indexOf(placeholder);
+          const end = start + placeholder.length;
+          ranges.push({ startIndex: start, endIndex: end });
+        }
+      });
+    }
+  });
+  return ranges;
+}
+
+async function replacePlaceholdersWithImages(documentId, formulaImageMap, docsClient) {
+  // 1) Recupera UNA SOLA VOLTA lo snapshot del doc
+  const { data: doc } = await docsClient.documents.get({ documentId });
+
+  // 2) Raccogli tutte le occorrenze in un array
+  const ops = [];
+  for (const { placeholder, fileId } of formulaImageMap) {
+    if (!fileId) continue;
+    const ranges = findPlaceholders(doc, placeholder);
+    for (const { startIndex, endIndex } of ranges) {
+      ops.push({ startIndex, endIndex, fileId });
+    }
+  }
+
+  if (ops.length === 0) return;
+
+  // 3) Ordina in ordine decrescente di startIndex
+  ops.sort((a, b) => b.startIndex - a.startIndex);
+
+  // 4) Genera le richieste DELETE + INSERT
+  const requests = [];
+  for (const { startIndex, endIndex, fileId } of ops) {
+    requests.push({
+      deleteContentRange: { range: { startIndex, endIndex } }
+    });
+    requests.push({
+      insertInlineImage: {
+        uri: `https://drive.google.com/uc?id=${fileId}`,
+        location: { index: startIndex }
+      }
+    });
+  }
+
+  // 5) Invia tutto in un unico batchUpdate
+  await docsClient.documents.batchUpdate({
+    documentId,
+    resource: { requests }
+  });
+}
+
+
 
 exports.uploadMarkdown=async(req,res)=>{
   try {
-    console.log(req)
-    const { title, text, formulas } = req.body;
+
+    const title=req.body.title;
+    const text=req.body.text;
+    const formulas = req.body.formulas;
+    const folderName = req.body.folderName || req.user.driveFolderName;
     
     if (!title || !text || !formulas) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
+
     const docs = await getDocsClientForUser(req.user);
     const drive=await getDriveClientForUser(req.user);
-    // 1. Create a new Google Doc
-    //const folderId= await getFolderIdByName(drive_const, req.user.driveFolderName);
-    const doc = await docs.documents.create({
+
+    const folderId= await getFolderIdByName(drive, folderName);
+    console.log("folderId", folderId)
+    // 1) Upload the .md file
+    const bufferStream = new stream.PassThrough();
+    bufferStream.end(Buffer.from(text, 'utf8'));
+
+    const { data: uploaded } = await drive.files.create({
       requestBody: {
-        title: title
-      }
+        name: title + '.md',
+        mimeType: 'text/markdown'
+      },
+      media: {
+        mimeType: 'text/markdown',
+        body: bufferStream    // only with buffer does not work (REMAINDER)
+      },
+      supportsAllDrives: true,
+      fields: 'id'
     });
-    
-    const documentId = doc.data.documentId;
+    const mdFileId = uploaded.id;
+
+    const { data: copy } = await drive.files.copy({
+      fileId: mdFileId,
+      requestBody: {
+        name: title,                                
+        mimeType: 'application/vnd.google-apps.document',
+        parents: [ folderId ] 
+      },
+      supportsAllDrives: true,
+      fields: 'id'
+    });
+    const documentId = copy.id;
+  
+    // 3) Delete the original Markdown file
+    await drive.files.delete({
+      fileId: mdFileId,
+      supportsAllDrives: true
+    });
 
 
-    console.log(`Created new document with ID: ${documentId}`);
-    
-    // 2. Upload all formula images to Drive
-    
-    const formulaImageMap = {};
+    // 3 - Update images
+    const formulaImageMap = [];
     for (const formula of formulas) {
       if (formula.image_data) {
         const fileId = await uploadImageToDrive(
@@ -335,121 +422,21 @@ exports.uploadMarkdown=async(req,res)=>{
           drive
         );
         console.log(fileId)
-        formulaImageMap[formula.placeholder] = fileId;
+        formulaImageMap.push({
+          placeholder: formula.placeholder,
+          fileId: fileId
+        });
       }
     }
-    
-    // 3. Process the document text and prepare batch update requests
-    const requests = [];
 
-    
-    let currentText = text;
-    
-    // First, insert the entire text
-    requests.push({
-      insertText: {
-        location: { index: 1 },
-        text: currentText
-      }
-    });
-    
-    // Now, replace all placeholders with images
-    let contentLength = currentText.length + 1; // +1 for the initial index
-    
-    for (const formula of formulas) {
-      const { placeholder, type } = formula;
-      const fileId = formulaImageMap[placeholder];
-      
-      if (!fileId) continue;
-      
-      // Find the position of the placeholder in the text
-      const placeholderPos = currentText.indexOf(placeholder);
-      if (placeholderPos === -1) continue;
-      
-      const placeholderIndex = placeholderPos + 1; // +1 for the initial index
-      
-      // Calculate the placeholder length
-      const placeholderLength = placeholder.length;
-      
-      // Add request to delete the placeholder text
-      requests.push({
-        deleteContentRange: {
-          range: {
-            startIndex: placeholderIndex,
-            endIndex: placeholderIndex + placeholderLength
-          }
-        }
-      });
-      
-      // Adjust content length after deletion
-      contentLength -= placeholderLength;
-      
-      // Add request to insert the image at the same position
-      requests.push({
-        insertInlineImage: {
-          location: { index: placeholderIndex },
-          uri: `https://drive.google.com/uc?export=view&id=${fileId}`,
-          objectSize: {
-            height: {
-              magnitude: type === 'INLINE_FORMULA' ? 10 : 20,
-              unit: 'PT'
-            }
-          }
-        }
-      });
-      
-      // For display formulas, ensure there are newlines before and after
-      if (type === 'DISPLAY_FORMULA') {
-        // Check if there's already a newline before/after and add if needed
-        // This is a simplified approach and might need adjustment
-        const textBefore = currentText.substring(0, placeholderPos);
-        const textAfter = currentText.substring(placeholderPos + placeholderLength);
-        
-        if (!textBefore.endsWith('\n')) {
-          requests.push({
-            insertText: {
-              location: { index: placeholderIndex },
-              text: '\n'
-            }
-          });
-          contentLength += 1;
-        }
-        
-        if (!textAfter.startsWith('\n')) {
-          requests.push({
-            insertText: {
-              location: { index: placeholderIndex + 1 }, // +1 for the image
-              text: '\n'
-            }
-          });
-          contentLength += 1;
-        }
-      }
-      
-      // Update the text by removing the processed placeholder
-      currentText = 
-        currentText.substring(0, placeholderPos) + 
-        '█'.repeat(placeholderLength) + // Use a marker to keep the string length the same
-        currentText.substring(placeholderPos + placeholderLength);
-    }
-    
-    // 4. Execute the batch update
-    if (requests.length > 0) {
-      await docs.documents.batchUpdate({
-        documentId,
-        requestBody: {
-          requests
-        }
-      });
-    }
-    
-    // 5. Return the document ID and URL
-    return res.status(200).json({
-      success: true,
-      documentId,
-      documentUrl: `https://docs.google.com/document/d/${documentId}/edit`
-    });
-    
+    //4 - Replace formulas
+    await replacePlaceholdersWithImages(documentId, formulaImageMap, docs);
+
+    // 6) Delete all the uploaded images
+    await Promise.all(formulaImageMap.map(({ fileId }) =>
+      drive.files.delete({ fileId, supportsAllDrives: true })
+    ));
+
   } catch (error) {
     //console.error('Error processing document:', error);
     console.error('Error processing document:', error);
