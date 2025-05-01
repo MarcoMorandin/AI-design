@@ -1,20 +1,15 @@
 import re
 import urllib.parse
 import requests
-import io
-import json
 import base64
-from urllib.parse import urlparse, parse_qs
-
-from app.core.config import settings
 
 def extract_formulas(text):
     """Extract LaTeX formulas from Markdown text and replace with placeholders."""
     formula_patterns = [
-        (r'\\\[(.*?)\\\]', 'DISPLAY_FORMULA'),  # Display math: \[...\]
-        (r'\\\((.*?)\\\)', 'INLINE_FORMULA'),  # Inline math: \(...\)
-        (r'\$\$(.*?)\$\$', 'DISPLAY_FORMULA'),  # Display math: $$...$$
-        (r'(?<!\$)\$(?!\$)(.*?)(?<!\$)\$(?!\$)', 'INLINE_FORMULA')  # Inline math: $...$
+        (r'\\\[(.*?)\\\]', 'DISPLAYFORMULA'),  # Display math: \[...\]
+        (r'\\\((.*?)\\\)', 'INLINEFORMULA'),  # Inline math: \(...\)
+        (r'\$\$(.*?)\$\$', 'DISPLAYFORMULA'),  # Display math: $$...$$
+        (r'(?<!\$)\$(?!\$)(.*?)(?<!\$)\$(?!\$)', 'INLINEFORMULA')  # Inline math: $...$
     ]
     matches = []
     formula_urls = {}
@@ -24,7 +19,7 @@ def extract_formulas(text):
         for match in re.finditer(pattern, text, re.DOTALL):
             formula = match.group(1).strip()
             start, end = match.span()
-            placeholder = f'[{formula_type}_{len(matches)}]'
+            placeholder = f'[{formula_type}{len(matches)}]'
             # Generate CodeCogs URL
             encoded_formula = urllib.parse.quote(formula)
             url = f'https://latex.codecogs.com/png.latex?{encoded_formula}'
@@ -37,7 +32,7 @@ def extract_formulas(text):
     # Replace formulas with placeholders
     modified_text = text
     for start, end, _, placeholder, formula_type in matches:
-        if formula_type == 'DISPLAY_FORMULA':
+        if formula_type == 'DISPLAYFORMULA':
             replacement = f'\n{placeholder}\n'
         else:
             replacement = placeholder
@@ -60,18 +55,26 @@ def download_formula_images(formula_urls):
             image_data[placeholder] = None
     return image_data
 
-def prepare_document_data(text, doc_title="Document with LaTeX Formulas"):
+def prepare_document_data(text, doc_title, folder_name):
     """Extract formulas, download images, and prepare data for endpoint."""
     # Extract formulas and download images
     modified_text, formula_urls,matches = extract_formulas(text)
     image_data = download_formula_images(formula_urls)
     
     # Prepare document structure
-    doc_data = {
-        "title": doc_title,
-        "text": modified_text,
-        "formulas": []
-    }
+    if folder_name=="DEFAULT":
+        doc_data = {
+            "title": doc_title,
+            "text": modified_text,
+            "formulas": []
+        }
+    else:
+        doc_data = {
+            "title": doc_title,
+            "text": modified_text,
+            "formulas": [],
+            "folderName": folder_name
+        }
     
     # Sort matches by start position
     matches.sort(key=lambda x: x[0])
@@ -89,7 +92,7 @@ def prepare_document_data(text, doc_title="Document with LaTeX Formulas"):
                 "type": formula_type,
                 "original_formula": formula,
                 "image_data": base64_image,
-                "is_display": formula_type == 'DISPLAY_FORMULA'
+                "is_display": formula_type == 'DISPLAYFORMULA'
             })
     
     return doc_data
@@ -112,19 +115,17 @@ def send_to_endpoint(data, endpoint_url, jwt_token):
             print(f"Response body: {e.response.text}")
         return None
 
-def process_document_with_formulas(text, endpoint_url, jwt_token, doc_title="Document with LaTeX Formulas"):
+def process_document_with_formulas(text, endpoint_url, jwt_token, folder_name, doc_title):
     """Process document with LaTeX formulas and send to endpoint."""
     # Prepare the document data
-    doc_data = prepare_document_data(text, doc_title)
+    doc_data = prepare_document_data(text, doc_title, folder_name)
     
-    endpoint_url = settings.UPLOAD_DOCUMENTS_URL
+    endpoint_url = 'http://localhost:3000/api/documents/uploadMarkdown'
     # Send to endpoint
     result = send_to_endpoint(doc_data, endpoint_url, jwt_token)
     
     if result:
-        print(f"Document processed successfully. Response: {result}")
         return result
     else:
-        print("Failed to process document.")
         return None
 
