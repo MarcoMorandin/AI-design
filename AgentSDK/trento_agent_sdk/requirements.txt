@@ -1,6 +1,0 @@
-pydantic
-google-genai
-streamlit
-pydantic-settings
-torch
-scikit-learn

@@ -1,12 +1,17 @@
 Metadata-Version: 2.4
 Name: trento_agent_sdk
-Version: 0.1.0
-Summary: A Python SDK for AI agents built from scratch
+Version: 0.2.2
+Summary: A Python SDK for AI agents built from scratch with a simple implementation of the Agent2Agent and ModelContext protocols
 Author: Arcangeli and Morandin
+Requires-Python: >=3.8
 License-File: LICENSE
 Requires-Dist: pydantic
 Requires-Dist: google-genai
+Requires-Dist: aiohttp
+Requires-Dist: fastapi
+Requires-Dist: uvicorn
 Dynamic: author
 Dynamic: license-file
 Dynamic: requires-dist
+Dynamic: requires-python
 Dynamic: summary

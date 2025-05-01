@@ -2,7 +2,7 @@ from __future__ import annotations as _annotations
 
 from pydantic import BaseModel, Field
 import inspect
-from typing import Any, Callable, get_type_hints, Any, Optional
+from typing import Any, Callable, get_type_hints, Optional
 import json
 from .func_metadata import call_fn_with_arg
 

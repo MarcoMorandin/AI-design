@@ -11,7 +11,6 @@ def get_prompt_to_summarize_chunk(summary_type: str="technical") -> str:
     - "layman": Simplified Summary
 
     Args:
-        text (str): The text to be summarized.
         summary_type (SummaryType): The type of summary to generate.
 
 

@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     GEMINI_API_KEY:str="AIzaSyBSrT4FjRJB9l7Itgk1DqyJeyQ3Gm4eNNE"
     GEMINI_MODEL_NAME:str="gemini-2.0-flash"
     GEMINI_EMBEDDING_MODEL:str="models/text-embedding-004"
+    
+    # Add these fields to match your environment variables
+    google_api_key: str = ""
+    groq_api_key: str = ""
 
 
     # Logging Level (e.g., INFO, DEBUG, WARNING)
@@ -46,6 +50,9 @@ class Settings(BaseSettings):
         # This assumes you e project root dirrun the app from thectory
         # Adjust if needed based on your execution context
         # TEMP_DIR = Path(__file__).parent.parent.parent / "temp_files"
+        
+        # Alternatively, you can allow extra fields with this setting:
+        # extra = "allow"
 
 
 # Create a single settings instance to be imported

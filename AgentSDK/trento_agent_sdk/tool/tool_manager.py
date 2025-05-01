@@ -60,9 +60,3 @@ class ToolManager:
 
         return tool.get_tool_info()
 
-
-class TestClass:
-    def __init__(self, p1: str, p2: int, p3: str) -> None:
-        self.p1 = p1
-        self.p2 = p2
-        self.p3 = p3
