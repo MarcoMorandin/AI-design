@@ -3,33 +3,35 @@ import requests
 from dotenv import load_dotenv
 import os
 import streamlit as st
+import json
 
 load_dotenv()
 
+USER_ID="test_user"
+
 class TestRAG:
     def __init__(self) -> None:
-        self.upload_in_kb = UploadInKB(123456)
+        self.upload_in_kb = UploadInKB(USER_ID)
         self.grok_chat_url = "https://api.groq.com/openai/v1/chat/completions"
         self.grok_api_key = os.getenv("GROQ_API_KEY")
 
     def generate_with_context(self, question: str):
 
         retrieval_context=self.upload_in_kb.retrieve_relevant_knowledge(question)
+        print(type(retrieval_context))
+        print(len(retrieval_context))
+        print(retrieval_context)
         # join the chunks
-        context_text = "\n\n".join(retrieval_context)
+        retrieval_json = "\n\n".join(retrieval_context)
         messages = [
             {
                 "role": "system",
                 "content": (
                     "You are a helpful assistant. Answer the user’s question "
                     "ONLY using the provided CONTEXT. "
-                    "If the answer cannot be found in the CONTEXT, respond with “I don’t know.”"
+                    "If the answer cannot be found in the CONTEXT, respond that the answer is not present in the uploaded document."
+                    f"CONTEXT: {json.dumps(retrieval_json)}"
                 )
-            },
-            {
-                "role": "system",
-                "name": "context",
-                "content": context_text
             },
             {
                 "role": "user",
@@ -47,15 +49,24 @@ class TestRAG:
                 "model": "llama-3.3-70b-versatile",
                 "messages": messages,
                 "temperature": 0.0,
-                "response_format": {"type": "json_object"}
+                #"response_format": {"type": "json_object"}
             }
         )
-        resp.raise_for_status()
+        try:
+            resp.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            print("⛔", resp.status_code, resp.text)
+            raise
 
         content = resp.json()["choices"][0]["message"]["content"]
-        return json.loads(content)
+        return content
+        #return json.loads(content)
 
     def chat(self):
+        # Initialize chat history in session state if not present
+        if 'history' not in st.session_state:
+            st.session_state['history'] = []
+
         #sidebar
         with st.sidebar:
             st.title('🤖💬 Designing Chatbot')
@@ -271,7 +282,7 @@ def get_text_to_upload():
 
 
 if __name__ == "__main__":
-    #chat=TestRAG()
-    #chat.chat()
-    upload_in_KB=UploadInKB(123456)
-    upload_in_KB.upload_in_kb(get_text_to_upload())
+    chat=TestRAG()
+    chat.chat()
+    #upload_in_KB=UploadInKB(USER_ID)
+    #upload_in_KB.upload_in_kb(get_text_to_upload())

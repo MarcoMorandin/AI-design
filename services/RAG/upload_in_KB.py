@@ -114,8 +114,11 @@ class UploadInKB:
         #send request
         search_url = f"{self.qdrant_host}/collections/{self.collection_name}/points/search"
         resp = requests.post(search_url, headers=self.qdrant_headers, json=search_payload)
-        resp.raise_for_status()
-
+        try:
+            resp.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+                logger.error("Qdrant API error response: %s", resp.text)
+                raise
         hits = resp.json()["result"]
         # relevance results
         return [hit["payload"]["page_content"] for hit in hits]
