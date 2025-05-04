@@ -29,7 +29,7 @@ class UploadInKB:
         self.embedder = Embedder()
 
     def _get_or_create_user_collection(self)->str:
-        name = f"user_long_memory{self.user_id}"
+        name = f"RAG_user{self.user_id}"
         try:
             # get existing collections
             url_list = f"{self.qdrant_host}/collections"
@@ -72,6 +72,7 @@ class UploadInKB:
         """
         try:
             chunks_with_embedding = chunk_document_cosine(text, return_embedding=True)
+            #print(chunks_with_embedding)
             points = []
             for cwe in chunks_with_embedding:
                 pid = uuid4().hex

@@ -274,4 +274,4 @@ if __name__ == "__main__":
     #chat=TestRAG()
     #chat.chat()
     upload_in_KB=UploadInKB(123456)
-    upload_in_KB.upload_in_kb()
+    upload_in_KB.upload_in_kb(get_text_to_upload())
