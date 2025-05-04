@@ -1,3 +1,17 @@
+import torch
+
+# ─── Workaround for Streamlit watcher × Torch conflict ───
+# Streamlit’s watcher will try to look at torch.classes.__path__ and
+# call into torch._C, which fails. Replacing it with an empty list
+# stops the watcher from ever hitting that code.
+# Funzion anche senza questo
+# Il problema è che non dovrebbe proprio dare errore con stramlit >=1.44 però evidentemmente non va  mqs
+torch.classes.__path__ = []
+
+import streamlit as st
+# … your other imports and app code …
+
+
 from upload_in_KB import UploadInKB
 import requests
 from dotenv import load_dotenv
@@ -18,11 +32,8 @@ class TestRAG:
     def generate_with_context(self, question: str):
 
         retrieval_context=self.upload_in_kb.retrieve_relevant_knowledge(question)
-        print(type(retrieval_context))
-        print(len(retrieval_context))
-        print(retrieval_context)
         # join the chunks
-        retrieval_json = "\n\n".join(retrieval_context)
+        #retrieval_json = "\n\n".join(retrieval_context)
         messages = [
             {
                 "role": "system",
@@ -30,7 +41,7 @@ class TestRAG:
                     "You are a helpful assistant. Answer the user’s question "
                     "ONLY using the provided CONTEXT. "
                     "If the answer cannot be found in the CONTEXT, respond that the answer is not present in the uploaded document."
-                    f"CONTEXT: {json.dumps(retrieval_json)}"
+                    f"CONTEXT: {json.dumps(retrieval_context)}"
                 )
             },
             {
@@ -49,7 +60,6 @@ class TestRAG:
                 "model": "llama-3.3-70b-versatile",
                 "messages": messages,
                 "temperature": 0.0,
-                #"response_format": {"type": "json_object"}
             }
         )
         try:
@@ -60,7 +70,6 @@ class TestRAG:
 
         content = resp.json()["choices"][0]["message"]["content"]
         return content
-        #return json.loads(content)
 
     def chat(self):
         # Initialize chat history in session state if not present
@@ -88,6 +97,9 @@ class TestRAG:
                 st.markdown(prompt, unsafe_allow_html=True)
             with st.chat_message("assistant", avatar="https://pressroom.unitn.it/file/pressroom/styles/immagine_comunicato_stampa_narrow/public/immagini/comunicato/6669/logoperpressroom_0.jpg?itok=H9dmU7Od"):
                 message_placeholder = st.empty()
+
+                # TODO: qua poi va messo lo streaming della ripsota, ma vb poi vediamo in base a cosa usiame per il chabot
+
                 full_response= self.generate_with_context(prompt)
                 message_placeholder.markdown(full_response, unsafe_allow_html=True)
             st.session_state['history'].append({"role": "assistant", "content": full_response})
