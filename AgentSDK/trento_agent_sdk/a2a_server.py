@@ -8,7 +8,6 @@ import json
 from .a2a.models.AgentCard import AgentCard
 from .a2a.TaskManager import TaskManager
 from .agent.agent import Agent
-from .agent.swarm import Swarm
 from .a2a.models.Types import (
     GetTaskRequest,
     GetTaskResponse,
@@ -23,7 +22,6 @@ class A2AServer:
     def __init__(
         self,
         agent: Agent,
-        swarm: Swarm,
         agent_card: AgentCard,
         task_manager: TaskManager,
         host="0.0.0.0",
@@ -31,13 +29,14 @@ class A2AServer:
         endpoint="/",
     ):
         self.agent = agent
-        self.swarm = swarm
         self.agent_card = agent_card
         self.task_manager = task_manager
         self.host = host
         self.port = port
         self.endpoint = endpoint
-        self.app = FastAPI(title="A2A Server", description="Agent-to-Agent Communication Server")
+        self.app = FastAPI(
+            title="A2A Server", description="Agent-to-Agent Communication Server"
+        )
         self.setup_routes(self.app)
 
     def setup_routes(self, app):
@@ -54,12 +53,14 @@ class A2AServer:
             try:
                 data = await request.json()
                 task_request = SendTaskRequest(**data)
-                response = await self.task_manager.on_send_task(task_request, self.swarm, self.agent)
+                response = await self.task_manager.on_send_task(
+                    task_request, self.agent
+                )
                 return response.dict()
             except Exception as e:
                 return JSONResponse(
                     status_code=500,
-                    content={"error": f"Error processing task: {str(e)}"}
+                    content={"error": f"Error processing task: {str(e)}"},
                 )
 
         @app.post("/tasks/get")
@@ -71,8 +72,7 @@ class A2AServer:
                 return response.dict()
             except Exception as e:
                 return JSONResponse(
-                    status_code=500,
-                    content={"error": f"Error getting task: {str(e)}"}
+                    status_code=500, content={"error": f"Error getting task: {str(e)}"}
                 )
 
         @app.post("/tasks/cancel")
@@ -85,7 +85,7 @@ class A2AServer:
             except Exception as e:
                 return JSONResponse(
                     status_code=500,
-                    content={"error": f"Error canceling task: {str(e)}"}
+                    content={"error": f"Error canceling task: {str(e)}"},
                 )
 
     def run(self):

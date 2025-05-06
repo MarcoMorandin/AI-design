@@ -6,10 +6,11 @@ Author: Arcangeli and Morandin
 Requires-Python: >=3.8
 License-File: LICENSE
 Requires-Dist: pydantic
-Requires-Dist: google-genai
+Requires-Dist: openai
 Requires-Dist: aiohttp
 Requires-Dist: fastapi
 Requires-Dist: uvicorn
+Requires-Dist: python-dotenv
 Dynamic: author
 Dynamic: license-file
 Dynamic: requires-dist

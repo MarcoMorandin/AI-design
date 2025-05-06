@@ -2,13 +2,39 @@ from __future__ import annotations as _annotations
 
 from pydantic import BaseModel, Field
 import inspect
-from typing import Any, Callable, get_type_hints, Optional
+from typing import Any, Callable, get_type_hints, Optional, Dict, List, Union
 import json
 from .func_metadata import call_fn_with_arg
 
 
-def get_function_info(fn, name, description):
+def _type_to_json_schema(py_type) -> str:
+    """Convert Python type to JSON schema type string."""
+    if py_type == str:
+        return "string"
+    elif py_type == int:
+        return "integer"
+    elif py_type == float:
+        return "number"
+    elif py_type == bool:
+        return "boolean"
+    elif py_type == list or py_type == List:
+        return "array"
+    elif py_type == dict or py_type == Dict:
+        return "object"
+    elif py_type == None or py_type == type(None):
+        return "null"
+    elif hasattr(py_type, "__origin__") and py_type.__origin__ == Union:
+        # For typing.Union, use the first type as default
+        if hasattr(py_type, "__args__") and len(py_type.__args__) > 0:
+            return _type_to_json_schema(py_type.__args__[0])
+    # Default to string for complex types
+    return "string"
 
+
+def get_function_info(fn, name, description):
+    """
+    Extract function info in OpenAI function calling format
+    """
     try:
         signature = inspect.signature(fn)
     except ValueError as e:
@@ -17,9 +43,21 @@ def get_function_info(fn, name, description):
         )
 
     parameters = {}
-    for param in signature.parameters.values():
+    for param_name, param in signature.parameters.items():
         param_type = param.annotation
-        parameters[param.name] = {"type": param_type}
+        param_info = {
+            "type": _type_to_json_schema(param_type),
+            "description": "",  # Default empty description
+        }
+
+        # Try to get description from docstring if available
+        if fn.__doc__:
+            param_docs = fn.__doc__.split(f"{param_name}:")
+            if len(param_docs) > 1:
+                param_description = param_docs[1].split("\n")[0].strip()
+                param_info["description"] = param_description
+
+        parameters[param_name] = param_info
 
     # required parameters are those without a default value
     required = [
@@ -28,14 +66,11 @@ def get_function_info(fn, name, description):
         if param.default == inspect._empty
     ]
 
-    # TODO: ---- Se vogliamo aggiungere il controllo e seguire il MCP →
-    # forse ci sarebbe da convertirlo in json e poi da json a dict di nuovo e lavorare con pydantic ---
-
     return {
         "type": "function",
         "function": {
             "name": fn.__name__ or name,
-            "description": fn.__doc__ or description,
+            "description": fn.__doc__ or description or "",
             "parameters": {
                 "type": "object",
                 "properties": parameters,
@@ -60,8 +95,6 @@ class Tool(BaseModel):
         fn: Callable[..., Any],
         name: str | None = None,
         description: str | None = None,
-        # fn_medatada: dict[str, Any] | None = None,
-        # context_kwarg: str | None = None,
     ) -> Tool:
         """Create a tool from a function."""
 

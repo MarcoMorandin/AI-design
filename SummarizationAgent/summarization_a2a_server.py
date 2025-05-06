@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 
 # Import AgentSDK components
 from trento_agent_sdk.agent.agent import Agent
-from trento_agent_sdk.agent.swarm import Swarm
 from trento_agent_sdk.a2a.models.AgentCard import AgentCard, AgentSkill
 from trento_agent_sdk.a2a.TaskManager import TaskManager
 from trento_agent_sdk.a2a_server import A2AServer
@@ -29,10 +28,9 @@ if not api_key:
         "GOOGLE_API_KEY environment variable is not set. Please create a .env file with your API key."
     )
 
-client = genai.Client(api_key=api_key)
 
 # Create a tool manager and register summarization tools
-#TODO create a tool to get language from the video
+# TODO create a tool to get language from the video
 tool_manager = ToolManager()
 tool_manager.add_tool(getTextFromPdf)
 tool_manager.add_tool(getTextFromVideo)
@@ -44,25 +42,36 @@ tool_manager.add_tool(get_final_summary_prompt)
 # Create the summarization agent
 summarization_agent = Agent(
     name="Summarization Agent",
-    instructions="""You are an agent that gets text and provides a summary of it. 
-If you think the text is too long to provide a good summary, you can split it, 
-summarize the chunks, and then combine them. At the end, if the summary contains 
-formulas, you must ensure they are properly formatted.
+    system_prompt="""You are an agent that summarizes text from various sources. You MUST follow this exact process using the provided tools:
 
-When given a document or video, follow these steps:
-1. Extract the text using the appropriate tool (getTextFromPdf or getTextFromVideo)
-2. If the text is long, use get_chunks to split it into manageable pieces
-3. For each chunk, use get_prompt_to_summarize_chunk to generate a summary
-4. Combine the summaries using get_final_summary_prompt
-5. Ensure proper formatting with get_correct_format_prompt
+1. EXTRACTION: Extract the text using ONLY the appropriate tool:
+   - For PDFs: Use the getTextFromPdf tool
+   - For videos: Use the getTextFromVideo tool
+   
+2. CHUNKING: Check if the text is long (over 4000 characters):
+   - If it is, use ONLY the get_chunks tool to split it into manageable pieces
+   - If not, proceed to step 5 directly with the full text
+   
+3. CHUNK SUMMARIZATION: For EACH chunk:
+   - Use ONLY the get_prompt_to_summarize_chunk tool to get the prompt
+   - Summarize each chunk one by one, using the prompt from the tool
+   
+4. COMBINING SUMMARIES: When all chunks are summarized:
+   - Use ONLY the get_final_summary_prompt tool with text_was_splitted=True
+   - Combine all summaries into a final coherent summary
+   
+5. FINAL FORMATTING: For the final summary:
+   - Use ONLY the get_correct_format_prompt tool to ensure proper formatting of any formulas
+   - Apply any final formatting corrections
 
-Always provide clear, concise summaries that capture the key points of the original content.""",
+DO NOT skip any steps. DO NOT try to complete any step without using the appropriate tool. Every step MUST use the corresponding tool. Your goal is to generate clear, well-structured summaries that accurately capture the key points of the original content.""",
     tool_manager=tool_manager,
     model="gemini-2.0-flash",  # Using Gemini model as seen in the code
+    api_key=api_key,
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    final_tool="get_correct_format_prompt",
 )
 
-# Create a swarm to manage the agent
-swarm = Swarm(client)
 
 # Define the agent's capabilities as an AgentCard
 agent_card = AgentCard(
@@ -94,7 +103,6 @@ task_manager = TaskManager()
 # Create the A2A server
 a2a_server = A2AServer(
     agent=summarization_agent,
-    swarm=swarm,
     agent_card=agent_card,
     task_manager=task_manager,
     host="0.0.0.0",

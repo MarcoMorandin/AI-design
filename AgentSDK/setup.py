@@ -10,5 +10,12 @@ setup(
     description="A Python SDK for AI agents built from scratch with a simple implementation of the Agent2Agent and ModelContext protocols",
     author="Arcangeli and Morandin",
     python_requires=">=3.8",
-    install_requires=["pydantic", "google-genai", "aiohttp", "fastapi", "uvicorn"],
+    install_requires=[
+        "pydantic",
+        "openai",
+        "aiohttp",
+        "fastapi",
+        "uvicorn",
+        "python-dotenv",
+    ],
 )

@@ -1,5 +1,6 @@
 pydantic
-google-genai
+openai
 aiohttp
 fastapi
 uvicorn
+python-dotenv

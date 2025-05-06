@@ -1,32 +1,32 @@
-from .chunker_types.cosine_chuncker import chunk_document_cosine
 from .chunker_types.standardar_chuncker import chunk_document
-
 from typing import List
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
-
-def get_chunks(text:str, chunker_type:str)->List[str]:
+def get_chunks(text: str) -> List[str]:
     """
-    Splits the input text into chunks using the specified chunker type.
-    "standardar" uses a simple algorithm that splits the text into chunks of a fixed size.
-    "cosine" uses a more advanced algorithm that splits the text into chunks that are similar to each other.
+    Splits the input text into chunks using a standard algorithm that divides text into fixed-size chunks.
 
     Args:
         text (str): The input text to be chunked.
-        chunker_type (str): The type of chunking algorithm to use. 
-            Supported values are "standard" and "cosine".
 
     Returns:
         List[str]: A list of text chunks.
-
-    Raises:
-        ValueError: If an invalid chunker type is provided.
     """
-    return chunk_document(text)
-    #if chunker_type == "standardar":
-    #    return chunk_document(text)
-    #elif chunker_type == "cosine":
-    #    return chunk_document_cosine(text)
-    #else:
-    #    raise ValueError("Invalid chunker type: " + chunker_type)
+    logger.info(f"Chunking text of length: {len(text)} characters")
 
+    try:
+        chunks = chunk_document(text)
+        logger.info(f"Successfully created {len(chunks)} chunks")
+        return chunks
+    except Exception as e:
+        logger.error(f"Error during chunking: {str(e)}")
+        # Fallback to simple chunking if the standard chunker fails
+        if len(text) > 4000:
+            return [text[i : i + 4000] for i in range(0, len(text), 3500)]
+        else:
+            return [text]

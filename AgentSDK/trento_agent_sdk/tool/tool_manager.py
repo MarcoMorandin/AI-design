@@ -4,6 +4,10 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 from .tool import Tool
 import asyncio
+import logging
+
+# Set up logger
+logger = logging.getLogger(__name__)
 
 
 class ToolManager:
@@ -32,8 +36,7 @@ class ToolManager:
         existing = self._tools.get(tool.name)
         if existing:
             if self.warn_on_duplicate_tools:
-                print(f"Tool already exists: {tool.name}")
-                # logger.warning(f"Tool already exists: {tool.name}")
+                logger.warning(f"Tool already exists: {tool.name}")
             return existing
         self._tools[tool.name] = tool
         return tool
@@ -59,4 +62,3 @@ class ToolManager:
             raise Exception(f"Unknown tool: {name}")
 
         return tool.get_tool_info()
-
