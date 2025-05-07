@@ -30,7 +30,7 @@ def getTextFromPdf(pdf_path):
     processor = PdfTranscriptionToolGemini(
         api_endpoint="https://generativelanguage.googleapis.com/v1beta/models/",
         model_name="gemini-2.0-flash",
-        api_key=os.environ.get("GOOGLE_API_KEY"),
+        api_key=os.environ.get("GEMINI_API_KEY"),
     )
 
     try:

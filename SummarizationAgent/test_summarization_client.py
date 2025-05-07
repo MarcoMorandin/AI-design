@@ -15,7 +15,7 @@ async def main():
 
         # Example text to summarize
         text_to_summarize = """
-        summarize the content of the following video: /Users/marcomorandin/Desktop/AI-Design/AI-design/SummarizationAgent/intervista.mov
+        make a technical explanation of this test.pdf
         """
 
         response = await client.send_task(text_to_summarize)
