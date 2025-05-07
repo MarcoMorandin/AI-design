@@ -25,7 +25,10 @@ Here are the architecture
     ```
 
 - Create a summarization task:
+<<<<<<< HEAD
   Since we are still working on this project, the file management is still under development. Please use test.pdf as the provided file.
+=======
+>>>>>>> da51f44 (modified agent card and readme)
     ```console
     curl -X POST "https://ai-design-855231674152.europe-west8.run.app/tasks/send" \
     -H "Content-Type: application/json" \
@@ -45,4 +48,8 @@ Here are the architecture
         }
         }
     }'
+<<<<<<< HEAD
     ```
+=======
+    ```
+>>>>>>> da51f44 (modified agent card and readme)
