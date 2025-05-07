@@ -172,7 +172,7 @@ agent_card = AgentCard(
     default_input_modes=["text/plain"],
     default_output_modes=["text/plain"],
     provider="Arcangeli and Morandin",
-    documentation_url="https://docs.trentoai.com/summarization-agent",
+    documentation_url="Work in progress",
 )
 
 # Create a task manager to handle task lifecycle
