@@ -6,3 +6,4 @@ requests>=2.25 # Often a dependency of google libs, good to have explicitly
 python-dotenv>=0.19 # For managing environment variables (optional but good practice)
 fastapi>=0.100.0
 uvicorn[standard]>=0.20.0
+itsdangerous

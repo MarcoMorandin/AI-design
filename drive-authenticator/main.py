@@ -1,41 +1,38 @@
 import uvicorn
-import os  # Ensure os is imported
+import os
 
-# Adjust imports to be absolute for direct execution
-# This assumes that when you run `python main.py`,
-# the `drive-authenticator` directory is in your PYTHONPATH or is the current working directory.
-# For simplicity and common use case, we'll assume `python main.py` is run from `drive-authenticator`.
-
-from __init__ import app  # Import the app instance from __init__.py
+from __init__ import app
 from config import (
-    FLASK_PORT,  # Keep for now, can be Uvicorn port
+    PORT,
     REDIRECT_URI,
-    SECRET_KEY,  # Needed for SessionMiddleware
+    SECRET_KEY,
+    ENVIRONMENT,
 )
 from starlette.middleware.sessions import SessionMiddleware
 
 # Add SessionMiddleware to the FastAPI app
-# The secret_key is essential for signing the session cookie.
-if SECRET_KEY:
-    app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
-else:
-    print(
-        "Warning: SECRET_KEY not set. Session middleware will not be secure. Please set FLASK_SECRET_KEY environment variable."
-    )
-    # Fallback for local dev if you absolutely must, but not recommended for production
-    app.add_middleware(
-        SessionMiddleware, secret_key="a_very_default_secret_key_for_dev_only"
-    )
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY must be set for production deployment")
+
+app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
 if __name__ == "__main__":
-    print(f"Auth service running on http://localhost:{FLASK_PORT}")
-    print(f"Ensure your Google OAuth redirect URI is set to: {REDIRECT_URI}")
+    print(f"Auth service running on port: {PORT}")
+    print(f"Google OAuth redirect URI: {REDIRECT_URI}")
 
-    # When running locally, disable OAuthlib's HTTPs verification.
-    # ACTION ITEM for developers:
-    #     When running in production *do not* leave this option enabled.
-    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+    # Only disable HTTPS verification in development
+    if ENVIRONMENT == "development":
+        os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+        print("WARNING: Running in development mode with insecure transport")
+    else:
+        # Make sure HTTPS is required in production
+        if os.environ.get("OAUTHLIB_INSECURE_TRANSPORT") == "1":
+            os.environ.pop("OAUTHLIB_INSECURE_TRANSPORT")
 
+    # Use different settings based on environment
     uvicorn.run(
-        app, host="0.0.0.0", port=FLASK_PORT, log_level="info"
+        app,
+        host="0.0.0.0",
+        port=PORT,
+        log_level="info" if ENVIRONMENT == "development" else "info",
     )  # pragma: no cover

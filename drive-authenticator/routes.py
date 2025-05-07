@@ -1,6 +1,6 @@
 import datetime
 from fastapi import FastAPI, HTTPException, Depends
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from starlette.requests import Request
 from pymongo import ReturnDocument
 from google_auth_oauthlib.flow import Flow
@@ -18,11 +18,41 @@ from config import (
     REDIRECT_URI,
     SCOPES,
     DRIVE_FOLDER_BASENAME,
+    ENVIRONMENT,
 )
 from utils import get_google_drive_service, create_drive_folder_if_not_exists
 
-# Helper to get base URL for redirects if needed, or rely on full URLs
-# For simplicity, url_for is replaced by direct pathing or FastAPI's request.url_for if more complex routing is used.
+
+# Health check endpoint for Docker
+@app.get("/health")
+async def health_check(request: Request):
+    """Health check endpoint for monitoring and Docker healthchecks"""
+    health_data = {
+        "status": "ok",
+        "timestamp": datetime.datetime.utcnow().isoformat(),
+        "environment": ENVIRONMENT,
+        "service": "drive-authenticator",
+    }
+
+    # Optionally check database connection if required
+    mongo_status = "unknown"
+    try:
+        if (
+            hasattr(request.app.state, "users_collection")
+            and request.app.state.users_collection
+        ):
+            # Simple ping to check if MongoDB is responsive
+            result = request.app.state.users_collection.database.command("ping")
+            if result.get("ok") == 1.0:
+                mongo_status = "connected"
+            else:
+                mongo_status = "error"
+    except Exception as e:
+        mongo_status = f"error: {str(e)}"
+
+    health_data["database"] = mongo_status
+
+    return JSONResponse(content=health_data)
 
 
 @app.get("/", response_class=HTMLResponse)
