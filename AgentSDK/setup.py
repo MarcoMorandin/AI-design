@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 setup(
     name="trento_agent_sdk",
     packages=find_packages(),
-    version="1.0.0",
+    version="1.0.1",
     description="A Python SDK for AI agents built from scratch with a simple implementation of the Agent2Agent and ModelContext protocols",
     author="Arcangeli and Morandin",
     python_requires=">=3.8",
@@ -17,5 +17,19 @@ setup(
         "fastapi",
         "uvicorn",
         "python-dotenv",
+        # Additional dependencies found in imports and requirements.txt
+        "anyio",
+        "google-ai-generativelanguage",
+        "google-generativeai",
+        "google-api-core",
+        "google-api-python-client",
+        "google-auth",
+        "flask",
+        "httpx",
+        "protobuf",
+        "requests",
+        "tqdm",
+        "typing_extensions",
+        "websockets",
     ],
 )

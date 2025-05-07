@@ -9,8 +9,11 @@ from .PowerOcr.VideoProcessor.VideoTranscriptionTool import (
 )
 
 from dotenv import load_dotenv
+import logging
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 
 def getTextFromPdf(pdf_path):
@@ -36,7 +39,7 @@ def getTextFromPdf(pdf_path):
         raise Exception(f"Error processing PDF: {e}")
 
 
-def getTextFromVideo(video_path, language="en"):
+def getTextFromVideo(video_path, language="it"):
     """
     Extracts text from a video file.
 
@@ -50,15 +53,17 @@ def getTextFromVideo(video_path, language="en"):
 
     test_params = {
         "video_path": video_path,
-        "output_format": "vtt",
+        "output_format": "plain",
         "language": language,
-        "timestamp": True,
+        "timestamp": False,
         "api_url": "https://api.groq.com/openai/v1/audio/transcriptions",
-        "model": "whisper-large-v3",
+        "model": "whisper-large-v3-turbo",
         "api_key": os.environ.get("GROQ_API_KEY"),
     }
 
     try:
-        return transcribe_video(test_params)
+        trans = transcribe_video(test_params)
+
+        return trans["transcription"]
     except Exception as e:
         raise Exception(f"Error processing PDF: {e}")

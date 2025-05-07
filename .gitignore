@@ -72,11 +72,13 @@ typings/
 # Serverless directories
 .serverless
 
+
 package-lock.json
 credentials.json
 token.json
 
 *.mp4
+*.mov
 venv
 .venv
 .temp
