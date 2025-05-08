@@ -237,8 +237,7 @@ if __name__ == "__main__":
                 [
                     "uvicorn",
                     "summarization_a2a_server:app",
-                    "--host",
-                    HOST,
+                    "--host 0.0.0.0",
                     "--port",
                     str(PORT),
                     "--log-level",
@@ -251,7 +250,7 @@ if __name__ == "__main__":
             # For development or single worker, we can use the app instance
             uvicorn.run(
                 app,
-                host=HOST,
+                host="0.0.0.0",
                 port=PORT,
                 log_level="info" if ENVIRONMENT == "production" else "debug",
                 workers=1,
