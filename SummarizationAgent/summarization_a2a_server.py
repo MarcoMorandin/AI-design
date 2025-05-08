@@ -237,7 +237,8 @@ if __name__ == "__main__":
                 [
                     "uvicorn",
                     "summarization_a2a_server:app",
-                    "--host 0.0.0.0",
+                    "--host",
+                    "0.0.0.0",
                     "--port",
                     str(PORT),
                     "--log-level",
