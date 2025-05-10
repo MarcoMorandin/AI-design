@@ -31,6 +31,13 @@ if not api_key:
 
 # Create a tool manager and register summarization tools
 # TODO create a tool to get language from the video
+# TODO take a look to youtube transcript
+# TODO how to evaluate
+# TODO feedback on which llm are best suitable for a task using long memory
+# TODO orchestrator stores the thinking history
+# TODO orchestrator chatting
+# TODO orchestrator auto discovery of agents
+
 tool_manager = ToolManager()
 tool_manager.add_tool(getTextFromPdf)
 tool_manager.add_tool(getTextFromVideo)
