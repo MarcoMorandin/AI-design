@@ -7,6 +7,7 @@ import requests
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
+from utils.system_prompt import SYSTEM_PROMT
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -33,7 +34,7 @@ class LongMemory():
         
 
     def _get_or_create_user_collection(self)->str:
-        name = f"user_{self.user_id}"
+        name = f"user_long_memory{self.user_id}"
         try:
             # get existing collections
             url_list = f"{self.qdrant_host}/collections"
@@ -197,23 +198,7 @@ class LongMemory():
     
     def _extract_preferences(self, chat_history: str, existing_prefs: list[dict]):
         """Ask the LLM to merge chat hints with existing prefs, tagging with 'id' when updating."""
-        system = (
-            "You are an assistant whose job is to maintain a list of user preferences. "
-            "You will receive two inputs:\n"
-            "1) existing_preferences: a JSON array of {id, topic, description}\n"
-            "2) chat_history: a string of the latest conversation.\n\n"
-            "First you should extract the latest preferences from the chat_history. "
-            "If the user has expressed new preferences, add them to the list. "
-            "If they have updated existing preferences, replace them. "
-            "Analyze the chat and return a JSON object with exactly one field: \"preferences\". "
-            "The value must be either:\n"
-            "  • A list of objects, each with exactly these fields:\n"
-            "      – \"id\": the existing preference id to update, OR null if new\n"
-            "      – \"topic\": a label for the general area of preference (e.g. \"genre\", \"cuisine\").\n"
-            "      – \"description\": a comprenshicve description of the user preferences.\n"
-            "  • The string \"NO_PREFERENCE\" if nothing has changed.\n"
-            "Do NOT include any other fields or commentary."
-        )
+        system = SYSTEM_PROMT
         user_payload = {
             "existing_preferences": existing_prefs,
             "chat_history":         chat_history
@@ -275,88 +260,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-"""NO MORE USED
-def insert_into_long_memory(self, chat_history: str):
-        #Extract structured preferences, embed their descriptions, and store each.
-
-        memories = self._create_momories_from_chat(chat_history)
-        if memories == "NO_PREFERENCE":
-            logger.info("No preferences found—nothing to insert")
-            return
-
-        points = []
-        for pref in memories:
-            topic = pref.get("topic")
-            desc = pref.get("description")
-            if not topic or not desc:
-                logger.warning("Skipping malformed preference entry: %r", pref)
-                continue
-
-            try:
-                emb = self._get_embedding(desc)
-            except Exception:
-                logger.exception("Embedding failed for: %s", desc)
-                continue
-
-            point = {
-                "id": uuid4().hex,
-                "payload": {
-                    "user_id": self.user_id,
-                    "topic": topic,
-                    "description": desc,
-                    "ts": int(time.time()),
-                },
-                "vector": emb,
-            }
-            points.append(point)
-
-        if not points:
-            logger.info("No valid preference memories to upsert")
-            return
-
-        try:
-            upsert_url = f"{self.qdrant_host}/collections/{self.collection_name}/points?wait=true"
-            body = {"points": points}
-            resp = requests.put(upsert_url, headers=self.qdrant_headers, json=body)
-            resp.raise_for_status()
-            logger.info("Upserted %d points into `%s`", len(points), self.collection_name)
-        except Exception:
-            logger.exception("Failed to upsert points into Qdrant")
-
-def _create_momories_from_chat(self, chat_history):
-        #Call the GROQ Chat API to extract a list of {topic,description} or 'NO_PREFERENCE'.
-        system_prompt = self._get_qrok_system_prompt()
-        messages = [
-        {"role": "system",  "content": system_prompt},
-        {"role": "user",    "content": chat_history}
-        ]
-
-        payload = {
-            "model": "llama-3.3-70b-versatile",
-            "messages": messages,
-            "temperature": 0.0,
-            "response_format": {"type": "json_object"},
-        }
-        try:
-            resp = requests.post(
-                self.grok_chat_url,
-                headers={
-                    "Authorization": f"Bearer {self.grok_api_key}",
-                    "Content-Type": "application/json"
-                },
-                json=payload
-            )
-            resp.raise_for_status()
-            content = resp.json()["choices"][0]["message"]["content"]
-            data = json.loads(content)
-        except Exception:
-            logger.exception("GROQ Chat API call failed")
-            return "NO_PREFERENCE"
-
-        # If the model returned the string, it'll come through as the value
-        prefs = data.get("preferences")
-        if prefs == "NO_PREFERENCE" or not prefs:
-            return "NO_PREFERENCE"
-        return prefs
-"""

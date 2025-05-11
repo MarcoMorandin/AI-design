@@ -1,5 +1,13 @@
 import asyncio
 from trento_agent_sdk.a2a_client import A2AClient
+import logging
+
+
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
 
 async def main():
     # Create an A2A client
@@ -14,7 +22,7 @@ async def main():
         
         # Example text to summarize
         text_to_summarize = """
-        summarize the content of the following file: /Users/marcomorandin/Desktop/AI-Design/AI-design/SummarizationAgent/test.pdf
+        summarize the content of the following file: C:/Users/loren/Desktop/test.pdf
         """
         
         response = await client.send_task(text_to_summarize)

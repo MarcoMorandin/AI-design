@@ -10,8 +10,9 @@ class Settings(BaseSettings):
 
     # Chunking settings
     MAX_LENGTH_PER_CHUNK: int = 30000
-    MAX_TOKEN_PER_CHUNK_GROUPED: int = 2048
-    OVERLAPP_CHUNK: int = 500
+    MAX_TOKEN_PER_CHUNK_GROUPED: int = 256
+    OVERLAPP_CHUNK: int = 100
+    MAX_LENGTH_PER_CHUNK_GROUPED_COSINE: int =1024
 
     GEMINI_API_KEY:str="AIzaSyBSrT4FjRJB9l7Itgk1DqyJeyQ3Gm4eNNE"
     GEMINI_MODEL_NAME:str="gemini-2.0-flash"
@@ -21,6 +22,9 @@ class Settings(BaseSettings):
     google_api_key: str = ""
     groq_api_key: str = ""
 
+    # Add these lines:
+    qdrant_api_key: str = ""
+    qdrant_host: str = ""
 
     # Logging Level (e.g., INFO, DEBUG, WARNING)
     LOG_LEVEL: str = "INFO"

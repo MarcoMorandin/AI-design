@@ -11,11 +11,11 @@ from trento_agent_sdk.a2a_server import A2AServer
 
 # Import SummarizationAgent tools
 from tools.get_text.get_text import getTextFromPdf, getTextFromVideo
-from tools.summarizer_type.get_correct_format_prompt import get_correct_format_prompt
+from tools.summarizer_type.get_correct_format_prompt import get_correct_format
 from tools.summarizer_type.get_summarize_chunk_prompt import (
-    get_prompt_to_summarize_chunk,
+    summarize_chunk,
 )
-from tools.summarizer_type.get_final_summary_prompt import get_final_summary_prompt
+from tools.summarizer_type.get_final_summary_prompt import generate_final_summary
 from tools.chunker.chunker_tool import get_chunks
 from trento_agent_sdk.tool.tool_manager import ToolManager
 
@@ -37,9 +37,9 @@ tool_manager = ToolManager()
 tool_manager.add_tool(getTextFromPdf)
 tool_manager.add_tool(getTextFromVideo)
 tool_manager.add_tool(get_chunks)
-tool_manager.add_tool(get_correct_format_prompt)
-tool_manager.add_tool(get_prompt_to_summarize_chunk)
-tool_manager.add_tool(get_final_summary_prompt)
+tool_manager.add_tool(get_correct_format)
+tool_manager.add_tool(summarize_chunk)
+tool_manager.add_tool(generate_final_summary)
 
 # Create the summarization agent
 summarization_agent = Agent(
@@ -49,14 +49,16 @@ If you think the text is too long to provide a good summary, you can split it,
 summarize the chunks, and then combine them. At the end, if the summary contains 
 formulas, you must ensure they are properly formatted.
 
+For each step, use the appropiate tool DON'T do it in one shot. Using the appropiate tool, the perfermormance will be much better
+
 When given a document or video, follow these steps:
 1. Extract the text using the appropriate tool (getTextFromPdf or getTextFromVideo)
-2. If the text is long, use get_chunks to split it into manageable pieces
-3. For each chunk, use get_prompt_to_summarize_chunk to generate a summary
-4. Combine the summaries using get_final_summary_prompt
-5. Ensure proper formatting with get_correct_format_prompt
+2. If the text is long, use get_chunks tool to split it into manageable pieces
+3. For each chunk, use summarize_chunk tool to generate a summary
+4. Combine the summaries using generate_final_summary tool
+5. Ensure proper formatting with get_correct_format tool
 
-Always provide clear, concise summaries that capture the key points of the original content.""",
+ENSURE THAT YOU FOLLOW ALL THE STEPS ABOVE""",
     tool_manager=tool_manager,
     model="gemini-2.0-flash",  # Using Gemini model as seen in the code
 )

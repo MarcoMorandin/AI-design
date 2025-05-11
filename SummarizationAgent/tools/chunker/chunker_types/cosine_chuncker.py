@@ -1,4 +1,6 @@
 from typing import List
+
+#from SummarizationAgent.tools.chunker.chunker_types.embedder import Embedder
 from ..core.config import settings
 from sklearn.metrics.pairwise import cosine_similarity
 import torch
@@ -12,6 +14,8 @@ from .standardar_chuncker import chunk_document
 from google import genai
 from google.genai import types
 
+from .embedder import Embedder
+
 #model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
 
@@ -21,9 +25,11 @@ model_name = "sentence-transformers/all-MiniLM-L6-v2"
 model = AutoModel.from_pretrained(model_name)
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 """
-llm_client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
-def chunk_document_cosine(text:str)->List[str]:
+embedder=Embedder()
+
+
+def chunk_document_cosine(text:str, return_embedding:bool=False)->List[str]:
 
     chunks=get_initial_chunks(text)
     if len(chunks)>=1:
@@ -31,7 +37,10 @@ def chunk_document_cosine(text:str)->List[str]:
         indices_above_trheshold=_indices_above_treshold_distance(distances)
         chunks=_group_chunks(indices_above_trheshold, chunks)
         chunks=_remove_artifacts(chunks)
-    return chunks
+    if return_embedding:
+        return chunks
+    else:
+        return [chunk['section'] for chunk in chunks]
 
 def _remove_artifacts(chunks):
     # remove artifacts
@@ -64,28 +73,42 @@ def _group_chunks(indices, sentences):
         # slice the sentence_dicts from the current start index to the end index
         group = sentences[start_index:end_index + 1]
         combined_text = ' '.join([repr(d['sentence']) for d in group])
-        final_chunks.extend(_check_len([combined_text]))
+        final_chunks.extend(_check_len(combined_text))
         start_index = index + 1
     # the last group, if any sentences remain
     if start_index < len(sentences):
         combined_text = ' '.join([repr(d['sentence']) for d in sentences[start_index:]])
-        final_chunks.extend(_check_len([combined_text]))
+        final_chunks.extend(_check_len(combined_text))
     return final_chunks
 
 def _check_len(chunk):
     # token count
-    token_count=llm_client.models.count_tokens(model=settings.GEMINI_MODEL_NAME, contents=chunk)
+    token_count=embedder.get_token_count(chunk)
+    print(token_count)
+    #token_count=llm_client.models.count_tokens(model=settings.GEMINI_MODEL_NAME, contents=chunk)
     #tokenizer=model.tokenizer
     #tokens = tokenizer(chunk, return_tensors="pt")
     #token_count = tokens.input_ids.shape[1]
     # chek if the amount of token id above the limit
     if token_count.total_tokens > settings.MAX_TOKEN_PER_CHUNK_GROUPED:
-        docs_split=chunk_document(chunk)
+        docs_split=chunk_document(chunk, max_length=settings.MAX_LENGTH_PER_CHUNK_GROUPED_COSINE)
         # get new embeddings for the new chunks
-        return _get_new_chunk(len(docs_split), docs_split)
+        #return _get_new_chunk(len(docs_split), docs_split)
+        return _get_new_chunk_(docs_split)
     else:
         #st.write("Sotto i 1024")
-        return _get_new_chunk(1, chunk)
+        #return _get_new_chunk(1, chunk)
+        return _get_new_chunk_(chunk)
+        
+def _get_new_chunk_(chunk_list):
+    new_chunks = []
+    for i, text in enumerate(chunk_list):
+        new_chunks.append({
+            'sentence': text,
+            'index': i,
+            'section': text
+        })
+    return _do_embedding(new_chunks)
 
 def _get_new_chunk(leng, chunks):
     splitted_chunks = []
@@ -93,7 +116,7 @@ def _get_new_chunk(leng, chunks):
     string_text = [chunks for i in range(leng)]
     chunks_edit = [{'sentence': x, 'index' : i} for i, x in enumerate(string_text)]
     chunks_edit = [{'sentence': f"{x['sentence']}", 'index': x['index']} for x in chunks_edit]
-    # get sentence and combined_sentence
+    # get sentence an_d combinedsentence
     for i in range(len(chunks_edit)):
         combined_sentence = chunks_edit[i]['sentence']
         chunks_edit[i]['section'] = combined_sentence
@@ -104,14 +127,14 @@ def _get_new_chunk(leng, chunks):
     return splitted_chunks
 
 
-def _indices_above_treshold_distance(distances, distance=0.95):
+def _indices_above_treshold_distance(distances, threshold=0.95):
     # identify the outlier
     # higher distance --> less chunks
     # lower distance --> more chunks
     # Indexes of the chunks with cosine distance above treshold
     indices_above_thresh=[]
     for i, x in enumerate(distances):
-        if (1-x)<(distance):
+        if (x)<(threshold):
             indices_above_thresh.append(i)
     return indices_above_thresh
 
@@ -133,14 +156,9 @@ def _cosine_distance(chunks):
 def _do_embedding(chunks):
     embeddings = []
     for i, chunk in enumerate(chunks):
-        result = llm_client.models.embed_content(
-            model=settings.GEMINI_EMBEDDING_MODEL,
-            contents=chunk['section'],
-            config=types.EmbedContentConfig(task_type="SEMANTIC_SIMILARITY")
-        )
-        embedding = result.embeddings[0].values
+        #print(chunk)
         #embedding = model.encode(chunk['section'], show_progress_bar=False)
-        embeddings.append(embedding)
+        embeddings.append(embedder.embed(chunk['section']))
     for i, chunk in enumerate(chunks):
         chunk['embedding'] = embeddings[i]
     return chunks
