@@ -10,9 +10,9 @@ from trento_agent_sdk.a2a_server import A2AServer
 
 # Import SummarizationAgent tools
 from tools.get_text.get_text import getTextFromPdf, getTextFromVideo
-from tools.summarizer_type.get_correct_format_prompt import get_correct_format
+from tools.summarizer_type.get_correct_format_prompt import get_correct_format_prompt
 from tools.summarizer_type.get_summarize_chunk_prompt import (
-    summarize_chunk,
+    get_prompt_to_summarize_chunk,
 )
 from tools.summarizer_type.get_final_summary_prompt import generate_final_summary
 from tools.chunker.chunker_tool import get_chunks
@@ -35,9 +35,10 @@ tool_manager = ToolManager()
 tool_manager.add_tool(getTextFromPdf)
 tool_manager.add_tool(getTextFromVideo)
 tool_manager.add_tool(get_chunks)
-tool_manager.add_tool(get_correct_format)
-tool_manager.add_tool(summarize_chunk)
+tool_manager.add_tool(get_correct_format_prompt)
+tool_manager.add_tool(get_prompt_to_summarize_chunk)
 tool_manager.add_tool(generate_final_summary)
+
 
 # Create the summarization agent
 summarization_agent = Agent(
@@ -70,6 +71,7 @@ DO NOT skip any steps. DO NOT try to complete any step without using the appropr
     api_key=api_key,
     base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
     final_tool="get_correct_format_prompt",
+    user_id="test_user"
 )
 
 

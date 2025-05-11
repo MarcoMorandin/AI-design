@@ -304,7 +304,7 @@ class A2AClient:
             # Wait before polling again
             await asyncio.sleep(polling_interval)
 
-
+'''
 async def fetch_one_agent_card(server_url: str) -> AgentCard | None:
     """
     Try to load one agent's card from its .well-known endpoint.
@@ -334,4 +334,4 @@ async def discover_agents(
     results = await asyncio.gather(*tasks)
     # Filter out failures
     return [card for card in results if card is not None]
-
+'''

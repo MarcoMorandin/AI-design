@@ -26,7 +26,6 @@ def getTextFromPdf(pdf_path):
     Returns:
        str: The extracted text from the PDF file.
     """
-
     processor = PdfTranscriptionToolGemini(
         api_endpoint="https://generativelanguage.googleapis.com/v1beta/models/",
         model_name="gemini-2.0-flash",
