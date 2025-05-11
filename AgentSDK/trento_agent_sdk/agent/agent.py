@@ -1,7 +1,8 @@
 import json
 import logging
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Literal
 
+from AgentSDK.trento_agent_sdk.memory.memory import LongMemory
 import openai
 from pydantic import BaseModel, ConfigDict
 
@@ -17,10 +18,13 @@ class Agent(BaseModel):
     name: str = "Agent"
     model: str = "gemini-2.0-flash"
     tool_manager: ToolManager = None
+    long_memory: LongMemory=None
+    short_memory: List[Dict[str, str]] = []
     client: Optional[openai.OpenAI] = None
     api_key: Optional[str] = None
     base_url: Optional[str] = None
     final_tool: Optional[str] = None  # Name of the tool that should be called last
+    tool_required: Literal["required", "auto"] = "required"
     system_prompt: str = (
         "You are a helpful assistant that always uses tools when available. Never try to solve tasks yourself if there's a relevant tool available. Always use the appropriate tool for calculations, lookups, or data processing tasks."
     )
@@ -33,6 +37,8 @@ class Agent(BaseModel):
         if self.base_url:
             client_kwargs["base_url"] = self.base_url
         self.client = openai.OpenAI(**client_kwargs)
+        if not self.short_memory:
+            self.short_memory = [{"role": "system", "content": self.system_prompt}]
 
     def _convert_tools_format(self) -> List[Dict]:
         """Convert tools from the tool manager to OpenAI function format"""
@@ -72,11 +78,23 @@ class Agent(BaseModel):
         """
 
         try:
+            self.short_memory.append({"role": "user", "content": user_msg})
             # Build initial messages
-            messages = [
-                {"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": user_msg},
-            ]
+            #messages = [
+            #    {"role": "system", "content": self.system_prompt},
+            #    {"role": "user", "content": user_msg},
+            #]
+            #messages = list(self.short_memory)
+
+            # Retrieve from long memory
+            mems = self.long_memory.get_memories(user_msg, top_k=5)
+            if mems:
+                mem_texts = [
+                    f"- [{m['topic']}] {m['description']}" for m in mems
+                ]
+                mem_block = "Relevant past memories:\n" + "\n".join(mem_texts)
+                self.short_memory.append({"role": "system", "content": mem_block})
+
 
             # Get available tools
             tools = self._convert_tools_format()
@@ -93,14 +111,19 @@ class Agent(BaseModel):
                 # Get response from model
                 response = self.client.chat.completions.create(
                     model=self.model,
-                    messages=messages,
+                    messages=self.short_memory,
                     tools=tools,
                     tool_choice="required",
                     temperature=temperature,
                 )
 
                 # Add model's response to conversation
-                messages.append(response.choices[0].message)
+                #messages.append(response.choices[0].message)
+
+                self.short_memory.append({
+                    "role": response.choices[0].message.role,
+                    "content": response.choices[0].message.content
+                })
 
                 # Check if the model used a tool
                 if (
@@ -171,23 +194,38 @@ class Agent(BaseModel):
                                 serialized_result = str(result)
 
                             # Add tool result to the conversation
-                            messages.append(
+                            #messages.append(
+                            #    {
+                            #        "role": "tool",
+                            #        "tool_call_id": call_id,
+                            #        "content": serialized_result,
+                            #    }
+                            #)
+                            self.short_memory.append({
                                 {
                                     "role": "tool",
                                     "tool_call_id": call_id,
                                     "content": serialized_result,
                                 }
-                            )
+                            })
                         except Exception as e:
                             error_message = f"Error calling tool {tool_name}: {str(e)}"
                             logger.error(error_message)
-                            messages.append(
+                            self.short_memory.append({
                                 {
                                     "role": "tool",
                                     "tool_call_id": call_id,
                                     "content": json.dumps({"error": error_message}),
                                 }
-                            )
+                            })
+                            
+                            #messages.append(
+                            #    {
+                            #        "role": "tool",
+                            #        "tool_call_id": call_id,
+                            #        "content": json.dumps({"error": error_message}),
+                            #    }
+                            #)
                 else:
                     # If no tool was called, the model has finished its work
                     logger.info("Model did not use tools, conversation complete")
@@ -199,7 +237,8 @@ class Agent(BaseModel):
                     f"Reached maximum number of iterations ({max_iterations})"
                 )
                 # Append a message to let the model know it needs to wrap up
-                messages.append(
+                #messages.append(
+                self.short_memory.append(
                     {
                         "role": "system",
                         "content": "You've reached the maximum number of allowed iterations. Please provide a final response based on the information you have.",
@@ -208,9 +247,11 @@ class Agent(BaseModel):
 
             # Get final response from the model if no final tool was called during iterations
             final_response = self.client.chat.completions.create(
-                model=self.model, messages=messages, temperature=temperature
+                model=self.model, messages=self.short_memory, temperature=temperature
             )
 
+            # Update long memory
+            self.long_memory.insert_into_long_memory_with_update(self.short_memory)
             return final_response.choices[0].message.content
 
         except Exception as e:

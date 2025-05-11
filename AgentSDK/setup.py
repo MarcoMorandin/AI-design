@@ -31,5 +31,6 @@ setup(
         "tqdm",
         "typing_extensions",
         "websockets",
+        "google-genai"
     ],
 )
