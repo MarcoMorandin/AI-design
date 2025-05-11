@@ -42,19 +42,18 @@ class TaskManager:
         response_text: str,
     ) -> Task:
         task = self.tasks[task_id]
-        agent_response_parts = [
-            {
-                "type": "text",
-                "text": response_text,
-            }
-        ]
+        from .models.Task import TextPart
+
+        # Create proper TextPart object instead of raw dictionary
+        agent_response_parts = [TextPart(type="text", text=response_text)]
+
         task.status = TaskStatus(
             state=task_state,
             message=Message(
                 role="agent",
                 parts=agent_response_parts,
             ),
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
         task.artifacts = [
             Artifact(
@@ -63,29 +62,29 @@ class TaskManager:
         ]
         return task
 
-    async def _invoke(
-        self, request: SendTaskRequest, swarm, agent
-    ) -> SendTaskResponse:
+    async def _invoke(self, request: SendTaskRequest, agent) -> str:
+        """
+        Invoke the agent with the task request and return the response content.
+
+        Args:
+            request: The task request containing the user message
+            agent: The agent instance to invoke
+
+        Returns:
+            The agent's response as a string
+        """
         task_send_params = request.params
         query = self._get_user_query(task_send_params)
-        messages = [{"role": "user", "content": query}]
-        
+
         try:
-            result = await swarm.run(agent=agent, messages=messages)
+            # The agent.run() returns the model's final response as a string
+            result = await agent.run(query)
+            return result
         except Exception as e:
             logger.error(f"Error invoking agent: {e}")
-            raise ValueError(f"Error invoking agent: {e}")
-    
-        content = ""
-        for part in result.messages:
-            if part["role"] == "assistant":
-                content = part["content"]
+            return f"Error: {str(e)}"
 
-        return content
-
-    async def on_send_task(
-        self, request: SendTaskRequest, swarm, agent
-    ) -> SendTaskResponse:
+    async def on_send_task(self, request: SendTaskRequest, agent) -> SendTaskResponse:
         task = self.tasks.get(request.params.id)
         if task is None:
             task = Task(
@@ -94,7 +93,7 @@ class TaskManager:
                 status=TaskStatus(
                     state=TaskState.SUBMITTED,
                     message=request.params.message,
-                    timestamp=datetime.now()
+                    timestamp=datetime.now(),
                 ),
                 history=[request.params.message],
             )
@@ -108,7 +107,7 @@ class TaskManager:
             )
 
             # Invoke the agent
-            content = await self._invoke(request, swarm, agent)
+            content = await self._invoke(request, agent)
 
             # Update task to completed state
             task = await self._update_task(
@@ -118,22 +117,43 @@ class TaskManager:
             )
 
             return SendTaskResponse(id=request.id, result=task)
-        
+
         # If task already exists, return current state
         return SendTaskResponse(id=request.id, result=task)
 
     def _get_user_query(self, task_params):
         """Extract user query from task parameters."""
-        if hasattr(task_params, 'message') and task_params.message:
+        if hasattr(task_params, "message") and task_params.message:
             # Extract text parts from the message
-            parts = task_params.message.parts if hasattr(task_params.message, 'parts') else []
+            parts = (
+                task_params.message.parts
+                if hasattr(task_params.message, "parts")
+                else []
+            )
             query = []
             for part in parts:
-                # Check if it's a TextPart object
-                if hasattr(part, 'type') and part.type == 'text':
+                # Check if it's a TextPart object with text attribute
+                if (
+                    hasattr(part, "type")
+                    and part.type == "text"
+                    and hasattr(part, "text")
+                    and part.text is not None
+                ):
                     query.append(part.text)
                 # Fallback for dictionary-style parts
-                elif isinstance(part, dict) and part.get('type') == 'text':
-                    query.append(part.get('text', ''))
-            return ' '.join(query)
-        return ''
+                elif (
+                    isinstance(part, dict)
+                    and part.get("type") == "text"
+                    and part.get("text") is not None
+                ):
+                    query.append(part.get("text", ""))
+
+            if not query:
+                # If no valid text parts were found, log a warning
+                logger.warning("No valid text parts found in the message")
+                return "No query provided"
+
+            return " ".join(query)
+
+        logger.warning("No message found in task parameters")
+        return "No query provided"

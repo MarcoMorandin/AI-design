@@ -1,54 +1,54 @@
-from .prompts.prompt import summary_prompt
-from .prompts.prompt import fix_formulas_prompt
-import json
-from dotenv import load_dotenv
+from typing import List
 import os
-import requests
+from openai import OpenAI
+from .prompts.prompt import summary_prompt
+from dotenv import load_dotenv
 
 load_dotenv()
 
-grok_chat_url="https://api.groq.com/openai/v1/chat/completions"
-grok_api_key=os.getenv("GROQ_API_KEY")
+
+api_key = os.getenv("GOOGLE_API_KEY")
+client = OpenAI(
+    api_key=api_key, base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+)
 
 
-def summarize_chunk(chunk_to_summarize:str, summary_type: str="technical") -> str:
-    """Summarize the provided text choosing among this four summary types:
+def get_prompt_to_summarize_chunk(text: str, summary_type: str = "technical") -> str:
+    """Summarizes a chunk of text using Gemini API.
+
+    Available summary types:
     - "standard": Standard Summary
     - "technical": Technical Summary
     - "key_points": Key Points Summary
     - "layman": Simplified Summary
 
     Args:
-        chunk_to_summarize (str): The input text that needs to be summarized.
+        text (str): The text chunk to summarize.
         summary_type (str): The type of summary to generate.
 
-
     Returns:
-        str: Summary of the chunk
+        str: The summarized text, not just a prompt
     """
-    SYSTEM_PROMPT= summary_prompt(summary_type)
-    system = SYSTEM_PROMPT
-    user_payload = {
-        "chunk_to_summarize": chunk_to_summarize
-    }
+    # Get the appropriate prompt for this summary type
+    prompt = summary_prompt(summary_type)
 
-    messages = [
-        {"role": "system",  "content": system},
-        {"role": "user",    "content": json.dumps(user_payload)}
-    ]
+    # Create the full prompt with the input text
+    full_prompt = f"""
+    {prompt}
+    
+    --- TEXT TO SUMMARIZE ---
+    {text}
+    --- TEXT TO SUMMARIZE ---
+    """
 
-    resp = requests.post(
-        grok_chat_url,
-        headers={
-            "Authorization": f"Bearer {grok_api_key}",
-            "Content-Type": "application/json"
-        },
-        json={
-            "model": "llama-3.3-70b-versatile",
-            "messages": messages,
-            "temperature": 0.0
-        }
+    # Call the Gemini API to actually summarize the text
+    response = client.chat.completions.create(
+        model="gemini-2.0-flash",
+        messages=[
+            {"role": "system", "content": "You are a math syntax expert."},
+            {"role": "user", "content": full_prompt},
+        ],
     )
-    resp.raise_for_status()
-    content = resp.json()["choices"][0]["message"]["content"]
-    return content
+
+    # Return the actual summary, not just the prompt
+    return response.choices[0].message.content

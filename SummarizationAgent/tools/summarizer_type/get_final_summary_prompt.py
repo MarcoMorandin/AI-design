@@ -1,52 +1,56 @@
-from .prompts.prompt import generate_final_summary
-import json
-from dotenv import load_dotenv
 import os
-import requests
+from openai import OpenAI
+from .prompts.prompt import generate_final_summary
+from dotenv import load_dotenv
 
 load_dotenv()
 
-grok_chat_url="https://api.groq.com/openai/v1/chat/completions"
-grok_api_key=os.getenv("GROQ_API_KEY")
 
-def get_final_summary(all_chunks_text_to_summarize:str, summary_type: str, text_was_splitted:bool) -> str:
-    """Put togheter summaries of different chunks:
+api_key = os.getenv("GOOGLE_API_KEY")
+client = OpenAI(
+    api_key=api_key, base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+)
+
+
+def get_final_summary_prompt(
+    text: str, summary_type: str, text_was_splitted: bool
+) -> str:
+    """Creates a final summary from text or combined summaries using Gemini API.
+
+    Available summary types:
     - "standard": Standard Summary
     - "technical": Technical Summary
     - "key_points": Key Points Summary
     - "layman": Simplified Summary
 
     Args:
-        all_chunks_text_to_summarize (str): The input text that needs to be summarized (the text about all the chunks that need to be summarized).
+        text (str): The text or combined summaries to process.
         summary_type (str): The type of summary to generate.
-        text_was_splitted (bool): Whether the orignal text was splitted or not (If came from different chunks). (True or False)
+        text_was_splitted (bool): Whether the original text was split into chunks.
 
     Returns:
-        str: Prompt to summarize a text
+        str: The final summary, not just a prompt
     """
-    SYSTEM_PROMPT= generate_final_summary(summary_type, text_was_splitted)
-    system = SYSTEM_PROMPT
-    user_payload = {
-        "text_to_be_summarized": all_chunks_text_to_summarize
-    }
+    # Get the appropriate prompt for this summary type and situation
+    prompt = generate_final_summary(summary_type, text_was_splitted)
 
-    messages = [
-        {"role": "system",  "content": system},
-        {"role": "user",    "content": json.dumps(user_payload)}
-    ]
+    # Create the full prompt with the input text
+    full_prompt = f"""
+    {prompt}
+    
+    {'' if text_was_splitted else '--- TEXT TO SUMMARIZE ---'}
+    {text}
+    {'' if text_was_splitted else '--- TEXT TO SUMMARIZE ---'}
+    """
 
-    resp = requests.post(
-        grok_chat_url,
-        headers={
-            "Authorization": f"Bearer {grok_api_key}",
-            "Content-Type": "application/json"
-        },
-        json={
-            "model": "llama-3.3-70b-versatile",
-            "messages": messages,
-            "temperature": 0.0
-        }
+    # Call the Gemini API to actually create the final summary
+    response = client.chat.completions.create(
+        model="gemini-2.0-flash",
+        messages=[
+            {"role": "system", "content": "You are a math syntax expert."},
+            {"role": "user", "content": full_prompt},
+        ],
     )
-    resp.raise_for_status()
-    content = resp.json()["choices"][0]["message"]["content"]
-    return content
+
+    # Return the actual final summary, not just the prompt
+    return response.choices[0].message.content

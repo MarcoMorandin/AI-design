@@ -22,7 +22,7 @@ class AgentCard(BaseModel):
     default_output_modes: List[str] | None = None
     provider: str | None = None
     documentation_url: str | None = None
-    
+
     def to_dict(self):
         """Convert the AgentCard to a dictionary for JSON serialization."""
         return {
@@ -34,8 +34,9 @@ class AgentCard(BaseModel):
             "defaultInputModes": self.default_input_modes,
             "defaultOutputModes": self.default_output_modes,
             "provider": self.provider,
-            "documentationUrl": self.documentation_url
+            "documentationUrl": self.documentation_url,
         }
+
     authentication: Optional[str] = None
     capabilities: Dict[str, Any] = {
         "streaming": False,
