@@ -96,6 +96,20 @@ def is_file_in_hierarchy(
 # --- FastAPI App Initialization ---
 app = FastAPI()  # Changed from Flask to FastAPI
 
+
+# --- Health Check Endpoint for Docker ---
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for container monitoring"""
+    # Check MongoDB connection
+    mongo_status = "OK" if mongo_client else "ERROR"
+    return {
+        "status": "healthy" if mongo_client else "unhealthy",
+        "mongo_connection": mongo_status,
+        "timestamp": datetime.datetime.utcnow().isoformat(),
+    }
+
+
 # --- Logging Configuration ---
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -607,7 +621,12 @@ async def stop_watch_channel(
 
 
 if __name__ == "__main__":
-    port_to_run = WATCHER_APP_PORT  # Use the configured port from config.py
+    # Port priority:
+    # 1. PORT env var (Google Cloud Run standard)
+    # 2. WEBHOOK_SERVICE_PORT env var (our app standard)
+    # 3. WATCHER_APP_PORT from config.py
+    # 4. Default to 8080 (Google Cloud Run default)
+    port_to_run = 8080
     logger.info(f"Watcher service (FastAPI) running on http://localhost:{port_to_run}")
     logger.info(
         f"Ensure your public notification URL '{WATCHER_SERVICE_PUBLIC_URL}/notifications/drive' is accessible."
