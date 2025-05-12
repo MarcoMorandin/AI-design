@@ -9,7 +9,7 @@ from trento_agent_sdk.a2a.TaskManager import TaskManager
 from trento_agent_sdk.a2a_server import A2AServer
 
 # Import SummarizationAgent tools
-from tools.get_text.get_text import getTextFromPdf, getTextFromVideo
+from tools.get_text.get_text import getText
 from tools.summarizer_type.get_correct_format_prompt import get_correct_format_prompt
 from tools.summarizer_type.get_summarize_chunk_prompt import (
     get_prompt_to_summarize_chunk,
@@ -42,8 +42,7 @@ if not api_key:
 # TODO orchestrator auto discovery of agents
 
 tool_manager = ToolManager()
-tool_manager.add_tool(getTextFromPdf)
-tool_manager.add_tool(getTextFromVideo)
+tool_manager.add_tool(getText)
 tool_manager.add_tool(get_chunks)
 tool_manager.add_tool(get_correct_format_prompt)
 tool_manager.add_tool(get_prompt_to_summarize_chunk)
@@ -54,9 +53,9 @@ summarization_agent = Agent(
     name="Summarization Agent",
     system_prompt="""You are an agent that summarizes text from various sources. You MUST follow this exact process using the provided tools:
 
-1. EXTRACTION: Extract the text using ONLY the appropriate tool:
-   - For PDFs: Use the getTextFromPdf tool
-   - For videos: Use the getTextFromVideo tool
+1. EXTRACTION: Extract the text using the getText tool:
+   - Pass the Google Drive ID of the document to the getText tool
+   - The tool will retrieve the already processed text from MongoDB
    
 2. CHUNKING: Check if the text is long (over 4000 characters):
    - If it is, use ONLY the get_chunks tool to split it into manageable pieces

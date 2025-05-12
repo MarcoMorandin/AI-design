@@ -13,9 +13,12 @@ async def main():
         # Send a summarization task to the agent
         print("\nSending summarization task to the agent...")
 
-        # Example text to summarize
-        text_to_summarize = """
-        summarize the content of the following video: /Users/marcomorandin/Desktop/AI-Design/AI-design/SummarizationAgent/intervista.mov
+        # Example Google Drive ID to summarize
+        # Replace this with an actual Google Drive ID from your MongoDB collection
+        google_drive_id = "YOUR_GOOGLE_DRIVE_ID_HERE"
+
+        text_to_summarize = f"""
+        Please summarize the document with Google Drive ID: {google_drive_id}
         """
 
         response = await client.send_task(text_to_summarize)

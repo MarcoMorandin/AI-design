@@ -1,69 +1,66 @@
 import os
 
-from .PowerOcr.PdfProcessor.PdfTranscriptionToolGemini import (
-    PdfTranscriptionToolGemini,
-)
-
-from .PowerOcr.VideoProcessor.VideoTranscriptionTool import (
-    transcribe_video,
-)
-
 from dotenv import load_dotenv
 import logging
+from pymongo import MongoClient
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+# MongoDB connection setup
+MONGO_URI = os.environ.get("MONGO_URI")
+MONGO_DB_NAME = os.environ.get("MONGO_DB_NAME")
+COLLECTION_NAME = "processed_files"
 
-def getTextFromPdf(pdf_path):
+
+def getText(google_drive_id):
     """
-    Extracts text from a PDF file.
+    Retrieves extracted text from MongoDB based on a Google Drive ID.
+    If the text isn't found in the database, returns an error message.
 
     Args:
-       pdf_path (str): The path to the PDF file.
+        google_drive_id (str): The Google Drive ID of the document
 
     Returns:
-       str: The extracted text from the PDF file.
+        str: The extracted text content from the document or an error message
     """
 
-    processor = PdfTranscriptionToolGemini(
-        api_endpoint="https://generativelanguage.googleapis.com/v1beta/models/",
-        model_name="gemini-2.0-flash",
-        api_key=os.environ.get("GOOGLE_API_KEY"),
-    )
+    # Initialize MongoDB client
+    try:
+        mongo_client = MongoClient(MONGO_URI)
+        db = mongo_client[MONGO_DB_NAME]
+        processed_files_collection = db[COLLECTION_NAME]
+        logger.info(f"Connected to MongoDB: {MONGO_DB_NAME}")
+    except Exception as e:
+        logger.error(f"Failed to connect to MongoDB: {e}", exc_info=True)
+        mongo_client = None
+        db = None
+        processed_files_collection = None
+
+        if processed_files_collection is None:
+            error_msg = "MongoDB connection is not available"
+            logger.error(error_msg)
+            return f"Error: {error_msg}"
 
     try:
-        return processor.process(pdf_path)
+        # Query MongoDB for the document with the given Google Drive ID
+        document = processed_files_collection.find_one(
+            {"google_document_id": google_drive_id}
+        )
+
+        # If document is found, return its content
+        if document and "content" in document:
+            logger.info(
+                f"Successfully retrieved content for Google Drive ID: {google_drive_id}"
+            )
+            return document["content"]
+        else:
+            error_msg = f"Document with Google Drive ID {google_drive_id} not found or has no content"
+            logger.warning(error_msg)
+            return f"Error: {error_msg}"
+
     except Exception as e:
-        raise Exception(f"Error processing PDF: {e}")
-
-
-def getTextFromVideo(video_path, language="it"):
-    """
-    Extracts text from a video file.
-
-    Args:
-       video_path (str): The path to the video file.
-       language (str): The language of the video. Default is "en".
-
-    Returns:
-       str: The extracted text from the video file.
-    """
-
-    test_params = {
-        "video_path": video_path,
-        "output_format": "plain",
-        "language": language,
-        "timestamp": False,
-        "api_url": "https://api.groq.com/openai/v1/audio/transcriptions",
-        "model": "whisper-large-v3-turbo",
-        "api_key": os.environ.get("GROQ_API_KEY"),
-    }
-
-    try:
-        trans = transcribe_video(test_params)
-
-        return trans["transcription"]
-    except Exception as e:
-        raise Exception(f"Error processing PDF: {e}")
+        error_msg = f"Error retrieving document from MongoDB: {e}"
+        logger.error(error_msg, exc_info=True)
+        return f"Error: {error_msg}"
