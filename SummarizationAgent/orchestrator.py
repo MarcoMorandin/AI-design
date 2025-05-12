@@ -51,6 +51,7 @@ orchestrator_agent = Agent(
     model="gemini-2.0-flash",
     api_key=os.getenv("GOOGLE_API_KEY"),
     base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    tool_required="auto"
     #final_tool="delegate_task_to_agent",  
 )
 

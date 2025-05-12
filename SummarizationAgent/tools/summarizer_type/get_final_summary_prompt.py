@@ -12,7 +12,7 @@ client = OpenAI(
 )
 
 
-def get_final_summary_prompt(
+def combine_chunk_summaries(
     text: str, summary_type: str, text_was_splitted: bool
 ) -> str:
     """Creates a final summary from text or combined summaries using Gemini API.

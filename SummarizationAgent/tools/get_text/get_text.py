@@ -21,7 +21,7 @@ def getTextFromPdf(pdf_path):
     Extracts text from a PDF file.
 
     Args:
-       pdf_path (str): The path to the PDF file.
+       pdf_path (str): The path to the PDF file, just the path, no need to add the file:// protocol.
 
     Returns:
        str: The extracted text from the PDF file.

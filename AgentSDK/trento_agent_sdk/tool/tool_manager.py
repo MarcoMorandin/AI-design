@@ -32,6 +32,7 @@ class ToolManager:
         description: str | None = None,
     ) -> Tool:
         """Add a tool to the server."""
+        # automatically detect the sync/async
         tool = Tool.from_function(fn, name=name, description=description)
         existing = self._tools.get(tool.name)
         if existing:

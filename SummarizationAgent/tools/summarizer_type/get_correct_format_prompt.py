@@ -12,7 +12,7 @@ client = OpenAI(
 )
 
 
-def get_correct_format_prompt(text: str) -> str:
+def fix_latex_formulas(text: str) -> str:
     """Fixes formulas in text to use proper LaTeX format using Gemini API.
 
     Args:

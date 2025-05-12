@@ -38,6 +38,7 @@ async def main():
 '''
 
 async def main():
+    # 8000 → no orchestrator, 8001 → with orchestrator
     async with A2AClient("http://localhost:8001") as client:
         agent_card = await client.get_agent_card()
         print(f"Connected to orchestrator: {agent_card.name}")

@@ -7,7 +7,7 @@ import requests
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
-from utils.system_prompt import SYSTEM_PROMPT
+from .utils.system_prompt import SYSTEM_PROMPT
 from typing import List, Dict, Union
 
 logger = logging.getLogger(__name__)
@@ -33,6 +33,7 @@ class LongMemory():
         self.grok_api_key=os.getenv("GROQ_API_KEY")
 
         self.collection_name = self._get_or_create_user_collection()
+        print("Collection name: ", self.collection_name)
         
 
     def _get_or_create_user_collection(self)->str:
@@ -241,7 +242,7 @@ class LongMemory():
         if prefs == "NO_PREFERENCE" or not prefs:
             return "NO_PREFERENCE"
         return prefs
-
+'''
 def main():
     lm = LongMemory(user_id="test_user")
 
@@ -271,3 +272,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+'''

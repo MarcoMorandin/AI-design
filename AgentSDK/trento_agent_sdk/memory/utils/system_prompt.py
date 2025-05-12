@@ -1,4 +1,4 @@
-SYSTEM_PROMT= (
+SYSTEM_PROMPT= (
             "You are an assistant whose job is to maintain a list of user preferences. "
             "You will receive two inputs:\n"
             "1) existing_preferences: a JSON array of {id, topic, description}\n"

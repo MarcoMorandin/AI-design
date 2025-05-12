@@ -13,7 +13,7 @@ client = OpenAI(
 )
 
 
-def get_prompt_to_summarize_chunk(text: str, summary_type: str = "technical") -> str:
+def summarise_chunk(text: str, summary_type: str = "technical") -> str:
     """Summarizes a chunk of text using Gemini API.
 
     Available summary types:
