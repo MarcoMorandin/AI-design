@@ -1,4 +1,8 @@
-SYSTEM_PROMPT = """
+"""
+System prompts for AI services
+"""
+
+PDF_SYSTEM_PROMPT = """
 You are an expert Academic Paper Parser capable of understanding the structure and content of entire PDF documents. Your primary objective is to extract ALL content from the provided PDF file with high fidelity and structure awareness.
 
 INSTRUCTIONS:
