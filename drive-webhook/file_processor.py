@@ -23,8 +23,8 @@ if power_ocr_module_path not in sys.path:
     sys.path.insert(0, power_ocr_module_path)
 
 try:
-    from PdfProcessor.PdfTranscriptionToolGemini import PdfTranscriptionToolGemini
-    from VideoProcessor.VideoTranscriptionTool import transcribe_video
+    # Import from power-ocr package instead of direct imports
+    from power_ocr import PdfTranscriptionTool, transcribe_video
 except ImportError as e:
     logging.getLogger(__name__).error(
         f"Failed to import OCR tools: {e}. Ensure power-ocr directory is structured correctly and contains __init__.py files if necessary."
@@ -302,8 +302,8 @@ def _process_file_task(
                         )
                         ocr_text = "Error: PDF OCR configuration missing."
                     else:
-                        tool = PdfTranscriptionToolGemini(
-                            api_endpoint=pdf_api_endpoint,
+                        tool = PdfTranscriptionTool(
+                            api_base=pdf_api_endpoint,
                             model_name=pdf_model_name,
                             api_key=pdf_api_key,
                         )
@@ -336,7 +336,7 @@ def _process_file_task(
                         params = {
                             "video_path": downloaded_file_path,
                             "api_key": video_api_key,
-                            "api_url": video_api_url,
+                            "api_base": video_api_url,
                             "model": video_model_name,
                             "output_format": "plain",
                         }
