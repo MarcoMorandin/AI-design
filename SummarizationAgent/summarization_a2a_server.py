@@ -74,7 +74,7 @@ process another chunk. When step 5 is done, answer the user.""",
     base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
     final_tool="fix_latex_formulas",
     user_id="test_user",
-    tool_required="auto"
+    tool_required="auto" #TODO: mettere required per farlo funzionare
 )
 
 
