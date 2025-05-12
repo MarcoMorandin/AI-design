@@ -4,7 +4,9 @@ from trento_agent_sdk.a2a_client import A2AClient
 
 async def main():
     # Create an A2A client
-    async with A2AClient("http://localhost:8000") as client:
+    async with A2AClient(
+        "https://ai-design-855231674152.europe-west8.run.app"
+    ) as client:
         # Get the agent card to see what the agent can do
         agent_card = await client.get_agent_card()
         print(f"Connected to agent: {agent_card.name}")

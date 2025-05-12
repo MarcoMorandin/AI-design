@@ -6,14 +6,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-api_key = os.getenv("GOOGLE_API_KEY")
+api_key = os.getenv("GEMINI_API_KEY")
 client = OpenAI(
     api_key=api_key, base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
 )
 
 
 def get_final_summary_prompt(
-    text: str, summary_type: str, text_was_splitted: bool
+    text: str,
+    text_was_splitted: bool,
+    summary_type: str = "technical",
 ) -> str:
     """Creates a final summary from text or combined summaries using Gemini API.
 
@@ -25,8 +27,8 @@ def get_final_summary_prompt(
 
     Args:
         text (str): The text or combined summaries to process.
-        summary_type (str): The type of summary to generate.
         text_was_splitted (bool): Whether the original text was split into chunks.
+        summary_type (str): The type of summary to generate.
 
     Returns:
         str: The final summary, not just a prompt
