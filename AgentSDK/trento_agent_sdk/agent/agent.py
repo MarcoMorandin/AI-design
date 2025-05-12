@@ -96,34 +96,6 @@ class Agent(BaseModel):
         The format mirrors AgentManager.list_delegatable_agents().
         """
         return self.agent_manager.list_delegatable_agents()
-        '''
-        "Lists all available remote agents you can delegate tasks to, along with their capabilities (descriptions). Use this to discover which agent might be suitable for a specific sub-task.",
-        logger.info("Executing internal tool: list_delegatable_agents")
-        agent_aliases = self.agent_manager.list_agents()
-        print(agent_aliases)
-        if not agent_aliases:
-            return "No remote agents are currently available for delegation."
-
-        agent_details = []
-        for alias in agent_aliases:
-            try:
-                card = self.agent_manager.get_agent_card(alias)
-                skills = (
-                    [skill.dict() for skill in card.skills]
-                    if card.skills
-                    else []
-                )
-                agent_details.append({
-                    "alias": alias,
-                    "name": card.name,
-                    "description": card.description,
-                    "skills": skills
-                })
-            except Exception as e:
-                logger.error(f"Could not retrieve card for agent {alias}: {e}")
-                agent_details.append({"alias": alias, "name": "Unknown", "description": f"Error retrieving details: {e}"})
-        return json.dumps(agent_details)
-        '''
 
 
     async def delegate_task_to_agent_tool(
