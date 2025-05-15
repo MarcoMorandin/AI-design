@@ -7,6 +7,8 @@ from trento_agent_sdk.agent.agent import Agent
 from trento_agent_sdk.a2a.models.AgentCard import AgentCard, AgentSkill
 from trento_agent_sdk.a2a.TaskManager import TaskManager
 from trento_agent_sdk.a2a_server import A2AServer
+from trento_agent_sdk.memory.memory import LongMemory
+
 
 # Import SummarizationAgent tools
 from tools.get_text.get_text import getTextFromPdf, getTextFromVideo
@@ -28,7 +30,6 @@ if not api_key:
         "GOOGLE_API_KEY environment variable is not set. Please create a .env file with your API key."
     )
 
-
 # Create a tool manager and register summarization tools
 # TODO create a tool to get language from the video
 tool_manager = ToolManager()
@@ -39,6 +40,26 @@ tool_manager.add_tool(fix_latex_formulas)
 tool_manager.add_tool(summarise_chunk)
 tool_manager.add_tool(generate_final_summary)
 
+
+memory_prompt= (
+    "You are an assistant whose job is to maintain a list of user preferences. "
+    "You will receive two inputs:\n"
+    "1) existing_memories: a JSON array of {id, topic, description}\n"
+    "2) chat_history: a string of the latest conversation.\n\n"
+    "First you should extract the latest preferences from the chat_history. "
+    "If the user has expressed new preferences, add them to the list. "
+    "If they have updated existing memories (that are about the preferences), replace them. "
+    "Analyze the chat and return a JSON object with exactly one field: \"memories_to_add\". "
+    "The value must be either:\n"
+    "  • A list of objects, each with exactly these fields:\n"
+    "      – \"id\": the existing memory id to update, OR null if new\n"
+    "      – \"topic\": a label for the general area of preference (e.g. \"lecture\", \"cuisine\").\n"
+    "      – \"description\": a comprenshicve description of the user preferences.\n"
+    "  • The string \"NO_MEMORIES_TO_ADD\" if nothing has changed.\n"
+    "Do NOT include any other fields or commentary."
+)
+
+memory = LongMemory(user_id="test_user", memory_prompt=memory_prompt)
 
 # Create the summarization agent
 summarization_agent = Agent(
@@ -73,8 +94,9 @@ process another chunk. When step 5 is done, answer the user.""",
     api_key=api_key,
     base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
     final_tool="fix_latex_formulas",
-    user_id="test_user",
-    tool_required="auto" #TODO: mettere required per farlo funzionare
+    #user_id="test_user",
+    tool_required="auto",
+    long_memory=memory,
 )
 
 
@@ -82,7 +104,7 @@ process another chunk. When step 5 is done, answer the user.""",
 agent_card = AgentCard(
     name="Summarization Agent",
     description="An agent that can summarize text from PDFs, documents, and videos",
-    url="http://localhost:8000",
+    url="http://localhost:8001",
     version="1.0.0",
     skills=[
         AgentSkill(
@@ -112,10 +134,10 @@ a2a_server = A2AServer(
     agent_card=agent_card,
     task_manager=task_manager,
     host="0.0.0.0",
-    port=8000,
+    port=8001,
 )
 
 # Run the server
 if __name__ == "__main__":
-    print("Starting Summarization A2A Server on http://localhost:8000")
+    print("Starting Summarization A2A Server on http://localhost:8001")
     a2a_server.run()
