@@ -74,8 +74,8 @@ class LongMemory():
 
         return name
 
-    def _scroll_current_preferences(self) -> list[dict]:
-        """Fetch all existing prefs for this user via the REST scroll API."""
+    def _scroll_current_memories(self) -> list[dict]:
+        """Fetch all existing memories for this user via the REST scroll API."""
         url = f"{self.qdrant_host}/collections/{self.collection_name}/points/scroll"
         body = {
             "filter": {
@@ -99,34 +99,34 @@ class LongMemory():
         ]
 
     def insert_into_long_memory_with_update(self, chat_history: Union[str, List[Dict[str, str]]]):
-
+        
+        # the chat history could also be a list of dicts
         if isinstance(chat_history, list):
-            # you could also join into a plain-text transcript here if you prefer
             chat_history_payload = json.dumps(chat_history, ensure_ascii=False)
         else:
             chat_history_payload = chat_history
 
-        # current preferences
-        current_prefs = self._scroll_current_preferences()
-        # get nre preferences
-        new_prefs = self._extract_preferences(
+        # current memories
+        current_memories = self._scroll_current_memories()
+        # get new memories
+        new_memories = self._extract_memories(
             chat_history=chat_history_payload,
-            existing_prefs=current_prefs
+            existing_memories=current_memories
         )
 
-        if new_prefs == "NO_PREFERENCE":
-            logger.info("No preferences found—nothing to insert/update")
+        if new_memories == "NO_MEMORIES_TO_ADD":
+            logger.info("No memories shuld be add or update")
             return
 
         # update point in db
         points = []
-        for pref in new_prefs:
-            topic = pref.get("topic")
-            desc  = pref.get("description")
-            pid   = pref.get("id") or uuid4().hex    # use provided id or generate new
+        for memory in new_memories:
+            topic = memory.get("topic")
+            desc  = memory.get("description")
+            pid   = memory.get("id") or uuid4().hex    # use provided id or generate new
 
             if not topic or not desc:
-                logger.warning("Skipping malformed pref: %r", pref)
+                logger.warning("Skipping malformed memory: %r", memory)
                 continue
 
             emb = None
@@ -205,14 +205,14 @@ class LongMemory():
         logger.info("Retrieved %d memories", len(results))
         return results
     
-    def _extract_preferences(self, chat_history: str, existing_prefs: list[dict]):
-        """Ask the LLM to merge chat hints with existing prefs, tagging with 'id' when updating."""
+    def _extract_memories(self, chat_history: str, existing_memories: list[dict]):
+        """Ask the LLM to merge chat hints with existing memories, tagging with 'id' when updating."""
         if self.memory_prompt != "DEFAULT":
             system = self.memory_prompt
         else:
             system = SYSTEM_PROMPT
         user_payload = {
-            "existing_preferences": existing_prefs,
+            "existing_memories": existing_memories,
             "chat_history":         chat_history
         }
 
@@ -238,10 +238,11 @@ class LongMemory():
         content = resp.json()["choices"][0]["message"]["content"]
         data = json.loads(content)
 
-        prefs = data.get("preferences")
-        if prefs == "NO_PREFERENCE" or not prefs:
-            return "NO_PREFERENCE"
-        return prefs
+        memories = data.get("memories_to_add")
+        if memories == "NO_MEMORIES_TO_ADD" or not memories:
+            return "NO_MEMORIES_TO_ADD"
+        return memories
+
 '''
 def main():
     lm = LongMemory(user_id="test_user")
