@@ -12,15 +12,8 @@ client = OpenAI(
 )
 
 
-<<<<<<< HEAD:SummarizationAgent/tools/summarizer_type/get_final_summary_prompt.py
 def combine_chunk_summaries(
     text: str, summary_type: str, text_was_splitted: bool
-=======
-def get_final_summary_prompt(
-    text: str,
-    text_was_splitted: bool,
-    summary_type: str = "technical",
->>>>>>> 27bb543c72a0e64d6003e7636e0838af918c02dc:agents/SummarizationAgent/tools/summarizer_type/get_final_summary_prompt.py
 ) -> str:
     """Creates a final summary from text or combined summaries using Gemini API.
 
