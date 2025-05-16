@@ -16,7 +16,7 @@ logger.setLevel(logging.INFO)
 load_dotenv()
 
 
-class UploadInKB:
+class RAG:
 
     def __init__(self, user_id) -> None:
         self.qdrant_host=os.getenv("QDRANT_HOST")
@@ -26,10 +26,11 @@ class UploadInKB:
         }
         self.user_id = user_id
         self.collection_name = self._get_or_create_user_collection()
+        print("RAG_COLLECTION_NAME:", self.collection_name)
         self.embedder = Embedder()
 
     def _get_or_create_user_collection(self)->str:
-        name = f"RAG_user{self.user_id}"
+        name = f"{self.user_id}"
         try:
             # get existing collections
             url_list = f"{self.qdrant_host}/collections"
@@ -94,7 +95,7 @@ class UploadInKB:
         except Exception:
             logger.exception("Error uploading text in Qdrant collection")
 
-    def retrieve_relevant_knowledge(self, query: str, top_k: int = 5) -> List[str]:
+    def retrieve_relevant_knowledge(self, query: str, top_k: int = 7) -> List[str]:
         # embed query
         query_embedding=self.embedder.embed(query)
         # search payload
@@ -102,14 +103,14 @@ class UploadInKB:
             "vector": query_embedding,
             "limit": top_k,
             "with_payload": True,
-            "filter": {
-                "must": [
-                    {
-                        "key": "user_id",
-                        "match": {"value": self.user_id}
-                    }
-                ]
-            }
+            #"filter": {
+            #    "must": [
+            #        {
+            #            "key": "user_id",
+            #            "match": {"value": self.user_id}
+            #        }
+            #    ]
+            #}
         }
         #send request
         search_url = f"{self.qdrant_host}/collections/{self.collection_name}/points/search"
@@ -123,5 +124,40 @@ class UploadInKB:
         # relevance results
         return [hit["payload"]["page_content"] for hit in hits]
 
+    def get_all_contents(self) -> List[str]:
+        """
+        Retrieve all 'page_content' fields for the current user from the collection.
+        """
+        contents = []
+        scroll_url = f"{self.qdrant_host}/collections/{self.collection_name}/points/scroll"
+        scroll_payload = {
+            #"filter": {
+            #    "must": [
+            #        {
+            #            "key": "user_id",
+            #            "match": {"value": self.user_id}
+            #        }
+            #    ]
+            #},
+            "with_payload": True,
+            "with_vector": False,
+            "limit": 100  # Adjust as needed for batch size
+        }
+        next_page = None
 
-    
+        while True:
+            if next_page:
+                scroll_payload["offset"] = next_page
+            resp = requests.post(scroll_url, headers=self.qdrant_headers, json=scroll_payload)
+            resp.raise_for_status()
+            data = resp.json()["result"]
+            for point in data["points"]:
+                payload = point.get("payload", {})
+                if "page_content" in payload:
+                    contents.append(payload["page_content"])
+            if not data.get("next_page_offset"):
+                break
+            next_page = data["next_page_offset"]
+
+        return contents
+

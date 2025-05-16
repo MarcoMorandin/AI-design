@@ -23,8 +23,6 @@ trento_agent_sdk/agent/models.py
 trento_agent_sdk/agent/utils.py
 trento_agent_sdk/memory/__init__.py
 trento_agent_sdk/memory/memory.py
-trento_agent_sdk/memory/utils/__init__.py
-trento_agent_sdk/memory/utils/system_prompt.py
 trento_agent_sdk/tool/__init__.py
 trento_agent_sdk/tool/func_metadata.py
 trento_agent_sdk/tool/tool.py

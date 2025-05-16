@@ -7,8 +7,8 @@ import requests
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
-from .utils.system_prompt import SYSTEM_PROMPT
 from typing import List, Dict, Union
+#from openai import OpenAI
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -17,7 +17,7 @@ load_dotenv()
 
 class LongMemory():
 
-    def __init__(self, user_id, memory_prompt="DEFAULT"):
+    def __init__(self, user_id, memory_prompt):
         self.user_id = user_id
         self.memory_prompt = memory_prompt
 
@@ -29,15 +29,19 @@ class LongMemory():
         
         self.embedding_client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
             
-        self.grok_chat_url="https://api.groq.com/openai/v1/chat/completions"
-        self.grok_api_key=os.getenv("GROQ_API_KEY")
-
+        self.groq_chat_url="https://api.groq.com/openai/v1/chat/completions"
+        self.groq_api_key=os.getenv("GROQ_API_KEY")
+        if not self.groq_api_key:
+            raise ValueError(
+                "GROQ_API_KEY environment variable is not set. Please create a .env file with your API key."
+            )
+        print("API key: ", self.groq_api_key)
         self.collection_name = self._get_or_create_user_collection()
-        print("Collection name: ", self.collection_name)
+        print("Mmory → Collection name: ", self.collection_name)
         
 
     def _get_or_create_user_collection(self)->str:
-        name = f"user_long_memory{self.user_id}"
+        name = f"user_long_memory_{self.user_id}"  # Fixed: Added underscore for better naming
         try:
             # get existing collections
             url_list = f"{self.qdrant_host}/collections"
@@ -89,7 +93,7 @@ class LongMemory():
         resp = requests.post(url, headers=self.qdrant_headers, json=body)
         resp.raise_for_status()
         pts = resp.json()["result"]["points"]
-        return [
+        result  = [
             {
                 "id":          pt["id"],
                 "topic":       pt["payload"]["topic"],
@@ -97,6 +101,10 @@ class LongMemory():
             }
             for pt in pts
         ]
+        if len(result)>0:
+            return result
+        else:
+            return []
 
     def insert_into_long_memory_with_update(self, chat_history: Union[str, List[Dict[str, str]]]):
         
@@ -115,7 +123,7 @@ class LongMemory():
         )
 
         if new_memories == "NO_MEMORIES_TO_ADD":
-            logger.info("No memories shuld be add or update")
+            logger.info("No memories should be added or updated")
             return
 
         # update point in db
@@ -207,24 +215,22 @@ class LongMemory():
     
     def _extract_memories(self, chat_history: str, existing_memories: list[dict]):
         """Ask the LLM to merge chat hints with existing memories, tagging with 'id' when updating."""
-        if self.memory_prompt != "DEFAULT":
-            system = self.memory_prompt
-        else:
-            system = SYSTEM_PROMPT
+
         user_payload = {
             "existing_memories": existing_memories,
             "chat_history":         chat_history
         }
 
         messages = [
-            {"role": "system",  "content": system},
+            {"role": "system",  "content": self.memory_prompt},
             {"role": "user",    "content": json.dumps(user_payload)}
         ]
 
+        # Fix 2: Update variable names to be consistent (groq not grok)
         resp = requests.post(
-            self.grok_chat_url,
+            self.groq_chat_url,
             headers={
-                "Authorization": f"Bearer {self.grok_api_key}",
+                "Authorization": f"Bearer {self.groq_api_key}",
                 "Content-Type": "application/json"
             },
             json={
@@ -234,7 +240,18 @@ class LongMemory():
                 "response_format": {"type": "json_object"}
             }
         )
-        resp.raise_for_status()
+        
+        # Fix 3: Add better error handling for authentication issues
+        try:
+            resp.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            if resp.status_code == 401:
+                logger.error("Groq API authentication failed. Please check your API key.")
+                raise ValueError("Unauthorized: Groq API key may be invalid or expired")
+            else:
+                logger.error(f"Groq API error: {resp.status_code} - {resp.text}")
+                raise
+                
         content = resp.json()["choices"][0]["message"]["content"]
         data = json.loads(content)
 
@@ -245,7 +262,22 @@ class LongMemory():
 
 '''
 def main():
-    lm = LongMemory(user_id="test_user")
+    # Fix 4: Add memory_prompt parameter required by __init__
+    memory_prompt = """
+    You are a memory extraction assistant. Your job is to analyze conversation history and extract 
+    or update important information about the user's preferences, interests, and facts about their life.
+    
+    Each memory consists of:
+    - topic: A short label (3-7 words) describing the memory category
+    - description: A detailed 1-2 sentence explanation of the memory
+    
+    If you're updating an existing memory, include its 'id' in your response.
+    
+    Return your response as a JSON object with a 'memories_to_add' key containing an array of memories,
+    or "NO_MEMORIES_TO_ADD" if there's nothing new to add.
+    """
+    
+    lm = LongMemory(user_id="test_user", memory_prompt=memory_prompt)
 
     chat = (
     "User: Hey, I spent the weekend diving into that article on sustainable urban gardening you recommended.\n"
@@ -253,16 +285,14 @@ def main():
     "User: Well, the benefits to local ecosystems were eye-opening, and I liked how it covered only container gardening.\n"
     "Assistant: Got it—ecosystem impact plus container vs. rooftop distinctions.\n"
     "User: Exactly. Now, I could read another ten pages on methods, but I usually skim for the core ideas first.\n"
-    "Assistant: Understood, you’d like the main takeaways up front.\n"
+    "Assistant: Understood, you'd like the main takeaways up front.\n"
     "User: Right—and honestly, I want longer paragraph.\n"
-    "Assistant: Great—I’ll put that together for you.\n"
+    "Assistant: Great—I'll put that together for you.\n"
     "User: I really prefer have a technical summary for scientific subject\n"
-)
-
+    )
 
     print("→ Inserting preferences into LongMemory…")
     lm.insert_into_long_memory_with_update(chat)
-
 
     print("→ Querying memories for 'what does the user like?'")
     results = lm.get_memories("What does the user like?", top_k=5)

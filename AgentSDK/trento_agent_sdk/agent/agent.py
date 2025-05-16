@@ -32,6 +32,7 @@ class Agent(BaseModel):
     agent_manager: AgentManager = None
     long_memory: Optional[LongMemory] = None
     short_memory: List[Dict[str, str]] = []
+    chat_history: List[Dict[str, str]] = []
     client: Optional[openai.OpenAI] = None
     api_key: Optional[str] = None
     base_url: Optional[str] = None
@@ -205,6 +206,7 @@ class Agent(BaseModel):
         try:
             # Build initial messages
             self.short_memory.append({"role": "user", "content": user_msg})
+            self.chat_history.append({"role": "user", "content": user_msg})
             
             # Retrieve from long memory
             mems = self.long_memory.get_memories(user_msg, top_k=5)
@@ -214,6 +216,7 @@ class Agent(BaseModel):
                 ]
                 mem_block = "Relevant past memories:\n" + "\n".join(mem_texts)
                 self.short_memory.append({"role": "system", "content": mem_block})
+                self.chat_history.append({"role": "system", "content": mem_block})
 
             print(mems)
 
@@ -259,6 +262,7 @@ class Agent(BaseModel):
                     for tool_call in response.choices[0].message.tool_calls:
                         tool_name = tool_call.function.name
                         args = json.loads(tool_call.function.arguments)
+                        args_string=tool_call.function.arguments
                         call_id = tool_call.id
 
                         # If this is the final tool, execute it immediately and terminate
@@ -277,6 +281,34 @@ class Agent(BaseModel):
                                 logger.info(
                                     f"Final tool executed successfully, returning its output as the final result"
                                 )
+                                serialized_result = ""
+                                try:
+                                    # Handle different result types appropriately
+                                    if isinstance(result, str):
+                                        serialized_result = result
+                                    elif isinstance(result, (list, dict, int, float, bool)):
+                                        serialized_result = json.dumps(result)
+                                    elif hasattr(result, "__dict__"):
+                                        serialized_result = json.dumps(result.__dict__)
+                                    else:
+                                        serialized_result = str(result)
+                                except Exception as e:
+                                    logger.error(f"Error serializing tool result: {e}")
+                                    serialized_result = str(result)
+
+                                # Add tool result to the conversation
+                                self.short_memory.append(
+                                    {
+                                        "role": "tool",
+                                        "tool_call_id": call_id,
+                                        "content": serialized_result,
+                                    }
+                                )
+
+                                self.chat_history.append({
+                                    "role": "system",
+                                    "content": f"Used tool `{tool_name}` with args {args_string} that returned JSON:\n{serialized_result}"
+                                })
                                 return (
                                     result
                                     if isinstance(result, str)
@@ -332,9 +364,9 @@ class Agent(BaseModel):
                                 }
                             )
 
-                            self.short_memory.append({
+                            self.chat_history.append({
                                 "role": "system",
-                                "content": f"Tool `{tool_name}` returned JSON:\n{serialized_result}"
+                                "content": f"Used tool `{tool_name}` with args {args_string} that returned JSON:\n{serialized_result}"
                             })
                         except Exception as e:
                             error_message = f"Error calling tool {tool_name}: {str(e)}"
@@ -363,6 +395,10 @@ class Agent(BaseModel):
                         "content": "You've reached the maximum number of allowed iterations. Please provide a final response based on the information you have.",
                     }
                 )
+
+            logger.error("SHORT MOMORY")
+            logger.error(self.chat_history)
+            self.long_memory.insert_into_long_memory_with_update(self.chat_history)
 
             return response.choices[0].message.content
 
