@@ -2,8 +2,100 @@ from typing import Dict, Any, List
 import logging
 from collections import defaultdict
 import json
+import re
+from itertools import chain
+import os
+from openai import OpenAI
+import uuid
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
+
+FOLDER_STRUCTURE_PROMPT = """
+You are an expert at organizing university course materials. I'll provide you with analyzed documents containing summaries, topics, and document types.
+
+Your task: Create a folder structure that organizes these materials optimally for a university student.
+
+Guidelines:
+- Create folders based on both document types (lectures, assignments) AND common topics
+- Maximum one level of subfolder depth under the root folder
+- Group related materials together (e.g., assignments on same topic, lecture series)
+- Use clear, descriptive folder names
+- Every file must be assigned to a folder
+
+Return a JSON object with this structure:
+```json
+{
+    "folders": [
+        {
+            "name": "Folder Name",
+            "description": "Short explanation of what's in this folder",
+            "files": [
+                {"file_id": "id1", "file_name": "name1"}
+            ]
+        }
+    ],
+    "explanation": "Overall explanation of your organizational approach"
+}
+""".strip()
+
+
+async def call_llm_for_folder_structure(
+    analyzed_documents: List[Dict[str, Any]],
+) -> Dict:
+    """Call an LLM to generate an intelligent folder structure."""
+    try:
+        # Initialize the OpenAI client (ensure OPENAI_API_KEY is set in environment)
+        client = OpenAI(
+            api_key=os.environ.get("GEMINI_API_KEY"),
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+        )
+
+        # Prepare the input data
+        processed_docs = []
+        for doc in analyzed_documents:
+            if not isinstance(doc, dict):
+                continue
+
+            # Add file_id if missing
+            if "file_id" not in doc:
+                doc["file_id"] = str(uuid.uuid4())
+
+            # Add file_name if missing
+            if "file_name" not in doc:
+                doc_type = doc.get("document_type", "unknown")
+                topics = doc.get("topics", [])
+                topic_text = topics[0] if topics else "untitled"
+                doc["file_name"] = f"{doc_type}_{topic_text}.pdf"
+
+            processed_docs.append(
+                {
+                    "file_id": doc["file_id"],
+                    "file_name": doc["file_name"],
+                    "document_type": doc.get("document_type", "unknown"),
+                    "topics": doc.get("topics", []),
+                    "summary": doc.get("summary", ""),
+                }
+            )
+
+        # Call the LLM
+        response = client.chat.completions.create(
+            model="gemini-2.0-flash",  # Use appropriate model
+            messages=[
+                {"role": "system", "content": FOLDER_STRUCTURE_PROMPT},
+                {"role": "user", "content": json.dumps(processed_docs)},
+            ],
+            response_format={"type": "json_object"},
+        )
+
+        # Parse and return the response
+        llm_response = json.loads(response.choices[0].message.content)
+        return {"success": True, "result": llm_response}
+    except Exception as e:
+        logger.error(f"Error calling LLM: {str(e)}", exc_info=True)
+        return {"success": False, "error": str(e)}
 
 
 async def generate_folder_structure(
@@ -48,191 +140,91 @@ async def generate_folder_structure(
                     description: Whether the operation was successful
     """
     try:
+
+        # Parse analyzed_documents if it's a string
+        if isinstance(analyzed_documents, str):
+            try:
+                analyzed_documents = json.loads(analyzed_documents)
+                logger.info("Converted analyzed_documents from string to list/dict")
+            except json.JSONDecodeError:
+                logger.error("Invalid analyzed_documents format, couldn't parse JSON")
+                return {
+                    "success": False,
+                    "proposed_structure": {},
+                    "explanation": "Could not parse analyzed documents.",
+                }
+
         logger.info(
             f"Generating folder structure for {len(analyzed_documents)} documents"
         )
 
-        # Create a clean list of properly formatted documents
-        cleaned_documents = []
-        
-        # First, preprocess the analyzed_documents to ensure they're all properly formatted
-        if isinstance(analyzed_documents, str):
-            # If the whole analyzed_documents is a string, try to parse it
-            try:
-                analyzed_documents = json.loads(analyzed_documents)
-                logger.info("Converted entire analyzed_documents from string to list/dict")
-            except json.JSONDecodeError:
-                logger.error("Invalid analyzed_documents format, couldn't parse JSON")
-                analyzed_documents = []
-        
-        # Now process each document
-        for i, doc in enumerate(analyzed_documents):
-            try:
-                # Skip if it's not the right type
-                if not isinstance(doc, dict):
-                    if isinstance(doc, str):
-                        try:
-                            parsed_doc = json.loads(doc)
-                            if isinstance(parsed_doc, dict) and "file_id" in parsed_doc:
-                                cleaned_documents.append(parsed_doc)
-                                continue
-                            else:
-                                logger.warning(f"Document index {i} parsed as JSON but lacks required fields")
-                        except json.JSONDecodeError:
-                            pass
-                    logger.warning(f"Skipping document at index {i} with type {type(doc)}")
-                    continue
-                
-                # If it's a dict, make sure it has the required fields
-                if "file_id" in doc:
-                    cleaned_documents.append(doc)
-                else:
-                    logger.warning(f"Document at index {i} is missing file_id field")
-            except Exception as e:
-                logger.warning(f"Error processing document at index {i}: {str(e)}")
-                continue
-        
-        logger.info(f"Successfully processed {len(cleaned_documents)} valid documents out of {len(analyzed_documents)}")
-        
-        # Group files by document type (if available from analysis)
-        type_groups = defaultdict(list)
-
-        # Map current files to their analysis
-        file_map = {}
-        for doc in cleaned_documents:
-            file_id = doc.get("file_id", "")
-            if file_id:
-                file_map[file_id] = doc
-
-                # Group by document type
-                doc_type = doc.get("document_type", "unknown")
-                type_groups[doc_type].append(
-                    {
-                        "file_id": file_id,
-                        "file_name": doc.get("file_name", "Unknown"),
-                        "topics": doc.get("topics", []),
-                    }
-                )
-
-        # Create proposed folder structure
-        proposed_structure = {"root": {"name": "Course Materials", "subfolders": []}}
-
-        # Common course folder categories
-        common_folders = [
-            {"name": "Lectures", "types": ["lecture"], "match_priority": 1},
-            {
-                "name": "Assignments",
-                "types": ["assignment", "homework"],
-                "match_priority": 1,
-            },
-            {
-                "name": "Assessments",
-                "types": ["exam", "test", "quiz", "assessment"],
-                "match_priority": 1,
-            },
-            {
-                "name": "Course Information",
-                "types": ["course_info", "syllabus"],
-                "match_priority": 2,
-            },
-            {
-                "name": "Reference Materials",
-                "types": ["reference_material", "resource"],
-                "match_priority": 2,
-            },
-            {"name": "Additional Resources", "types": ["unknown"], "match_priority": 3},
-        ]
-
-        # Add folders and assign files
-        file_assignments = {}
-        for folder in common_folders:
-            folder_files = []
-
-            # Add files that match this folder's document types
-            for doc_type in folder["types"]:
-                if doc_type in type_groups:
-                    folder_files.extend(type_groups[doc_type])
-
-            # Only create the folder if it has files
-            if folder_files:
-                folder_id = f"new_folder_{folder['name'].lower().replace(' ', '_')}"
-                proposed_structure["root"]["subfolders"].append(
-                    {
-                        "id": folder_id,
-                        "name": folder["name"],
-                        "files": folder_files,
-                        "priority": folder["match_priority"],
-                    }
-                )
-
-                # Record file assignments
-                for file in folder_files:
-                    file_assignments[file["file_id"]] = folder_id
-
-        # Find any files that weren't assigned and add to "Additional Resources"
-        unassigned_files = []
-        
-        # Process folder_structure to handle potential string format
+        # Parse folder_structure if it's a string
         processed_folder_structure = folder_structure
         if isinstance(folder_structure, str):
             try:
                 processed_folder_structure = json.loads(folder_structure)
-                logger.info("Converted folder_structure from string to list/dict")
             except json.JSONDecodeError:
                 logger.error("Invalid folder_structure format, couldn't parse JSON")
                 processed_folder_structure = []
-        
-        # Ensure each item in folder_structure is a dictionary before accessing
-        for item in processed_folder_structure:
-            try:
-                if not isinstance(item, dict):
-                    logger.warning(f"Skipping folder item of type {type(item)}")
-                    continue
-                    
-                if "type" not in item or "id" not in item:
-                    logger.warning("Skipping folder item missing required fields")
-                    continue
-                
-                if item["type"] == "file" and item["id"] not in file_assignments:
-                    unassigned_files.append(
-                        {"file_id": item["id"], "file_name": item.get("name", "Unknown File")}
-                    )
-            except Exception as e:
-                logger.warning(f"Error processing folder item: {str(e)}")
-                continue
 
-        # Add Additional Resources folder if needed
-        if unassigned_files and not any(
-            f["name"] == "Additional Resources"
-            for f in proposed_structure["root"]["subfolders"]
-        ):
-            folder_id = "new_folder_additional_resources"
+        # Map existing files from folder structure by ID
+        folder_items_by_id = {}
+        for item in processed_folder_structure:
+            if isinstance(item, dict) and "id" in item:
+                folder_items_by_id[item["id"]] = item
+
+        # Add file_name to documents if missing but present in folder structure
+        for doc in analyzed_documents:
+            if isinstance(doc, dict) and "file_id" in doc and "file_name" not in doc:
+                file_id = doc["file_id"]
+                if file_id in folder_items_by_id:
+                    doc["file_name"] = folder_items_by_id[file_id].get(
+                        "name", "Unknown File"
+                    )
+
+        # Call LLM to generate folder structure
+        llm_result = await call_llm_for_folder_structure(analyzed_documents)
+
+        if not llm_result["success"]:
+            logger.error(f"LLM call failed: {llm_result.get('error', 'Unknown error')}")
+            return {
+                "success": False,
+                "proposed_structure": {},
+                "explanation": f"Failed to generate folder structure: {llm_result.get('error', 'Unknown error')}",
+            }
+
+        # Format the result into the expected structure
+        llm_folders = llm_result["result"]["folders"]
+        explanation = llm_result["result"]["explanation"]
+
+        # Convert to the expected format
+        proposed_structure = {"root": {"name": "Course Materials", "subfolders": []}}
+
+        for idx, folder in enumerate(llm_folders):
+            folder_id = f"new_folder_{idx}_{folder['name'].lower().replace(' ', '_')}"
+            folder_files = [
+                {
+                    "file_id": file["file_id"],
+                    "file_name": file["file_name"],
+                    "topics": [],  # We could add topics here if needed
+                }
+                for file in folder["files"]
+            ]
+
             proposed_structure["root"]["subfolders"].append(
                 {
                     "id": folder_id,
-                    "name": "Additional Resources",
-                    "files": unassigned_files,
-                    "priority": 3,
+                    "name": folder["name"],
+                    "description": folder.get("description", ""),
+                    "files": folder_files,
+                    "priority": 1,  # All folders have equal priority in this implementation
                 }
             )
-
-            # Record file assignments
-            for file in unassigned_files:
-                file_assignments[file["file_id"]] = folder_id
-
-        # Generate explanation
-        explanation = f"""
-        I've analyzed {len(analyzed_documents)} documents and organized them into {len(proposed_structure['root']['subfolders'])} logical sections:
-        
-        {', '.join(f['name'] for f in proposed_structure['root']['subfolders'])}
-        
-        This organization follows standard course structure conventions, grouping related materials together for easier navigation.
-        Documents were categorized based on their content and filename patterns.
-        """
 
         logger.info(
             f"Successfully generated folder structure with {len(proposed_structure['root']['subfolders'])} folders"
         )
+
         return {
             "success": True,
             "proposed_structure": proposed_structure,

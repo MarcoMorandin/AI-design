@@ -16,7 +16,7 @@ OPENAI_BASE_URL = os.getenv(
 
 
 async def analyze_document(
-    content: str, file_name: str, mime_type: str = ""
+    content: str, file_name: str, mime_type: str = "", file_id: str = ""
 ) -> Dict[str, Any]:
     """
     Analyzes the content of a document to:
@@ -30,6 +30,7 @@ async def analyze_document(
         content: The text content of the document
         file_name: The name of the file
         mime_type: The MIME type of the file
+        file_id: The Google Drive file ID
 
     Returns:
         Dict containing document analysis results
@@ -49,9 +50,13 @@ async def analyze_document(
                 mime_type:
                     type: string
                     description: The MIME type of the file
+                file_id:
+                    type: string
+                    description: The Google Drive file ID
             required:
                 - content
                 - file_name
+                - file_id
         output_schema:
             type: object
             properties:
@@ -67,6 +72,9 @@ async def analyze_document(
                 success:
                     type: boolean
                     description: Whether the operation was successful
+                file_id:
+                    type: string
+                    description: The Google Drive file ID
     """
     try:
         logger.info(f"Analyzing document: {file_name}")
@@ -88,8 +96,8 @@ async def analyze_document(
         Analyze the following document content from a university course file named "{file_name}".
         
         Document content: 
-        {content[:4000]}...  # Limiting to 4000 chars to avoid token limits
-        
+        {content}
+
         Provide your analysis as a JSON object with the following fields:
         1. "summary": A concise summary of the document (max 100 words)
         2. "topics": An array of 2-5 key topics covered in the document
@@ -107,7 +115,7 @@ async def analyze_document(
 
         # Call Gemini via OpenAI SDK interface
         response = await client.chat.completions.create(
-            model="gemini-1.5-flash",  # Or whatever Gemini model is available
+            model="gemini-2.0-flash",  # Or whatever Gemini model is available
             messages=[
                 {
                     "role": "system",
@@ -136,41 +144,12 @@ async def analyze_document(
             "summary": summary,
             "topics": topics,
             "document_type": document_type,
+            "file_id": file_id,
         }
 
     except json.JSONDecodeError as je:
         logger.error(f"Error parsing Gemini response: {str(je)}", exc_info=True)
         # Fall back to basic analysis
-        document_type = "unknown"
-        if any(
-            term in file_name.lower()
-            for term in ["lecture", "lesson", "class", "topic"]
-        ):
-            document_type = "lecture"
-        elif any(
-            term in file_name.lower()
-            for term in ["assignment", "homework", "exercise", "lab"]
-        ):
-            document_type = "assignment"
-        elif any(
-            term in file_name.lower() for term in ["exam", "test", "quiz", "assessment"]
-        ):
-            document_type = "assessment"
-        elif any(
-            term in file_name.lower() for term in ["syllabus", "outline", "schedule"]
-        ):
-            document_type = "course_info"
-        elif any(
-            term in file_name.lower() for term in ["reference", "resource", "reading"]
-        ):
-            document_type = "reference_material"
-
-        return {
-            "success": True,
-            "summary": f"Basic analysis of {file_name} (failed enhanced analysis)",
-            "topics": ["course_topic"],
-            "document_type": document_type,
-        }
 
     except Exception as e:
         logger.error(f"Error analyzing document: {str(e)}", exc_info=True)
