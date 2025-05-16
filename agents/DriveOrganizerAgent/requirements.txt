@@ -1,0 +1,10 @@
+trento-agent-sdk>=0.1.0
+fastapi>=0.95.0
+uvicorn[standard]>=0.21.1
+pymongo>=4.3.3
+python-dotenv>=1.0.0
+google-auth>=2.16.2
+google-auth-oauthlib>=1.0.0
+google-auth-httplib2>=0.1.0
+google-api-python-client>=2.80.0
+PyPDF2>=3.0.0
