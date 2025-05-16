@@ -54,7 +54,7 @@ async def main():
 
         # Example text to summarize
         text_to_summarize = """
-        What do you know about Earth radiates?
+        What Studies using Large Eddy Simulations proved?
         """
         #text_to_summarize = """
         #summarize the content of the following video: /Users/marcomorandin/Desktop/AI-Design/AI-design/SummarizationAgent/intervista.mov
