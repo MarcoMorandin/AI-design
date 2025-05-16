@@ -31,7 +31,3 @@ USER appuser
 
 # Set default command
 CMD ["python", "drive_organizer_a2a_server.py"]
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-8001}/health || exit 1
