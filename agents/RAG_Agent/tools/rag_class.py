@@ -95,19 +95,20 @@ class RAG:
         Upload the text in the knowledge base
         """
         try:
-            #chunks_with_embedding = chunk_document_cosine(text, return_embedding=True)
             chunks_with_embedding = chunk_document_cosine(text)
-            print(chunks_with_embedding)
-            #for cwe in chunks_with_embedding:
-            #    print(cwe["section"])
-            # print(chunks_with_embedding)
             points = []
             for cwe in chunks_with_embedding:
                 pid = uuid4().hex
+                # Check if the chunk has an embedding, if not, create one
+                if "embedding" not in cwe or cwe["embedding"] is None:
+                    embedding = self.embedder.embed(cwe["section"])
+                else:
+                    embedding = cwe["embedding"]
+                
                 points.append(
                     {
                         "id": pid,
-                        "vector": cwe["embedding"],
+                        "vector": embedding,
                         "payload": {
                             "user_id": self.user_id,
                             "page_content": cwe["section"],

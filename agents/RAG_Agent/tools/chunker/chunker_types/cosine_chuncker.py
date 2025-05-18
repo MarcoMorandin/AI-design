@@ -5,22 +5,24 @@ import torch
 import torch.nn.functional as F
 from .standardar_chuncker import chunk_document
 import traceback
-
+from google import genai
+from google.genai import types
+import os
 import logging
 
-# Configure logging
-logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 # Initialize Google Gemini client
 try:
-    from google import genai
-    from google.genai import types
+
 
     # Initialize client with API key from settings
     if settings.GEMINI_API_KEY:
-        genai.api_key = settings.GEMINI_API_KEY
         #genai.configure(api_key=settings.GEMINI_API_KEY)
+        embedding_client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        #embedding_client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
         #llm_client = genai.GenerativeModel(settings.GEMINI_MODEL_NAME)
         embedding_model = settings.GEMINI_EMBEDDING_MODEL
         GEMINI_AVAILABLE = True
@@ -374,14 +376,14 @@ def _do_embedding(chunks):
                 chunk["section"] = chunk.get("sentence", "")
 
             # Get embedding from Gemini API
-            result = genai.embed_content(
+            result = embedding_client.models.embed_content(
                 model=embedding_model,
-                content=chunk["section"],
-                task_type="SEMANTIC_SIMILARITY",
+                contents=[chunk["section"]],
+                config=types.EmbedContentConfig(task_type="SEMANTIC_SIMILARITY")
             )
 
             # Extract embedding values
-            embedding = result.embedding.values if hasattr(result, "embedding") else []
+            embedding = result.embeddings[0].values# if hasattr(result, "embedding") else []
 
             # Store in chunk
             chunks[i]["embedding"] = embedding
