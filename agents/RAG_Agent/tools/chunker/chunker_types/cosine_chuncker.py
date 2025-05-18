@@ -1,10 +1,16 @@
 from typing import List, Dict, Any, Optional
-from ..core.config import settings, logger
+from ..core.config import settings
 from sklearn.metrics.pairwise import cosine_similarity
 import torch
 import torch.nn.functional as F
 from .standardar_chuncker import chunk_document
 import traceback
+
+import logging
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
 
 # Initialize Google Gemini client
 try:
@@ -13,8 +19,9 @@ try:
 
     # Initialize client with API key from settings
     if settings.GEMINI_API_KEY:
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        llm_client = genai.GenerativeModel(settings.GEMINI_MODEL_NAME)
+        genai.api_key = settings.GEMINI_API_KEY
+        #genai.configure(api_key=settings.GEMINI_API_KEY)
+        #llm_client = genai.GenerativeModel(settings.GEMINI_MODEL_NAME)
         embedding_model = settings.GEMINI_EMBEDDING_MODEL
         GEMINI_AVAILABLE = True
         logger.info(
