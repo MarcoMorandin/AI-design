@@ -1,6 +1,7 @@
 import os, sys
 
-from chunker.chunker_types.cosine_chuncker import chunk_document_cosine
+
+from .utils import chunk_text
 import time
 import json
 import logging
@@ -18,9 +19,6 @@ load_dotenv()
 
 class Embedder:
     def __init__(self) -> None:
-        
-        #self.google_embedder_api = os.getenv("GOOGLE_API_KEY")
-        #genai.configure(api_key=self.google_embedder_api)
         self.embedding_client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
 
@@ -95,23 +93,17 @@ class RAG:
         Upload the text in the knowledge base
         """
         try:
-            chunks_with_embedding = chunk_document_cosine(text)
+            chunks = chunk_text(text)
             points = []
-            for cwe in chunks_with_embedding:
-                pid = uuid4().hex
-                # Check if the chunk has an embedding, if not, create one
-                if "embedding" not in cwe or cwe["embedding"] is None:
-                    embedding = self.embedder.embed(cwe["section"])
-                else:
-                    embedding = cwe["embedding"]
-                
+            for chunk in chunks:
+                pid = uuid4().hex                
                 points.append(
                     {
                         "id": pid,
-                        "vector": embedding,
+                        "vector": self.embedder.embed(chunk),
                         "payload": {
                             "user_id": self.user_id,
-                            "page_content": cwe["section"],
+                            "page_content": chunk,
                             "ts": int(time.time()),
                         },
                     }
@@ -127,7 +119,7 @@ class RAG:
         except Exception:
             logger.exception("Error uploading text in Qdrant collection")
 
-    def retrieve_relevant_knowledge(self, query: str, top_k: int = 7) -> List[str]:
+    def retrieve_relevant_knowledge(self, query: str, top_k: int = 5) -> List[str]:
         # embed query
         query_embedding = self.embedder.embed(query)
         # search payload
@@ -135,14 +127,6 @@ class RAG:
             "vector": query_embedding,
             "limit": top_k,
             "with_payload": True,
-            # "filter": {
-            #    "must": [
-            #        {
-            #            "key": "user_id",
-            #            "match": {"value": self.user_id}
-            #        }
-            #    ]
-            # }
         }
         # send request
         search_url = (
@@ -169,14 +153,6 @@ class RAG:
             f"{self.qdrant_host}/collections/{self.collection_name}/points/scroll"
         )
         scroll_payload = {
-            # "filter": {
-            #    "must": [
-            #        {
-            #            "key": "user_id",
-            #            "match": {"value": self.user_id}
-            #        }
-            #    ]
-            # },
             "with_payload": True,
             "with_vector": False,
             "limit": 100,  # Adjust as needed for batch size
@@ -202,7 +178,7 @@ class RAG:
         return contents
 
 
-if __name__ == "__main__":
-    rag = RAG("RAG_usertest_user")
-    rag.upload_in_kb("This is a test document. It contains some text.")
-    #print(rag.retrieve_relevant_knowledge("What is this document about?"))
+#if __name__ == "__main__":
+#    rag = RAG("RAG_usertest_user")
+#    #rag.upload_in_kb("This is a test document. It contains some text.")
+#    print(rag.retrieve_relevant_knowledge("What is this document about?"))

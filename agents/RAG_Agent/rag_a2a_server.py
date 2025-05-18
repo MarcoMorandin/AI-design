@@ -1,10 +1,6 @@
 from google import genai
 import os
 from dotenv import load_dotenv
-
-# Import AgentSDK components
-# from tools.RAG import rag_tool
-# from services.memory import memory
 from trento_agent_sdk.agent.agent import Agent
 from trento_agent_sdk.a2a.models.AgentCard import AgentCard, AgentSkill
 from trento_agent_sdk.a2a.TaskManager import TaskManager
@@ -23,14 +19,14 @@ if not api_key:
     raise ValueError(
         "GOOGLE_API_KEY environment variable is not set. Please create a .env file with your API key."
     )
+else:
+    print(f"GOOGLE_API_KEY environment variable is set: {api_key}")
 
 
 # collecton where to retrieve document
 rag_tool = RAG_tool(user_id="RAG_usertest_user")
 
 tool_manager = ToolManager()
-
-
 tool_manager.add_tool(rag_tool.get_response)
 
 
@@ -62,13 +58,12 @@ chat_with_document_agent = Agent(
     system_prompt="""
     Your an an AI agent that use the RAG (Retrieval Augmented Generation) to answe to the user questions.
     For each question the user ask you must use the get_response tool and answer based on the retrieved information.
+    If you have already use the tool does NOT reasue it since it will give the exact same result.
     If the retrieved information are not enough to answer just say that you don't know since there is not enough information.""",
     tool_manager=tool_manager,
     model="gemini-2.0-flash",  # Using Gemini model as seen in the code
     api_key=api_key,
     base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-    final_tool="get_response",
-    # user_id="test_user",
     tool_required="auto",
     long_memory=memory,
 )
@@ -84,7 +79,6 @@ agent_card = AgentCard(
         AgentSkill(
             id="chat_with_document_rag",
             name="Chat with document",
-            # TODO: cambiare la descrizione è solo per non avere problemi adesso
             description="You can ansert to the user questions based on the information retrieved from the RAG (Retrieval Augmented Generation)",
             examples=[
                 "User question: What does this document says?",
