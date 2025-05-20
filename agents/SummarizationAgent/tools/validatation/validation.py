@@ -1,8 +1,8 @@
-from questeval.questeval_metric import QuestEval
 import textstat
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
+from rouge import Rouge
 
 load_dotenv()
 

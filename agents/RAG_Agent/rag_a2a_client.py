@@ -20,7 +20,7 @@ async def main():
         google_drive_id = "1l-_1zywhnUG8sbVstSROdLRTZZF89n8y"
 
         text_to_summarize = f"""
-        Do you have some info about solar radiation?
+        SigLIP
         """
 
         response = await client.send_task(text_to_summarize)
