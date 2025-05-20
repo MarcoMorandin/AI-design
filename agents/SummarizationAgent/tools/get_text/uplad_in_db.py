@@ -39,7 +39,7 @@ class Embedder:
 
 class UploadInfo:
 
-    def __init__(self, user_id) -> None:
+    def __init__(self) -> None:
         self.qdrant_host = os.getenv("QDRANT_HOST")
         self.qdrant_headers = {
             "api-key": os.getenv("QDRANT_API_KEY"),

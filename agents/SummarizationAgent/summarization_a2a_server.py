@@ -16,6 +16,7 @@ from tools.summarizer_type.get_correct_format_prompt import fix_latex_formulas
 from tools.summarizer_type.get_summarize_chunk_prompt import (
     summarise_chunk,
 )
+from tools.validatation.validation import evaluate_summary
 from tools.summarizer_type.get_final_summary_prompt import generate_final_summary
 from tools.chunker.chunker_tool import get_chunks
 from trento_agent_sdk.tool.tool_manager import ToolManager
@@ -38,10 +39,11 @@ tool_manager.add_tool(get_chunks)
 tool_manager.add_tool(fix_latex_formulas)
 tool_manager.add_tool(summarise_chunk)
 tool_manager.add_tool(generate_final_summary)
+tool_manager.add_tool(evaluate_summary)
 
 
 memory_prompt = (
-    "You are an assistant whose job is to maintain a list of user preferences. "
+    "You are an assistant whose job is to maintain a list of user preferences. You should also include in the memory info caming from possible validation results."
     "You will receive two inputs:\n"
     "1) existing_memories: a JSON array of {id, topic, description}\n"
     "2) chat_history: a string of the latest conversation.\n\n"
