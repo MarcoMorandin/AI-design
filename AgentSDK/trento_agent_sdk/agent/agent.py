@@ -32,15 +32,12 @@ class Agent(BaseModel):
     agent_manager: AgentManager = None
     long_memory: Optional[LongMemory] = None
     short_memory: List[Dict[str, str]] = []
-    chat_history: List[Dict[str, str]] = []
     client: Optional[openai.OpenAI] = None
     api_key: Optional[str] = None
     base_url: Optional[str] = None
     final_tool: Optional[str] = None  # Name of the tool that should be called last
     user_id: str="test_user" #standard user id for the LongMemory
     tool_required: Literal["required", "auto"] = "required"
-    validation: bool = False
-    validation_tool_name: str=None
     system_prompt: str = (
         "You are a highly capable orchestrator assistant. Your primary role is to understand user requests "
         "and decide the best course of action. This might involve using your own tools or delegating tasks "
@@ -58,6 +55,8 @@ class Agent(BaseModel):
         "You can have multi-turn conversations involving multiple tool uses and agent delegations to achieve complex goals.\n"
         "Be precise in your tool and agent selection. When delegating, provide all necessary context to the remote agent."
     )
+    validation: bool=False
+    validation_tool_name:str=None
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -154,7 +153,46 @@ class Agent(BaseModel):
 
         return tool_list
 
-    def serialize_result(self, result):
+    def _to_dict(self, msg):
+        """
+        Convert an OpenAI ChatCompletionMessage *or anything similar* into a JSON‑safe
+        plain‑Python dict.  If it's already a dict return it unchanged.
+        """
+        # 1. top‑level object
+        if isinstance(msg, dict):
+            d = msg
+        elif hasattr(msg, "model_dump"):
+            d = msg.model_dump()            # Pydantic v2
+        else:
+            d = msg.dict()                  # Pydantic v1
+
+        if isinstance(data.get("tool_calls"), list):
+            clean = []
+            for tc in data["tool_calls"]:
+                if not isinstance(tc, dict):
+                    tc = tc.model_dump() if hasattr(tc, "model_dump") else tc.dict()
+                if not tc.get("id"):
+                    tc["id"] = str(uuid.uuid4())
+                clean.append(tc)
+            data["tool_calls"] = clean
+
+        def prune(obj):
+            if isinstance(obj, dict):
+                return {k: prune(v) for k, v in obj.items() if v is not None}
+            if isinstance(obj, list):
+                return [prune(v) for v in obj if v is not None]
+            return obj
+
+        return prune(d)
+
+    # validate the result and insert into long memory
+    async def validate_result(self, tool_name, args):
+        logger.info(
+            f"Validation tool {tool_name} called, executing it and terminating"
+        )
+        result = await self.tool_manager.call_tool(
+                tool_name, args
+            )
         serialized_result = ""
         try:
             # Handle different result types appropriately
@@ -166,21 +204,16 @@ class Agent(BaseModel):
                 serialized_result = json.dumps(result.__dict__)
             else:
                 serialized_result = str(result)
+
+            logger.info(
+                f"Tool {tool_name} returned result: {serialized_result[:100]}..."
+            )
+            print(f"Tool {tool_name} returned result: {serialized_result[:100]}...")
+            self.long_memory.insert_into_long_memory_with_update(serialized_result)
+
         except Exception as e:
             logger.error(f"Error serializing tool result: {e}")
             serialized_result = str(result)
-        return serialized_result
-
-    # validate the result and insert into long memory
-    async def validate_result(self, tool_name, args):
-        logger.info(
-            f"Validation tool {tool_name} called, executing it and terminating"
-        )
-        result = await self.tool_manager.call_tool(
-                tool_name, args
-            )
-        serialized_result=self.serialize_result(result)
-        self.long_memory.insert_into_long_memory_with_update(serialized_result)
 
     async def run(
         self,
@@ -203,7 +236,6 @@ class Agent(BaseModel):
         try:
             # Build initial messages
             self.short_memory.append({"role": "user", "content": user_msg})
-            self.chat_history.append({"role": "user", "content": user_msg})
             
             # Retrieve from long memory
             mems = self.long_memory.get_memories(user_msg, top_k=5)
@@ -213,9 +245,8 @@ class Agent(BaseModel):
                 ]
                 mem_block = "Relevant past memories:\n" + "\n".join(mem_texts)
                 self.short_memory.append({"role": "system", "content": mem_block})
-                self.chat_history.append({"role": "system", "content": mem_block})
 
-            #print(mems)
+            print(mems)
 
             # Get available tools
             tools = self._convert_tools_format()
@@ -240,9 +271,10 @@ class Agent(BaseModel):
 
                 # Add model's response to conversation
                 self.short_memory.append(response.choices[0].message)
+                #self.short_memory.append(self._to_dict(response.choices[0].message))
 
 
-                #print("response_content", response.choices[0].message)
+                print("response_content", response.choices[0].message)
                 # Check if the model used a tool
                 if (
                     hasattr(response.choices[0].message, "tool_calls")
@@ -258,7 +290,6 @@ class Agent(BaseModel):
                     for tool_call in response.choices[0].message.tool_calls:
                         tool_name = tool_call.function.name
                         args = json.loads(tool_call.function.arguments)
-                        args_string=tool_call.function.arguments
                         call_id = tool_call.id
 
                         # If this is the final tool, execute it immediately and terminate
@@ -267,7 +298,7 @@ class Agent(BaseModel):
                                 f"Final tool {tool_name} called, executing it and terminating"
                             )
                             try:
-                                print(f"Calling tool {tool_name} with args: {args}")
+                                print("callled_tool", tool_name)
                                 # Call the final tool directly
                                 result = await self.tool_manager.call_tool(
                                     tool_name, args
@@ -277,32 +308,6 @@ class Agent(BaseModel):
                                 logger.info(
                                     f"Final tool executed successfully, returning its output as the final result"
                                 )
-                                
-
-                                serialized_result=self.serialize_result(result)
-
-                                # Add tool result to the conversation
-                                self.short_memory.append(
-                                    {
-                                        "role": "tool",
-                                        "tool_call_id": call_id,
-                                        "content": serialized_result,
-                                    }
-                                )
-
-                                self.chat_history.append({
-                                    "role": "system",
-                                    "content": f"Used tool `{tool_name}` with args {args_string} that returned JSON:\n{serialized_result}"
-                                })
-
-                                # Validate the result
-                                if self.validation:
-                                    result = await self.tool_manager.call_tool(
-                                        "validate", {}
-                                    )
-                                    self.long_memory.insert_into_long_memory_with_update(result)
-
-
                                 return (
                                     result
                                     if isinstance(result, str)
@@ -317,12 +322,11 @@ class Agent(BaseModel):
                                 # Return error message if the final tool fails
                                 return error_message
 
-                        # validate result
-                        if self.validation and tool_name== self.validation_tool_name:
-                            self.validate_result(tool_name, args)
-                        
-                        #print(f"Calling tool {tool_name} with args: {args}")
+                        print(f"Calling tool {tool_name} with args: {args}")
 
+                        if self.validation:
+                            if tool_name==self.validation_tool_name:
+                                await self.validate_result(tool_name, args)
 
                         logger.info(f"Calling tool {tool_name} with args: {args}")
                         try:
@@ -332,10 +336,26 @@ class Agent(BaseModel):
                                     f"Raw result: {result}"
                                 )
                             print(f"Raw result: {result}")
-
                             # Properly serialize the result regardless of type
-                            serialized_result=self.serialize_result(result)
-                            
+                            serialized_result = ""
+                            try:
+                                # Handle different result types appropriately
+                                if isinstance(result, str):
+                                    serialized_result = result
+                                elif isinstance(result, (list, dict, int, float, bool)):
+                                    serialized_result = json.dumps(result)
+                                elif hasattr(result, "__dict__"):
+                                    serialized_result = json.dumps(result.__dict__)
+                                else:
+                                    serialized_result = str(result)
+
+                                logger.info(
+                                    f"Tool {tool_name} returned result: {serialized_result[:100]}..."
+                                )
+                                print(f"Tool {tool_name} returned result: {serialized_result[:100]}...")
+                            except Exception as e:
+                                logger.error(f"Error serializing tool result: {e}")
+                                serialized_result = str(result)
 
                             # Add tool result to the conversation
                             self.short_memory.append(
@@ -346,9 +366,9 @@ class Agent(BaseModel):
                                 }
                             )
 
-                            self.chat_history.append({
+                            self.short_memory.append({
                                 "role": "system",
-                                "content": f"Used tool `{tool_name}` with args {args_string} that returned JSON:\n{serialized_result}"
+                                "content": f"Tool `{tool_name}` returned JSON:\n{serialized_result}"
                             })
                         except Exception as e:
                             error_message = f"Error calling tool {tool_name}: {str(e)}"
@@ -378,15 +398,7 @@ class Agent(BaseModel):
                     }
                 )
 
-            logger.error("SHORT MOMORY")
-            logger.error(self.chat_history)
-            self.long_memory.insert_into_long_memory_with_update(self.chat_history)
-            
-            final_response = self.client.chat.completions.create(
-                model=self.model, messages=self.short_memory, temperature=temperature
-            )
-            
-            return final_response.choices[0].message.content
+            return response.choices[0].message.content
 
         except Exception as e:
             logger.error(f"Error running agent: {e}")
