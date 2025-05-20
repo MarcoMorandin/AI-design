@@ -1,0 +1,2 @@
+trento_agent_sdk
+python-dotenv

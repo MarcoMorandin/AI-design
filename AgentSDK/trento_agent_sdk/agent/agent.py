@@ -271,7 +271,7 @@ class Agent(BaseModel):
                                 f"Final tool {tool_name} called, executing it and terminating"
                             )
                             try:
-                                print("callled_tool", tool_name)
+                                print(f"Calling tool {tool_name} with args: {args}")
                                 # Call the final tool directly
                                 result = await self.tool_manager.call_tool(
                                     tool_name, args
@@ -399,8 +399,12 @@ class Agent(BaseModel):
             logger.error("SHORT MOMORY")
             logger.error(self.chat_history)
             self.long_memory.insert_into_long_memory_with_update(self.chat_history)
-
-            return response.choices[0].message.content
+            
+            final_response = self.client.chat.completions.create(
+                model=self.model, messages=self.short_memory, temperature=temperature
+            )
+            
+            return final_response.choices[0].message.content
 
         except Exception as e:
             logger.error(f"Error running agent: {e}")

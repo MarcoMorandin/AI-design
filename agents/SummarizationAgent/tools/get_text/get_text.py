@@ -1,9 +1,10 @@
 import os
+from this import d
 
 from dotenv import load_dotenv
 import logging
 from pymongo import MongoClient
-
+from .uplad_in_db import UploadInfo
 load_dotenv()
 
 logger = logging.getLogger(__name__)
@@ -12,6 +13,7 @@ logger = logging.getLogger(__name__)
 MONGO_URI = os.environ.get("MONGO_URI")
 MONGO_DB_NAME = os.environ.get("MONGO_DB_NAME")
 COLLECTION_NAME = "processed_files"
+upload_in_vector_db = UploadInfo()
 
 
 def getText(google_drive_id):
@@ -54,6 +56,9 @@ def getText(google_drive_id):
             logger.info(
                 f"Successfully retrieved content for Google Drive ID: {google_drive_id}"
             )
+
+            upload_in_vector_db.upload_in_kb(document["content"])
+
             return document["content"]
         else:
             error_msg = f"Document with Google Drive ID {google_drive_id} not found or has no content"
