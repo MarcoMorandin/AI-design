@@ -10,15 +10,6 @@ from ..tool.tool_manager import ToolManager
 from ..tool.tool import Tool
 from .agent_manager import AgentManager
 
-from ..a2a.models.Types import (
-    SendTaskRequest,
-    SendTaskResponse,
-    GetTaskRequest,
-    GetTaskResponse,
-    CancelTaskRequest,
-    CancelTaskResponse,
-)
-
 logger = logging.getLogger(__name__)
 
 
@@ -37,7 +28,7 @@ class Agent(BaseModel):
     api_key: Optional[str] = None
     base_url: Optional[str] = None
     final_tool: Optional[str] = None  # Name of the tool that should be called last
-    user_id: str="test_user" #standard user id for the LongMemory
+    user_id: str = "test_user"  # standard user id for the LongMemory
     tool_required: Literal["required", "auto"] = "required"
     system_prompt: str = (
         "You are a highly capable orchestrator assistant. Your primary role is to understand user requests "
@@ -69,7 +60,7 @@ class Agent(BaseModel):
             self.short_memory = [{"role": "system", "content": self.system_prompt}]
         if self.long_memory is None:
             self.long_memory = LongMemory(user_id=self.user_id)
-        
+
         if self.agent_manager is not None:
             self._register_internal_tools()
             print(self.tool_manager.list_tools())
@@ -79,17 +70,16 @@ class Agent(BaseModel):
     def _register_internal_tools(self):
         """Registers tools specific to agent interaction."""
         self.tool_manager.add_tool(
-            fn=self.list_delegatable_agents_tool,
-            name="list_delegatable_agents_tool"
+            fn=self.list_delegatable_agents_tool, name="list_delegatable_agents_tool"
         )
 
         self.tool_manager.add_tool(
             # Parameters will be dynamically added by _convert_tools_format based on the function signature
             # or defined explicitly here if needed for more complex schemas.
             fn=self.delegate_task_to_agent_tool,
-            name="delegate_task_to_agent_tool"
+            name="delegate_task_to_agent_tool",
         )
-        
+
     async def list_delegatable_agents_tool(self) -> List[Dict[str, Any]]:
         """
         Return a list with one entry per registered remote agent.
@@ -97,7 +87,6 @@ class Agent(BaseModel):
         The format mirrors AgentManager.list_delegatable_agents().
         """
         return self.agent_manager.list_delegatable_agents()
-
 
     async def delegate_task_to_agent_tool(
         self,
@@ -131,7 +120,6 @@ class Agent(BaseModel):
             timeout=timeout,
         )
         return self.agent_manager.extract_text(resp)
-    
 
     def _convert_tools_format(self) -> List[Dict]:
         """Convert tools from the tool manager to OpenAI function format"""
@@ -151,39 +139,6 @@ class Agent(BaseModel):
             logger.error(f"Error converting tools format: {e}")
 
         return tool_list
-
-    def _to_dict(self, msg):
-        """
-        Convert an OpenAI ChatCompletionMessage *or anything similar* into a JSON‑safe
-        plain‑Python dict.  If it's already a dict return it unchanged.
-        """
-        # 1. top‑level object
-        if isinstance(msg, dict):
-            d = msg
-        elif hasattr(msg, "model_dump"):
-            d = msg.model_dump()            # Pydantic v2
-        else:
-            d = msg.dict()                  # Pydantic v1
-
-        if isinstance(data.get("tool_calls"), list):
-            clean = []
-            for tc in data["tool_calls"]:
-                if not isinstance(tc, dict):
-                    tc = tc.model_dump() if hasattr(tc, "model_dump") else tc.dict()
-                if not tc.get("id"):
-                    tc["id"] = str(uuid.uuid4())
-                clean.append(tc)
-            data["tool_calls"] = clean
-
-        def prune(obj):
-            if isinstance(obj, dict):
-                return {k: prune(v) for k, v in obj.items() if v is not None}
-            if isinstance(obj, list):
-                return [prune(v) for v in obj if v is not None]
-            return obj
-
-        return prune(d)
-
 
     async def run(
         self,
@@ -207,13 +162,11 @@ class Agent(BaseModel):
             # Build initial messages
             self.short_memory.append({"role": "user", "content": user_msg})
             self.chat_history.append({"role": "user", "content": user_msg})
-            
+
             # Retrieve from long memory
             mems = self.long_memory.get_memories(user_msg, top_k=5)
             if mems:
-                mem_texts = [
-                    f"- [{m['topic']}] {m['description']}" for m in mems
-                ]
+                mem_texts = [f"- [{m['topic']}] {m['description']}" for m in mems]
                 mem_block = "Relevant past memories:\n" + "\n".join(mem_texts)
                 self.short_memory.append({"role": "system", "content": mem_block})
                 self.chat_history.append({"role": "system", "content": mem_block})
@@ -243,8 +196,7 @@ class Agent(BaseModel):
 
                 # Add model's response to conversation
                 self.short_memory.append(response.choices[0].message)
-                #self.short_memory.append(self._to_dict(response.choices[0].message))
-
+                # self.short_memory.append(self._to_dict(response.choices[0].message))
 
                 print("response_content", response.choices[0].message)
                 # Check if the model used a tool
@@ -255,14 +207,12 @@ class Agent(BaseModel):
                     logger.info(
                         "Model used tool(s), executing and continuing conversation"
                     )
-                    
-
 
                     # Process and execute each tool call
                     for tool_call in response.choices[0].message.tool_calls:
                         tool_name = tool_call.function.name
                         args = json.loads(tool_call.function.arguments)
-                        args_string=tool_call.function.arguments
+                        args_string = tool_call.function.arguments
                         call_id = tool_call.id
 
                         # If this is the final tool, execute it immediately and terminate
@@ -286,7 +236,9 @@ class Agent(BaseModel):
                                     # Handle different result types appropriately
                                     if isinstance(result, str):
                                         serialized_result = result
-                                    elif isinstance(result, (list, dict, int, float, bool)):
+                                    elif isinstance(
+                                        result, (list, dict, int, float, bool)
+                                    ):
                                         serialized_result = json.dumps(result)
                                     elif hasattr(result, "__dict__"):
                                         serialized_result = json.dumps(result.__dict__)
@@ -305,10 +257,12 @@ class Agent(BaseModel):
                                     }
                                 )
 
-                                self.chat_history.append({
-                                    "role": "system",
-                                    "content": f"Used tool `{tool_name}` with args {args_string} that returned JSON:\n{serialized_result}"
-                                })
+                                self.chat_history.append(
+                                    {
+                                        "role": "system",
+                                        "content": f"Used tool `{tool_name}` with args {args_string} that returned JSON:\n{serialized_result}",
+                                    }
+                                )
                                 return (
                                     result
                                     if isinstance(result, str)
@@ -323,17 +277,11 @@ class Agent(BaseModel):
                                 # Return error message if the final tool fails
                                 return error_message
 
-                        print(f"Calling tool {tool_name} with args: {args}")
+                        print(f"Calling tool {tool_name} with args: {args[:50]}")
 
-
-                        logger.info(f"Calling tool {tool_name} with args: {args}")
+                        logger.info(f"Calling tool {tool_name} with args: {args[:50]}")
                         try:
                             result = await self.tool_manager.call_tool(tool_name, args)
-                            
-                            logger.info(
-                                    f"Raw result: {result}"
-                                )
-                            print(f"Raw result: {result}")
                             # Properly serialize the result regardless of type
                             serialized_result = ""
                             try:
@@ -348,9 +296,11 @@ class Agent(BaseModel):
                                     serialized_result = str(result)
 
                                 logger.info(
-                                    f"Tool {tool_name} returned result: {serialized_result[:100]}..."
+                                    f"Tool {tool_name} returned result: {serialized_result[:50]}..."
                                 )
-                                print(f"Tool {tool_name} returned result: {serialized_result[:100]}...")
+                                print(
+                                    f"Tool {tool_name} returned result: {serialized_result[:50]}..."
+                                )
                             except Exception as e:
                                 logger.error(f"Error serializing tool result: {e}")
                                 serialized_result = str(result)
@@ -364,10 +314,12 @@ class Agent(BaseModel):
                                 }
                             )
 
-                            self.chat_history.append({
-                                "role": "system",
-                                "content": f"Used tool `{tool_name}` with args {args_string} that returned JSON:\n{serialized_result}"
-                            })
+                            self.chat_history.append(
+                                {
+                                    "role": "system",
+                                    "content": f"Used tool `{tool_name}` with args {args_string} that returned JSON:\n{serialized_result}",
+                                }
+                            )
                         except Exception as e:
                             error_message = f"Error calling tool {tool_name}: {str(e)}"
                             logger.error(error_message)
@@ -399,11 +351,11 @@ class Agent(BaseModel):
             logger.error("SHORT MOMORY")
             logger.error(self.chat_history)
             self.long_memory.insert_into_long_memory_with_update(self.chat_history)
-            
+
             final_response = self.client.chat.completions.create(
                 model=self.model, messages=self.short_memory, temperature=temperature
             )
-            
+
             return final_response.choices[0].message.content
 
         except Exception as e:

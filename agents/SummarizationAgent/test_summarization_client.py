@@ -17,7 +17,7 @@ async def main():
 
         # Example Google Drive ID to summarize
         # Replace this with an actual Google Drive ID from your MongoDB collection
-        google_drive_id = "1l-_1zywhnUG8sbVstSROdLRTZZF89n8y"
+        google_drive_id = "1UBJJQ0V07DA92rtrT1CqI-nBwaVmCEXG"
 
         text_to_summarize = f"""
         Please summarize the document with Google Drive ID: {google_drive_id}

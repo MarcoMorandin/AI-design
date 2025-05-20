@@ -12,6 +12,10 @@ client = OpenAI(
     api_key=api_key, base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def summarise_chunk(text: str, summary_type: str = "technical") -> str:
     """Summarizes a chunk of text using Gemini API.
@@ -40,6 +44,8 @@ def summarise_chunk(text: str, summary_type: str = "technical") -> str:
     {text}
     --- TEXT TO SUMMARIZE ---
     """
+
+    logger.error(text)
 
     # Call the Gemini API to actually summarize the text
     response = client.chat.completions.create(

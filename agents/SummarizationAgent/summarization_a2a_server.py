@@ -88,7 +88,8 @@ summarization_agent = Agent(
 5. FINAL FORMATTING: For the final summary:
    - Use ONLY the get_correct_format_prompt tool to ensure proper formatting of any formulas
    - Apply any final formatting corrections
-
+6. VALIDATION: Validate the final summary:
+    - Use ONLY the evaluate_summary tool to validate the final summary
 DO NOT skip any steps. DO NOT try to complete any step without using the appropriate tool. Every step MUST use the corresponding tool. Your goal is to generate clear, well-structured summaries that accurately capture the key points of the original content.""",
     tool_manager=tool_manager,
     model="gemini-2.0-flash",  # Using Gemini model as seen in the code
