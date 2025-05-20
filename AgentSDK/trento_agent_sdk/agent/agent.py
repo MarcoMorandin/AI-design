@@ -304,7 +304,7 @@ class Agent(BaseModel):
 
                         # print(f"Calling tool {tool_name} with args: {args}")
 
-                        logger.info(f"Calling tool {tool_name} with args: {args[:50]}")
+                        logger.info(f"Calling tool {tool_name}")
                         try:
                             result = await self.tool_manager.call_tool(tool_name, args)
 
