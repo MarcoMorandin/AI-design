@@ -1,5 +1,6 @@
 from google import genai
 import os
+from agents.SummarizationAgent.tools.validatation import validation
 from dotenv import load_dotenv
 
 # Import AgentSDK components
@@ -98,6 +99,8 @@ DO NOT skip any steps. DO NOT try to complete any step without using the appropr
     final_tool="fix_latex_formulas",
     tool_required="required",
     long_memory=memory,
+    validation=True,
+    validation_tool="evaluate_summary",
 )
 
 
