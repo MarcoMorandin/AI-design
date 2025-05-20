@@ -1,4 +1,5 @@
 import os
+from typing import List
 from openai import OpenAI
 from .prompts.prompt import generate_final_summary
 from dotenv import load_dotenv
@@ -11,11 +12,13 @@ client = OpenAI(
     api_key=api_key, base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
 )
 
+import logging
 
-def combine_chunk_summaries(
-    text: str, summary_type: str, text_was_splitted: bool
-) -> str:
-    """Creates a final summary from text or combined summaries using Gemini API.
+logger = logging.getLogger(__name__)
+
+
+def combine_chunk_summaries(summaries: List[str], summary_type: str) -> str:
+    """Creates a final summary from a list of chunk summaries using Gemini API.
 
     Available summary types:
     - "standard": Standard Summary
@@ -24,23 +27,25 @@ def combine_chunk_summaries(
     - "layman": Simplified Summary
 
     Args:
-        text (str): The text or combined summaries to process.
-        text_was_splitted (bool): Whether the original text was split into chunks.
+        summaries (List[str]): The list of chunk summaries to combine.
         summary_type (str): The type of summary to generate.
 
     Returns:
-        str: The final summary, not just a prompt
+        str: The final combined summary
     """
-    # Get the appropriate prompt for this summary type and situation
-    prompt = generate_final_summary(summary_type, text_was_splitted)
+    logger.error("SONO ENTRATOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
+    # Join the summaries with a newline and a separator
+    combined_text = "\n\n--- SUMMARY CHUNK ---\n\n".join(summaries)
 
-    # Create the full prompt with the input text
+    # Get the appropriate prompt for this summary type and situation
+    # We're combining multiple summaries, so text_was_splitted is True
+    prompt = generate_final_summary(summary_type, text_was_splitted=True)
+
+    # Create the full prompt with the combined summaries
     full_prompt = f"""
     {prompt}
     
-    {'' if text_was_splitted else '--- TEXT TO SUMMARIZE ---'}
-    {text}
-    {'' if text_was_splitted else '--- TEXT TO SUMMARIZE ---'}
+    {combined_text}
     """
 
     # Call the Gemini API to actually create the final summary

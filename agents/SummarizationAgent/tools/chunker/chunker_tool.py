@@ -11,19 +11,20 @@ logger = logging.getLogger(__name__)
 
 def get_chunks(text: str, chunker_type: Optional[str] = None) -> List[str]:
     """
-    Splits input text into chunks using the specified algorithm.
+    Splits a given text into smaller chunks based on the specified or configured chunker type.
 
     Args:
-        text (str): The input text to be chunked.
-        chunker_type (Optional[str]): The type of chunker to use ('standard' or 'cosine').
-                                     If None, uses the value from settings.
+        text: The input string to be chunked. Must be a non-empty string.
+        chunker_type: Optional; The type of chunker to use. If None, the
+                      chunker type is determined by the application settings.
 
     Returns:
-        List[str]: A list of text chunks.
+        A list of strings, where each string is a chunk of the original text.
 
     Raises:
-        ValueError: If the text is invalid or chunking fails completely.
+        ValueError: If the input text is not a non-empty string.
     """
+
     if not text or not isinstance(text, str):
         logger.error("Invalid input: text must be a non-empty string")
         raise ValueError("Text input must be a non-empty string")

@@ -45,8 +45,6 @@ def summarise_chunk(text: str, summary_type: str = "technical") -> str:
     --- TEXT TO SUMMARIZE ---
     """
 
-    logger.error(text)
-
     # Call the Gemini API to actually summarize the text
     response = client.chat.completions.create(
         model="gemini-2.0-flash",
@@ -58,3 +56,29 @@ def summarise_chunk(text: str, summary_type: str = "technical") -> str:
 
     # Return the actual summary, not just the prompt
     return response.choices[0].message.content
+
+
+def summarize_chunks(chunks: List[str], summary_type: str = "technical") -> List[str]:
+    """Summarizes a list of text chunks using Gemini API.
+
+    Available summary types:
+    - "standard": Standard Summary
+    - "technical": Technical Summary
+    - "key_points": Key Points Summary
+    - "layman": Simplified Summary
+
+    Args:
+        chunks (List[str]): The list of text chunks to summarize.
+        summary_type (str): The type of summary to generate.
+
+    Returns:
+        List[str]: A list of summarized texts
+    """
+    summaries = []
+
+    for chunk in chunks:
+        # Summarize each chunk
+        summary = summarise_chunk(chunk, summary_type)
+        summaries.append(summary)
+
+    return summaries

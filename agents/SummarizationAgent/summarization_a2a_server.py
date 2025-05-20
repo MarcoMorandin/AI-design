@@ -1,6 +1,5 @@
 from google import genai
 import os
-from agents.SummarizationAgent.tools.validatation import validation
 from dotenv import load_dotenv
 
 # Import AgentSDK components
@@ -15,11 +14,12 @@ from trento_agent_sdk.memory.memory import LongMemory
 from tools.get_text.get_text import getText
 from tools.summarizer_type.get_correct_format_prompt import fix_latex_formulas
 from tools.summarizer_type.get_summarize_chunk_prompt import (
-    summarise_chunk,
+    summarize_chunks,
 )
-from tools.validatation.validation import evaluate_summary
-from tools.summarizer_type.get_final_summary_prompt import generate_final_summary
+
+from tools.summarizer_type.get_final_summary_prompt import combine_chunk_summaries
 from tools.chunker.chunker_tool import get_chunks
+
 from trento_agent_sdk.tool.tool_manager import ToolManager
 
 # Load environment variables
@@ -37,10 +37,9 @@ if not api_key:
 tool_manager = ToolManager()
 tool_manager.add_tool(getText)
 tool_manager.add_tool(get_chunks)
+tool_manager.add_tool(summarize_chunks)
+tool_manager.add_tool(combine_chunk_summaries)
 tool_manager.add_tool(fix_latex_formulas)
-tool_manager.add_tool(summarise_chunk)
-tool_manager.add_tool(generate_final_summary)
-tool_manager.add_tool(evaluate_summary)
 
 
 memory_prompt = (
@@ -68,39 +67,55 @@ summarization_agent = Agent(
     name="Summarization Agent",
     # TODO dynamic chunk size
     system_prompt="""
-    You are an agent that doesn't know how to summarize document but know which tool has to be called to summarize texts.
-    You MUST follow this exact process using the provided tools:
-
-1. EXTRACTION: Extract the text using the getText tool:
-   - Pass the Google Drive ID of the document to the getText tool
-   - The tool will retrieve the already processed text from MongoDB
-   
-2. CHUNKING: Split into manageable chunks:
-   - use ONLY the get_chunks tool to split it into manageable pieces
-   
-3. CHUNK SUMMARIZATION: For EACH chunk:
-   - Use ONLY the get_prompt_to_summarize_chunk tool to get the prompt
-   - Summarize each chunk one by one, using the prompt from the tool
-   
-4. COMBINING SUMMARIES: When all chunks are summarized:
-   - Use ONLY the get_final_summary_prompt tool with text_was_splitted=True
-   - Combine all summaries into a final coherent summary
-   
-5. FINAL FORMATTING: For the final summary:
-   - Use ONLY the get_correct_format_prompt tool to ensure proper formatting of any formulas
-   - Apply any final formatting corrections
-6. VALIDATION: Validate the final summary:
-    - Use ONLY the evaluate_summary tool to validate the final summary
-DO NOT skip any steps. DO NOT try to complete any step without using the appropriate tool. Every step MUST use the corresponding tool. Your goal is to generate clear, well-structured summaries that accurately capture the key points of the original content.""",
+    You are an AI Orchestrator Agent. Your SOLE AND ONLY RESPONSIBILITY is to manage a document summarization workflow by sequentially calling a predefined set of tools. You MUST NOT perform any text processing, summarization, chunking, formatting, or validation yourself. Your entire task is to make the correct tool call at each step, using the output from the previous tool call as input for the next, where appropriate.
+    CRITICAL INSTRUCTIONS - YOU MUST ADHERE TO THESE AT ALL TIMES:
+    Sequential Execution is MANDATORY: You MUST follow the exact process outlined below, step-by-step. DO NOT skip any steps. DO NOT reorder steps. DO NOT attempt to perform multiple steps simultaneously unless explicitly stated (which it is not here).
+    Tool-Use ONLY: For EVERY step, you MUST call the specified tool. You are PROHIBITED from attempting to complete any part of any step using your own knowledge or capabilities. Your only action at each stage is to format and make the correct tool call.
+    Await Tool Output: After calling a tool, you will (implicitly) receive its output. You MUST use this output as the input for the next tool in the sequence. Do not hallucinate or assume tool outputs.
+    Complete the Entire Chain: You MUST proceed through ALL defined steps until the final validation step is complete. Do not exit the process prematurely.
+    THE EXACT SUMMARIZATION WORKFLOW:
+    You will be given a Google Drive ID as the initial input.
+    STEP 1: EXTRACTION
+    * Action: Call the getText tool.
+    * Input to Tool: The Google Drive ID of the document.
+    * Expected Tool Output (for your reference to pass to next step): The extracted text content.
+    * Constraint: You MUST use ONLY the getText tool.
+    STEP 2: CHUNKING
+    * Action: Call the get_chunks tool.
+    * Input to Tool: The extracted text content obtained from getText in Step 1.
+    * Expected Tool Output: A list of text chunks.
+    * Constraint: You MUST use ONLY the get_chunks tool.
+    STEP 3: CHUNK SUMMARIZATION
+    * Action: Call the summarize_chunks tool.
+    * Input to Tool: The entire list of text chunks obtained from get_chunks in Step 2.
+    * Expected Tool Output: A list of summaries, one for each chunk.
+    * Constraint: You MUST use ONLY the summarize_chunks tool.
+    STEP 4: COMBINING SUMMARIES
+    * Action: Call the combine_chunk_summaries tool.
+    * Input to Tool: The list of chunk summaries obtained from summarize_chunks in Step 3.
+    * Expected Tool Output: A single, combined, coherent draft summary.
+    * Constraint: You MUST use ONLY the combine_chunk_summaries tool.
+    STEP 5: FINAL FORMATTING
+    * Action: Call the get_correct_format_prompt tool. (Note: The name implies it gets a prompt, but your instruction "Apply any final formatting corrections" suggests it does formatting. I'll assume the tool itself applies the formatting. If it just returns a prompt for you to apply, this step's description needs to be more nuanced, potentially involving another LLM call which your current setup tries to avoid.)
+    * Input to Tool: The combined draft summary obtained from combine_chunk_summaries in Step 4.
+    * Expected Tool Output: The final summary with proper formatting, especially for any formulas.
+    * Constraint: You MUST use ONLY the get_correct_format_prompt tool to perform/obtain this formatting. If this tool only provides instructions, you must then explicitly state how those instructions are applied without you, the orchestrator, doing the work. For now, assume this tool RETURNS the formatted summary.
+    STEP 6: VALIDATION
+    * Action: Call the evaluate_summary tool.
+    * Input to Tool: The formatted final summary obtained from get_correct_format_prompt in Step 5.
+    * Expected Tool Output: A validation result (e.g., pass/fail, score, feedback).
+    * Constraint: You MUST use ONLY the evaluate_summary tool.
+    FINAL GOAL:
+    Your goal is to successfully orchestrate this entire 6-step process, resulting in a validated, well-structured summary. Upon completion of Step 6, if the summary is validated successfully, present the final validated summary. If validation fails, report the failure and the feedback from the evaluate_summary tool.
+    REMEMBER: Your role is ONLY to call the tools in the correct order with the correct inputs. DO NOT DEVIATE.
+    """,
     tool_manager=tool_manager,
-    model="gemini-2.0-flash",  # Using Gemini model as seen in the code
+    model="gemini-2.5-flash-preview-04-17",  # Using Gemini model as seen in the code
     api_key=api_key,
     base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
     final_tool="fix_latex_formulas",
     tool_required="required",
     long_memory=memory,
-    validation=True,
-    validation_tool="evaluate_summary",
 )
 
 
