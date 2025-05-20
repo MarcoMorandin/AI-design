@@ -13,13 +13,13 @@ async def main():
         print(f"Description: {agent_card.description}")
 
         # Send a summarization task to the agent
-        print("\nSending summarization task to the agent...")
+        print("\nSending task to the agent...")
 
         # Example Google Drive ID to summarize
         # Replace this with an actual Google Drive ID from your MongoDB collection
         google_drive_id = "1l-_1zywhnUG8sbVstSROdLRTZZF89n8y"
 
-        text_to_summarize = f"""
+        text_to_summarize = """
         SigLIP
         """
 
