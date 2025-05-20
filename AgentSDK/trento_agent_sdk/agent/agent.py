@@ -23,7 +23,6 @@ class Agent(BaseModel):
     agent_manager: AgentManager = None
     long_memory: Optional[LongMemory] = None
     short_memory: List[Dict[str, str]] = []
-    chat_history: List[Dict[str, str]] = []
     client: Optional[openai.OpenAI] = None
     api_key: Optional[str] = None
     base_url: Optional[str] = None
@@ -49,6 +48,8 @@ class Agent(BaseModel):
         "You can have multi-turn conversations involving multiple tool uses and agent delegations to achieve complex goals.\n"
         "Be precise in your tool and agent selection. When delegating, provide all necessary context to the remote agent."
     )
+    validation: bool = False
+    validation_tool_name: str = None
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -142,7 +143,42 @@ class Agent(BaseModel):
 
         return tool_list
 
-    def serialize_result(self, result):
+    def _to_dict(self, msg):
+        """
+        Convert an OpenAI ChatCompletionMessage *or anything similar* into a JSON‑safe
+        plain‑Python dict.  If it's already a dict return it unchanged.
+        """
+        # 1. top‑level object
+        if isinstance(msg, dict):
+            d = msg
+        elif hasattr(msg, "model_dump"):
+            d = msg.model_dump()  # Pydantic v2
+        else:
+            d = msg.dict()  # Pydantic v1
+
+        if isinstance(data.get("tool_calls"), list):
+            clean = []
+            for tc in data["tool_calls"]:
+                if not isinstance(tc, dict):
+                    tc = tc.model_dump() if hasattr(tc, "model_dump") else tc.dict()
+                if not tc.get("id"):
+                    tc["id"] = str(uuid.uuid4())
+                clean.append(tc)
+            data["tool_calls"] = clean
+
+        def prune(obj):
+            if isinstance(obj, dict):
+                return {k: prune(v) for k, v in obj.items() if v is not None}
+            if isinstance(obj, list):
+                return [prune(v) for v in obj if v is not None]
+            return obj
+
+        return prune(d)
+
+    # validate the result and insert into long memory
+    async def validate_result(self, tool_name, args):
+        logger.info(f"Validation tool {tool_name} called, executing it and terminating")
+        result = await self.tool_manager.call_tool(tool_name, args)
         serialized_result = ""
         try:
             # Handle different result types appropriately
@@ -154,6 +190,13 @@ class Agent(BaseModel):
                 serialized_result = json.dumps(result.__dict__)
             else:
                 serialized_result = str(result)
+
+            logger.info(
+                f"Tool {tool_name} returned result: {serialized_result[:100]}..."
+            )
+            print(f"Tool {tool_name} returned result: {serialized_result[:100]}...")
+            self.long_memory.insert_into_long_memory_with_update(serialized_result)
+
         except Exception as e:
             logger.error(f"Error serializing tool result: {e}")
             serialized_result = str(result)
@@ -195,7 +238,6 @@ class Agent(BaseModel):
                 mem_texts = [f"- [{m['topic']}] {m['description']}" for m in mems]
                 mem_block = "Relevant past memories:\n" + "\n".join(mem_texts)
                 self.short_memory.append({"role": "system", "content": mem_block})
-                self.chat_history.append({"role": "system", "content": mem_block})
 
             # print(mems)
 
@@ -222,6 +264,7 @@ class Agent(BaseModel):
 
                 # Add model's response to conversation
                 self.short_memory.append(response.choices[0].message)
+                # self.short_memory.append(self._to_dict(response.choices[0].message))
 
                 # print("response_content", response.choices[0].message)
                 # Check if the model used a tool
@@ -246,7 +289,7 @@ class Agent(BaseModel):
                                 f"Final tool {tool_name} called, executing it and terminating"
                             )
                             try:
-                                print(f"Calling tool {tool_name} with args: {args}")
+                                print("callled_tool", tool_name)
                                 # Call the final tool directly
                                 result = await self.tool_manager.call_tool(
                                     tool_name, args
@@ -310,7 +353,6 @@ class Agent(BaseModel):
 
                             logger.info(f"Raw result: {result}")
                             print(f"Raw result: {result}")
-
                             # Properly serialize the result regardless of type
                             serialized_result = self.serialize_result(result)
 

@@ -15,11 +15,17 @@ client = OpenAI(
 
 def evaluate_summary(final_summary: str, source_document: str):
     """
-    Computes ROUGE scores (for summary quality) and a suite of readability metrics.
-
-    :param final_summary: The generated summary text.
-    :param source_document: The original document text.
-    :return: Tuple of (rouge_scores: dict, readability_metrics: dict).
+    Evaluate the generated summary.
+    This function calculates ROUGE scores comparing the summary to the source document,
+    computes various readability metrics, and uses Gemini AI to analyze these metrics.
+    
+    Args:
+        final_summary (str): The generated summary text to evaluate.
+        source_document (str): The original document text used as reference.
+        
+    Returns:
+        str: A detailed analysis of the summary quality based on ROUGE scores and 
+             readability metrics.
     """
     # 1. Initialize ROUGE
     rouge = Rouge()
