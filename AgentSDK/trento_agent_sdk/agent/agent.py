@@ -54,12 +54,7 @@ class Agent(BaseModel):
 
     def __init__(self, **data):
         super().__init__(**data)
-        client_kwargs = {}
-        if self.api_key:
-            client_kwargs["api_key"] = self.api_key
-        if self.base_url:
-            client_kwargs["base_url"] = self.base_url
-        self.client = openai.OpenAI(**client_kwargs)
+        self.client = openai.OpenAI(api_key=self.api_key, base_url=self.base_url)
         if not self.short_memory:
             self.short_memory = [{"role": "system", "content": self.system_prompt}]
         if self.long_memory is None:
@@ -300,15 +295,6 @@ class Agent(BaseModel):
                                         "content": f"Used tool `{tool_name}` with args {args_string} that returned JSON:\n{serialized_result}",
                                     }
                                 )
-
-                                # Validate the result
-                                if self.validation:
-                                    result = await self.tool_manager.call_tool(
-                                        "validate", {}
-                                    )
-                                    self.long_memory.insert_into_long_memory_with_update(
-                                        result
-                                    )
 
                                 return (
                                     result

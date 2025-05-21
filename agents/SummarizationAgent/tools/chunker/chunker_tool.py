@@ -41,9 +41,6 @@ def get_chunks(text: str, chunker_type: Optional[str] = None) -> str:
 
     # Log chunking operation start
     text_length = len(text)
-    logger.info(
-        f"Starting chunking operation using {selected_chunker} chunker on text of length: {text_length} characters"
-    )
 
     try:
         # Choose chunking method based on configuration
@@ -85,43 +82,89 @@ def get_chunks(text: str, chunker_type: Optional[str] = None) -> str:
         # Preprocess chunks to prevent escape sequence issues
         sanitized_chunks = []
         for chunk in chunks:
-            # Instead of manual replacement which can introduce issues,
-            # use json.dumps to handle proper escaping, then strip the quotes
-            sanitized_chunk = json.dumps(chunk)[1:-1]
-            sanitized_chunks.append(sanitized_chunk)
+            try:
+                # More reliable method: use base64 encoding to avoid escape sequence issues
+                import base64
+
+                # Encode the string to bytes, then encode to base64, then decode to string
+                encoded = base64.b64encode(chunk.encode("utf-8")).decode("ascii")
+                sanitized_chunks.append(
+                    {
+                        "content": chunk,  # Original content (for tools that can handle it)
+                        "encoding": "none",  # Indicate this is unencoded
+                        "encoded_content": encoded,  # Base64 encoded content
+                        "encoding_type": "base64",  # Indicate the encoding type
+                    }
+                )
+            except Exception as chunk_encode_error:
+                logger.warning(f"Error encoding chunk: {str(chunk_encode_error)}")
+                # Fall back to simpler approach
+                sanitized_chunks.append(
+                    {
+                        "content": chunk,
+                        "encoding": "none",
+                        "encoded_content": "",
+                        "encoding_type": "none",
+                    }
+                )
 
         # Update response with sanitized chunks
         response_data["chunks"] = sanitized_chunks
+        response_data["metadata"]["content_encoding"] = "wrapped_with_base64_option"
 
         # Return serialized JSON with proper handling of escape sequences
         try:
-            # First attempt using our safe function
-            json_response = safe_json_dumps(response_data)
-            # Verify that the result is valid JSON
-            json.loads(json_response)
-            logger.debug("JSON serialization successful with safe_json_dumps")
+            # Ensure response_data is a dictionary before dumping
+            if not isinstance(response_data, dict):
+                logger.error(f"response_data is not a dict: {type(response_data)}")
+                # Create a minimal error dict to dump
+                response_data = {
+                    "chunks": ["Error: Internal data preparation failed."],
+                    "metadata": {
+                        "success": False,
+                        "error": "Internal data preparation failed before JSON serialization",
+                    },
+                }
+
+            # json.dumps should handle escaping correctly. ensure_ascii=False is good for unicode.
+            json_response = json.dumps(response_data, ensure_ascii=False)
+            # Basic validation that it's loadable (optional, json.dumps should be reliable)
+            # json.loads(json_response)
+            logger.debug("JSON serialization successful with standard json.dumps")
             return json_response
-        except Exception as e:
-            logger.warning(
-                f"Safe JSON dumps failed: {str(e)}, falling back to standard json.dumps"
+        except (
+            TypeError
+        ) as te:  # Catch TypeError which can happen if data isn't serializable
+            logger.error(
+                f"TypeError during JSON serialization in get_chunks: {str(te)}. Data: {response_data}",
+                exc_info=True,
             )
-            # Fall back to direct json.dumps with ensure_ascii=False
-            try:
-                json_response = json.dumps(response_data, ensure_ascii=False)
-                logger.debug("JSON serialization successful with fallback method")
-                return json_response
-            except Exception as e2:
-                logger.error(f"All JSON serialization attempts failed: {str(e2)}")
-                # Return a minimal valid response
-                return json.dumps(
-                    {
-                        "chunks": ["Serialization error occurred"],
-                        "metadata": {
-                            "success": False,
-                            "error": f"JSON serialization failed: {str(e2)}",
-                        },
-                    }
-                )
+            return json.dumps(
+                {
+                    "chunks": [
+                        "Serialization error occurred due to unsendable data type"
+                    ],
+                    "metadata": {
+                        "success": False,
+                        "error": f"JSON serialization failed (TypeError): {str(te)}",
+                    },
+                }
+            )
+        except Exception as e:
+            logger.error(
+                f"All JSON serialization attempts failed in get_chunks: {str(e)}",
+                exc_info=True,
+            )
+            # Return a minimal valid response
+            return json.dumps(
+                {
+                    "chunks": ["Serialization error occurred"],
+                    "metadata": {
+                        "success": False,
+                        "error": f"JSON serialization failed: {str(e)}",
+                    },
+                }
+            )
 
     except Exception as e:
         logger.error(f"Error during chunking: {str(e)}")

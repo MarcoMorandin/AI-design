@@ -94,157 +94,137 @@ def summarise_chunk(text: str, summary_type: str = "technical") -> str:
 
 
 def summarize_chunks(chunks_data: str, summary_type: str = "technical") -> str:
-    """Summarizes text chunks from a serialized JSON object.
+    logger.info(f"summarize_chunks received input of type: {type(chunks_data)}")
+    if isinstance(chunks_data, str):
+        logger.debug(
+            f"summarize_chunks received string input (first 500 chars): {chunks_data[:500]}"
+        )
+    else:
+        logger.warning(f"summarize_chunks received non-string input: {chunks_data}")
+        # Attempt to dump it to a string if it's a dict/list,
+        # though ideally it should always be a string from the agent
+        try:
+            chunks_data = json.dumps(chunks_data)
+            logger.info("Converted non-string input to JSON string for processing.")
+        except Exception as e:
+            logger.error(f"Could not convert input to JSON string: {e}")
+            error_response = {
+                "summaries": [],
+                "metadata": {
+                    "success": False,
+                    "error": "Invalid input type, not a string or serializable.",
+                },
+            }
+            return json.dumps(error_response)
 
-    Available summary types:
-    - "standard": Standard Summary
-    - "technical": Technical Summary
-    - "key_points": Key Points Summary
-    - "layman": Simplified Summary
+    if not chunks_data:
+        logger.error("Received empty chunks_data string")
+        return json.dumps(  # Use json.dumps, not safe_json_dumps if it's a custom one
+            {
+                "summaries": [],
+                "metadata": {"success": False, "error": "Received empty input string"},
+            }
+        )
 
-    Args:
-        chunks_data: A serialized JSON string containing the chunks and metadata,
-                     as returned by the get_chunks function. Contains a "chunks" list
-                     and "metadata" dictionary.
-        summary_type (str): The type of summary to generate.
-
-    Returns:
-        str: A serialized JSON string containing the summaries and metadata.
-    """
-    # Parse the serialized JSON from get_chunks
     try:
-        if not chunks_data:
-            logger.error("Received empty chunks_data")
-            return safe_json_dumps(
-                {
-                    "summaries": [],
-                    "metadata": {"success": False, "error": "Received empty input"},
-                }
-            )
-
-        # Log the beginning of the input for debugging
-        log_preview = (
-            str(chunks_data)[:100] + "..."
-            if len(str(chunks_data)) > 100
-            else str(chunks_data)
+        data = json.loads(chunks_data)  # Strict JSON parsing
+        logger.info("Successfully parsed chunks_data JSON string.")
+    except json.JSONDecodeError as e:
+        logger.error(f"Invalid JSON input for chunks_data: {e}")
+        logger.error(f"Problematic JSON string: {chunks_data}")
+        return json.dumps(  # Use json.dumps
+            {
+                "summaries": [],
+                "metadata": {
+                    "success": False,
+                    "error": "Invalid JSON format for input chunks_data.",
+                    "details": str(e),
+                    "received_input_preview": chunks_data[:200],  # Log a preview
+                },
+            }
         )
-        logger.info(f"Input preview: {log_preview}")
 
-        if isinstance(chunks_data, dict):
-            # Already a dictionary, no need to parse
-            logger.info("Input is already a dictionary, using as-is")
-            data = chunks_data
-        else:
-            # Try to parse as JSON
-            logger.info("Attempting to parse input as JSON")
-            try:
-                # First, try direct parsing
-                data = safe_json_loads(chunks_data, default=None)
-                if data is None:
-                    # Log more details about the content
-                    logger.warning(
-                        f"JSON parsing failed, input type: {type(chunks_data)}"
+    chunks_list_from_json = data.get(
+        "chunks", []
+    )  # Expecting 'chunks' key from get_chunks output
+    metadata = data.get("metadata", {})
+
+    is_encoded = metadata.get("content_encoding") == "wrapped_with_base64_option"
+
+    processed_chunks_content = []
+    if isinstance(chunks_list_from_json, list):
+        for i, chunk_item in enumerate(chunks_list_from_json):
+            if isinstance(
+                chunk_item, dict
+            ):  # This is the expected structure from your chunker
+                if (
+                    is_encoded
+                    and chunk_item.get("encoding_type") == "base64"
+                    and chunk_item.get("encoded_content")
+                ):
+                    try:
+                        import base64
+
+                        decoded_content = base64.b64decode(
+                            chunk_item["encoded_content"].encode("ascii")
+                        ).decode("utf-8")
+                        processed_chunks_content.append(decoded_content)
+                    except Exception as decode_error:
+                        logger.warning(
+                            f"Error decoding chunk {i}: {str(decode_error)}, falling back to 'content'"
+                        )
+                        processed_chunks_content.append(
+                            chunk_item.get("content", "Error decoding chunk")
+                        )
+                else:
+                    processed_chunks_content.append(
+                        chunk_item.get("content", f"Missing content for chunk {i}")
                     )
-                    if isinstance(chunks_data, str) and len(chunks_data) > 0:
-                        # Log some character codes to help diagnose escape sequence issues
-                        sample_chars = [ord(c) for c in chunks_data[:20]]
-                        logger.debug(f"First 20 character codes: {sample_chars}")
-
-                        # Check for problematic escape sequences
-                        problematic_sequences = [
-                            "\\n",
-                            "\\t",
-                            "\\r",
-                            '\\"',
-                            "\\\\",
-                            "\\/",
-                            "\\b",
-                            "\\f",
-                        ]
-                        for seq in problematic_sequences:
-                            if seq in chunks_data:
-                                logger.debug(f"Found problematic sequence: {seq}")
-
-                        # Print a small sample of the content that might have issues
-                        if len(chunks_data) > 1800 and len(chunks_data) < 1830:
-                            logger.debug(
-                                f"Content around position 1815: {chunks_data[1810:1820]}"
-                            )
-
-                    # Fall back to empty dict
-                    logger.info("Falling back to empty dictionary")
-                    data = {}
-            except Exception as parse_error:
-                logger.error(f"Exception during JSON parsing: {str(parse_error)}")
-                data = {}
-
-        chunks = data.get("chunks", [])
-        metadata = data.get("metadata", {})
-        logger.info(f"Successfully parsed JSON with {len(chunks)} chunks")
-    except (json.JSONDecodeError, TypeError) as e:
-        logger.error(
-            f"Invalid JSON input: could not parse chunks_data. Error: {str(e)}"
-        )
-        # Attempt to parse as a list if it's not valid JSON
-        logger.info("Attempting fallback parsing methods")
-        if isinstance(chunks_data, list):
-            # Already a list, use directly
-            logger.info("Input is already a list, using as-is")
-            chunks = chunks_data
-            metadata = {}
-        elif isinstance(chunks_data, str):
-            # Try different string parsing approaches
-            if chunks_data.startswith("[") and chunks_data.endswith("]"):
-                # Looks like a JSON array
-                logger.info("Input appears to be a JSON array string, trying to parse")
-                try:
-                    chunks = json.loads(chunks_data)
-                    metadata = {}
-                    logger.info(
-                        f"Successfully parsed as JSON array with {len(chunks)} chunks"
-                    )
-                except json.JSONDecodeError:
-                    chunks = parse_string_list(chunks_data) or []
-                    metadata = {}
-                    logger.info(
-                        f"Parsed using ast.literal_eval with {len(chunks)} chunks"
-                    )
+            elif isinstance(
+                chunk_item, str
+            ):  # Fallback if chunks are just strings (not ideal based on your chunker)
+                logger.warning(
+                    f"Chunk {i} is a plain string, not a dict. This might indicate an issue upstream."
+                )
+                processed_chunks_content.append(chunk_item)
             else:
-                # Try parsing as Python literal
-                chunks = parse_string_list(chunks_data) or []
-                metadata = {}
-                logger.info(f"Parsed using ast.literal_eval with {len(chunks)} chunks")
-        else:
-            logger.error(
-                f"Could not parse input in any format. Type: {type(chunks_data)}"
-            )
-            return safe_json_dumps(
-                {
-                    "summaries": [],
-                    "metadata": {
-                        "success": False,
-                        "error": f"Invalid input format: {type(chunks_data)}",
-                    },
-                }
-            )
+                logger.warning(
+                    f"Unexpected item type in chunks list at index {i}: {type(chunk_item)}"
+                )
+                processed_chunks_content.append(f"Invalid chunk item at index {i}")
+    else:
+        logger.error(
+            f"Parsed 'chunks' field is not a list. Found: {type(chunks_list_from_json)}"
+        )
+        return json.dumps(
+            {
+                "summaries": [],
+                "metadata": {
+                    **metadata,
+                    "success": False,
+                    "error": "Chunks data is not a list.",
+                },
+            }
+        )
 
     summaries = []
     start_time = time.time()
 
-    for i, chunk in enumerate(chunks):
+    for i, text_chunk_content in enumerate(processed_chunks_content):
         logger.info(
-            f"Summarizing chunk {i+1}/{len(chunks)} using {summary_type} summary type"
+            f"Summarizing chunk {i+1}/{len(processed_chunks_content)} using {summary_type} summary type"
         )
-        summary = summarise_chunk(chunk, summary_type)
+        summary = summarise_chunk(
+            text_chunk_content, summary_type
+        )  # summarise_chunk expects plain text
         summaries.append(summary)
-        logger.info(f"Chunk {i+1}: {summary}")
 
-    # Create response object with original metadata plus summary information
     processing_time = time.time() - start_time
     response_data = {
-        "summaries": summaries,
+        "summaries": summaries,  # This is a list of strings
         "metadata": {
-            **metadata,
+            **metadata,  # Carry over metadata from chunking
+            "original_chunk_count": len(processed_chunks_content),
             "summary_type": summary_type,
             "summary_count": len(summaries),
             "processing_time_seconds": round(processing_time, 2),
@@ -252,23 +232,19 @@ def summarize_chunks(chunks_data: str, summary_type: str = "technical") -> str:
         },
     }
 
-    # Return serialized JSON
     try:
-        json_response = safe_json_dumps(response_data)
-        logger.info(f"Successfully serialized response with {len(summaries)} summaries")
-        return json_response
+        return json.dumps(response_data)  # Ensure output is a valid JSON string
     except Exception as e:
-        logger.error(f"Error serializing response to JSON: {str(e)}")
-        # Return a simplified response
-        return safe_json_dumps(
+        logger.error(
+            f"Error serializing response to JSON in summarize_chunks: {str(e)}"
+        )
+        # Simplified error response
+        return json.dumps(
             {
-                "summaries": [
-                    str(s) for s in summaries
-                ],  # Convert to strings to ensure serialization
+                "summaries": ["Error during final serialization."],
                 "metadata": {
-                    "summary_count": len(summaries),
-                    "success": True,
-                    "warning": "JSON serialization issue with full response, returning simplified version",
+                    "success": False,
+                    "error": "Could not serialize final response.",
                 },
             }
         )
