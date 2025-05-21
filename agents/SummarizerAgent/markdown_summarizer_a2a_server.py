@@ -3,12 +3,9 @@ import sys
 import signal
 import traceback  # Added
 import logging
-import asyncio
 from typing import Dict, Any
 from dotenv import load_dotenv
 import uvicorn
-import time
-import json
 from fastapi import FastAPI, Response, status  # Added Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -29,12 +26,9 @@ from tools.summarize_chunk.summarize_chunk import summarize_chunk
 from tools.format_summary.format_summary import format_summary
 from tools.fetch_markdown_content.fetch_markdown_content import fetch_markdown_content
 from trento_agent_sdk.memory.memory import LongMemory
-from memory_wrapper import MemoryWrapper
 
 # Set up proper logging (simplified to match the first example)
 logger = logging.getLogger(__name__)
-# Removed: from logging_config import setup_logging
-# Removed: setup_logging()
 
 # Load environment variables
 load_dotenv()
@@ -81,15 +75,6 @@ async def lifespan(app: FastAPI):
 
     # Shutdown: cleanup and close resources
     logger.info("Shutting down Markdown Summarizer A2A Server")
-
-    # Close any active HTTP sessions
-    try:
-        if "memory_wrapper" in globals():
-            await memory_wrapper.close()
-            logger.info("Memory resources cleaned up successfully")
-    except Exception as e:
-        logger.error(f"Error during cleanup: {str(e)}")
-        logger.debug(traceback.format_exc())
 
 
 # Create FastAPI app with lifespan management (Copied from first)
@@ -148,14 +133,8 @@ memory_prompt = (
 )
 
 # Initialize memory with error handling
-try:
-    base_memory = LongMemory(user_id="test_user", memory_prompt=memory_prompt)
-    logger.info("Base memory system initialized successfully")
-    memory_wrapper = MemoryWrapper(base_memory)
-except Exception as e:
-    logger.warning(f"Failed to initialize memory: {str(e)}. Proceeding without memory.")
-    logger.debug(traceback.format_exc())
-    memory_wrapper = MemoryWrapper(None)  # Use wrapper with no underlying memory
+base_memory = LongMemory(user_id="test_user", memory_prompt=memory_prompt)
+
 
 logger.info(
     f"Initializing Markdown Summarizer Agent with model {MODEL}"
@@ -197,7 +176,7 @@ Always maintain proper error handling and inform the user if a document cannot b
             base_url=BASE_URL,  # Corrected BASE_URL for Gemini (or None if appropriate)
             final_tool="format_summary",
             tool_required="required",
-            long_memory=memory_wrapper.memory,
+            long_memory=base_memory,
         )
 
     # Use retry logic when creating the agent
@@ -325,12 +304,6 @@ if __name__ == "__main__":
                 )
             except KeyboardInterrupt:
                 logger.info("Received keyboard interrupt. Shutting down gracefully...")
-                # Run cleanup if needed for this process
-                if "memory_wrapper" in globals():
-                    try:
-                        asyncio.run(memory_wrapper.close())
-                    except Exception as e:
-                        logger.error(f"Error during memory cleanup: {str(e)}")
         else:
             # For development or single worker, we can use the app instance
             uvicorn.run(
@@ -342,12 +315,6 @@ if __name__ == "__main__":
             )
     except KeyboardInterrupt:
         logger.info("Received keyboard interrupt. Shutting down gracefully...")
-        # Run cleanup if needed for this process
-        if "memory_wrapper" in globals():
-            try:
-                asyncio.run(memory_wrapper.close())
-            except Exception as e:
-                logger.error(f"Error during memory cleanup: {str(e)}")
     except Exception as e:
         logger.critical(f"Failed to start server: {str(e)}")
         logger.debug(traceback.format_exc())  # Added traceback
