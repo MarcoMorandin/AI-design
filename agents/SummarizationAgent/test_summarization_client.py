@@ -20,7 +20,7 @@ async def main():
         google_drive_id = "1UBJJQ0V07DA92rtrT1CqI-nBwaVmCEXG"
 
         text_to_summarize = f"""
-        Please summarize the document with Google Drive ID: {google_drive_id}
+        Please write a technical summary of the document with Google Drive ID: {google_drive_id}
         """
 
         response = await client.send_task(text_to_summarize)

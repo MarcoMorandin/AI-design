@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 # Import logging configuration
-from logging_config import setup_logging
+from agents.SummarizationAgent.logging_config import setup_logging
 
 # Import AgentSDK components
 from trento_agent_sdk.agent.agent import Agent

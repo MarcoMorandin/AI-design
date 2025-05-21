@@ -1,13 +1,40 @@
-from google import genai
 import os
+import logging
 from dotenv import load_dotenv
+
+# Load environment variables first
+load_dotenv()
+
+# Setup logging
+logger = logging.getLogger(__name__)
 
 # Import AgentSDK components
 from trento_agent_sdk.agent.agent import Agent
 from trento_agent_sdk.a2a.models.AgentCard import AgentCard, AgentSkill
 from trento_agent_sdk.a2a.TaskManager import TaskManager
 from trento_agent_sdk.a2a_server import A2AServer
-from trento_agent_sdk.memory.memory import LongMemory
+from trento_agent_sdk.tool.tool_manager import ToolManager
+
+# Try to import memory if available
+try:
+    from trento_agent_sdk.memory.memory import LongMemory
+
+    memory_available = True
+    logger.info("LongMemory functionality is available")
+except ImportError:
+    memory_available = False
+    logger.warning("LongMemory not available, proceeding without memory capability")
+
+# Import SummarizationAgent tools
+from tools.get_text.get_text import getText
+from tools.summarizer_type.get_correct_format_prompt import fix_latex_formulas
+from tools.summarizer_type.get_summarize_chunk_prompt import summarize_chunks
+from tools.summarizer_type.get_final_summary_prompt import combine_chunk_summaries
+from tools.chunker.chunker_tool import get_chunks
+
+# Test that SDK logging is using our configuration
+sdk_logger = logging.getLogger("trento_agent_sdk")
+sdk_logger.info("SDK logger initialized with agent's configuration")
 
 
 # Import SummarizationAgent tools
@@ -22,8 +49,15 @@ from tools.chunker.chunker_tool import get_chunks
 
 from trento_agent_sdk.tool.tool_manager import ToolManager
 
+
 # Load environment variables
 load_dotenv()
+
+logger = logging.getLogger(__name__)
+
+# Test that SDK logging is using our configuration
+sdk_logger = logging.getLogger("trento_agent_sdk")
+sdk_logger.info("SDK logger initialized with agent's configuration")
 
 # Initialize the Google Generative AI client
 api_key = os.getenv("GOOGLE_API_KEY")
@@ -60,7 +94,11 @@ memory_prompt = (
     "Do NOT include any other fields or commentary."
 )
 
-memory = LongMemory(user_id="test_user", memory_prompt=memory_prompt)
+memory = (
+    LongMemory(user_id="test_user", memory_prompt=memory_prompt)
+    if memory_available
+    else None
+)
 
 # Create the summarization agent
 summarization_agent = Agent(
@@ -83,30 +121,25 @@ summarization_agent = Agent(
     STEP 2: CHUNKING
     * Action: Call the get_chunks tool.
     * Input to Tool: The extracted text content obtained from getText in Step 1.
-    * Expected Tool Output: A list of text chunks.
+    * Expected Tool Output: A serialized JSON string containing the chunks and metadata.
     * Constraint: You MUST use ONLY the get_chunks tool.
     STEP 3: CHUNK SUMMARIZATION
     * Action: Call the summarize_chunks tool.
-    * Input to Tool: The entire list of text chunks obtained from get_chunks in Step 2.
-    * Expected Tool Output: A list of summaries, one for each chunk.
+    * Input to Tool: The serialized JSON string obtained from get_chunks in Step 2. IMPORTANT: Pass the entire JSON string as-is, do not modify it.
+    * Expected Tool Output: A serialized JSON string containing the summaries and metadata.
     * Constraint: You MUST use ONLY the summarize_chunks tool.
     STEP 4: COMBINING SUMMARIES
     * Action: Call the combine_chunk_summaries tool.
-    * Input to Tool: The list of chunk summaries obtained from summarize_chunks in Step 3.
+    * Input to Tool: The serialized JSON string containing summaries obtained from summarize_chunks in Step 3.
     * Expected Tool Output: A single, combined, coherent draft summary.
     * Constraint: You MUST use ONLY the combine_chunk_summaries tool.
     STEP 5: FINAL FORMATTING
-    * Action: Call the get_correct_format_prompt tool. (Note: The name implies it gets a prompt, but your instruction "Apply any final formatting corrections" suggests it does formatting. I'll assume the tool itself applies the formatting. If it just returns a prompt for you to apply, this step's description needs to be more nuanced, potentially involving another LLM call which your current setup tries to avoid.)
+    * Action: Call the get_correct_format_prompt tool.
     * Input to Tool: The combined draft summary obtained from combine_chunk_summaries in Step 4.
     * Expected Tool Output: The final summary with proper formatting, especially for any formulas.
-    * Constraint: You MUST use ONLY the get_correct_format_prompt tool to perform/obtain this formatting. If this tool only provides instructions, you must then explicitly state how those instructions are applied without you, the orchestrator, doing the work. For now, assume this tool RETURNS the formatted summary.
-    STEP 6: VALIDATION
-    * Action: Call the evaluate_summary tool.
-    * Input to Tool: The formatted final summary obtained from get_correct_format_prompt in Step 5.
-    * Expected Tool Output: A validation result (e.g., pass/fail, score, feedback).
-    * Constraint: You MUST use ONLY the evaluate_summary tool.
+    * Constraint: You MUST use ONLY the get_correct_format_prompt tool.
     FINAL GOAL:
-    Your goal is to successfully orchestrate this entire 6-step process, resulting in a validated, well-structured summary. Upon completion of Step 6, if the summary is validated successfully, present the final validated summary. If validation fails, report the failure and the feedback from the evaluate_summary tool.
+    Your goal is to successfully orchestrate this entire 5-step process, resulting in a well-structured summary. Upon completion of Step 5, present the final formatted summary to the user.
     REMEMBER: Your role is ONLY to call the tools in the correct order with the correct inputs. DO NOT DEVIATE.
     """,
     tool_manager=tool_manager,
@@ -158,5 +191,5 @@ a2a_server = A2AServer(
 
 # Run the server
 if __name__ == "__main__":
-    print("Starting Summarization A2A Server on http://localhost:8001")
+    logger.info("Starting Summarization A2A Server on http://localhost:8001")
     a2a_server.run()

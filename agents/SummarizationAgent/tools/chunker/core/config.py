@@ -7,7 +7,7 @@ from typing import List  # Import List for type hinting
 class Settings(BaseSettings):
     APP_NAME: str = "Summarize document API"
     API_V1_STR: str = "/api"
-
+    ENABLE_METRICS: bool = False
     # Chunking settings
     MAX_LENGTH_PER_CHUNK: int = 30000
     MAX_TOKEN_PER_CHUNK_GROUPED: int = 256
