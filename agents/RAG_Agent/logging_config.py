@@ -1,8 +1,7 @@
 import os
 import logging.config
 import json
-from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 
 def truncate_string(s: str, max_length: int = 50) -> str:
@@ -15,13 +14,6 @@ def truncate_string(s: str, max_length: int = 50) -> str:
 def safe_json_serialize(obj: Any, max_length: int = 50) -> str:
     """
     Convert a complex object to a JSON string, handling errors and truncating if needed.
-
-    Args:
-        obj: The object to serialize
-        max_length: Maximum length of the returned string
-
-    Returns:
-        A truncated, serialized representation of the object
     """
     try:
         if isinstance(obj, str):
@@ -41,15 +33,14 @@ def safe_json_serialize(obj: Any, max_length: int = 50) -> str:
         return truncate_string(str(obj), max_length)
 
 
-def setup_logging(logs_dir: str = "logs", log_level: str = None) -> None:
+def setup_logging(log_level: str = None) -> None:
     """
-    Configure logging for the Trento Agent SDK with production-ready settings.
+    Configure logging for the RAG agent with console-only output.
+    Overrides the SDK's default behavior to avoid creating log files.
 
     Args:
-        logs_dir: Directory to store log files
         log_level: Override the log level (uses environment variable if not provided)
     """
-
     # Get log level from environment or use INFO as default
     log_level = log_level or os.environ.get("LOG_LEVEL", "INFO").upper()
     numeric_level = getattr(logging, log_level, logging.INFO)
@@ -106,8 +97,8 @@ def setup_logging(logs_dir: str = "logs", log_level: str = None) -> None:
     logging.config.dictConfig(logging_config)
 
     # Log startup information
-    logging.getLogger("trento_agent_sdk").info(
-        f"Trento Agent SDK logging initialized with level: {log_level}"
+    logging.getLogger("rag_agent").info(
+        f"RAG Agent logging initialized with level: {log_level}"
     )
 
     # Set JSON formatter for production environment
@@ -125,3 +116,6 @@ def setup_logging(logs_dir: str = "logs", log_level: str = None) -> None:
 # Initialize logging when module is imported
 if os.environ.get("INITIALIZE_LOGGING", "true").lower() in ("true", "1", "yes"):
     setup_logging()
+    logging.getLogger("rag_agent").info(
+        "Logging initialized with console-only output (no log files)"
+    )

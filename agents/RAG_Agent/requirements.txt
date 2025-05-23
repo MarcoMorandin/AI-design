@@ -1,26 +1,26 @@
 # Base dependencies
-python-dotenv==1.1.0
-requests==2.32.3
-google-generativeai==1.12.1
-google-genai==1.12.1
-pydantic==2.11.3
-pydantic-settings==2.9.1
-trento-agent-sdk>=0.1.0
+python-dotenv
+requests
+google-generativeai
+google-genai
+pydantic
+pydantic-settings
+trento-agent-sdk==2.0.4
 
 # For the web server
-fastapi==0.109.2
-uvicorn[standard]==0.27.1
+fastapi
+uvicorn[standard]
 
 # Utilities
-scikit-learn==1.6.1
-torch==2.7.0
+scikit-learn
+torch
 
 # For healthchecks and monitoring
-httpx==0.28.1
+httpx
 
 # Development tools
-pytest==8.0.0
-black==24.3.0
-isort==5.13.2
-mypy==1.7.1
-pylint==3.0.3
+pytest
+black
+isort
+mypy
+pylint

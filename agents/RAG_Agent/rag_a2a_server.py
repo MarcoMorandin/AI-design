@@ -1,4 +1,3 @@
-from google import genai
 import os
 from dotenv import load_dotenv
 from trento_agent_sdk.agent.agent import Agent
@@ -7,6 +6,9 @@ from trento_agent_sdk.a2a.TaskManager import TaskManager
 from trento_agent_sdk.a2a_server import A2AServer
 from trento_agent_sdk.memory.memory import LongMemory
 from trento_agent_sdk.tool.tool_manager import ToolManager
+
+# Import our custom logging config - just importing is enough to initialize it
+import logging_config
 
 from tools.rag_tool import RAG_tool
 
@@ -73,7 +75,7 @@ chat_with_document_agent = Agent(
 agent_card = AgentCard(
     name="Retrieval Augmented Generation Agent",
     description="An agent that can response to the user questions",
-    url="http://localhost:8002",
+    url=f"http://localhost:{os.getenv('PORT', '8002')}",
     version="1.0.0",
     skills=[
         AgentSkill(
@@ -101,10 +103,11 @@ a2a_server = A2AServer(
     agent_card=agent_card,
     task_manager=task_manager,
     host="0.0.0.0",
-    port=8002,
+    port=int(os.getenv("PORT", "8002")),
 )
 
 # Run the server
 if __name__ == "__main__":
-    print("Starting RAG A2A Server on http://localhost:8002")
+    port = os.getenv("PORT", "8002")
+    print(f"Starting RAG A2A Server on http://localhost:{port}")
     a2a_server.run()
