@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoodleAI Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-graduation-cap"></i>
+                <span>MoodleAI</span>
+            </div>
+            <div class="user-profile">
+                <span id="userInitials" class="user-initials">JD</span>
+                <span id="userName">John Doe</span>
+                <button id="logoutButton" class="logout-button"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Sidebar for Courses -->
+            <aside class="sidebar">
+                <h2>Courses</h2>
+                <div id="coursesList" class="courses-list">
+                    <!-- Courses will be dynamically inserted here -->
+                    <div class="course-item-placeholder">
+                        <p>Loading courses...</p>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Central Content Area -->
+            <section class="content-area">
+                <div id="welcomeMessage" class="welcome-message">
+                    <div class="welcome-icon">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                    </div>
+                    <h2>Welcome to MoodleAI</h2>
+                    <p>Select a course from the sidebar to view materials and interact with the AI assistant. The chatbot is always available on the right to answer your questions.</p>
+                    <ul>
+                        <li>Browse course materials and files</li>
+                        <li>Ask AI questions about any course</li>
+                        <li>Reorganize course folders</li>
+                    </ul>
+                </div>
+                <div id="courseMaterials" class="course-materials" style="display: none;">
+                    <h3 id="selectedCourseName"></h3>
+                    <div id="materialsList" class="materials-list">
+                        <!-- Files for the selected course will be shown here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- AI Assistant / Chatbot Area -->
+            <aside class="chatbot-area">
+                <div class="chatbot-header">
+                    <h3>Course AI Assistant</h3>
+                    <p>Ask questions about your selected materials</p>
+                    <button id="clearChatButton" title="Clear Chat"><i class="fas fa-trash-alt"></i></button>
+                </div>
+                <div id="chatMessages" class="chat-messages">
+                    <div class="message bot-message">
+                        <p>Hello! I'm your course AI assistant. I can help explain concepts, answer questions about this course, and analyze any materials you select from the left panel. Feel free to ask me anything!</p>
+                        <span class="timestamp">Just now</span>
+                    </div>
+                    <!-- Chat messages will be appended here -->
+                </div>
+                <div class="chat-input">
+                    <textarea id="chatInput" placeholder="Ask any question about this course..."></textarea>
+                    <button id="sendMessageButton"><i class="fas fa-paper-plane"></i></button>
+                </div>
+                <div class="selected-files-info">
+                    <span id="selectedFilesCount">0 files selected</span>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
