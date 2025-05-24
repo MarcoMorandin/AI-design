@@ -42,13 +42,16 @@ async def main():
                         print(f"\nSummarization result: {part.text}")
 '''
 
+
 async def main():
     # 8000 → no orchestrator, 8000 → with orchestrator
-    async with A2AClient("http://localhost:8000") as client:
+    async with A2AClient(
+        "https://ai-design-orchestrator-595073969012.europe-west1.run.app"
+    ) as client:
         agent_card = await client.get_agent_card()
         print(f"Connected to orchestrator: {agent_card.name}")
         print(f"Description: {agent_card.description}")
-        
+
         # Send a summarization task to the agent
         print("\nSending orchestrator task to the agent...")
 
@@ -56,9 +59,9 @@ async def main():
         text_to_summarize = """
         What is few shot learning?
         """
-        #text_to_summarize = """
-        #summarize the content of the following video: /Users/marcomorandin/Desktop/AI-Design/AI-design/SummarizationAgent/intervista.mov
-        #"""
+        # text_to_summarize = """
+        # summarize the content of the following video: /Users/marcomorandin/Desktop/AI-Design/AI-design/SummarizationAgent/intervista.mov
+        # """
         response = await client.send_task(text_to_summarize)
 
         # Access the result attribute
@@ -76,6 +79,7 @@ async def main():
                 for part in message.parts:
                     if hasattr(part, "text"):
                         print(f"\n{part.text}")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

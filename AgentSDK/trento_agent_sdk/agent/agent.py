@@ -60,7 +60,6 @@ class Agent(BaseModel):
 
         if self.agent_manager is not None:
             self._register_internal_tools()
-            print(self.tool_manager.list_tools())
         else:
             print("No agent manager provided, no internal tools registered")
 
@@ -83,14 +82,14 @@ class Agent(BaseModel):
 
         The format mirrors AgentManager.list_delegatable_agents().
         """
-        return self.agent_manager.list_delegatable_agents()
+        return await self.agent_manager.list_delegatable_agents()
 
     async def delegate_task_to_agent_tool(
         self,
-        agent_alias: Annotated[
+        agent_url: Annotated[
             str,
             Field(
-                description="Alias of the remote agent to which the task should be delegated"
+                description="URL of the remote agent to which the task should be delegated"
             ),
         ],
         message: Annotated[
@@ -106,13 +105,25 @@ class Agent(BaseModel):
         ] = None,
     ) -> str:
         """
-        Send *message* to the chosen agent and return **plain text** output.
+        Delegate a task to a remote agent and return the response as plain text.
 
-        If the agent returns multiple text parts they are concatenated with
-        new‑lines.
+        Args:
+            agent_url (str): The URL endpoint of the remote agent to which the task should
+                be delegated. This should be a valid HTTP/HTTPS URL pointing to an active
+                agent service that can handle the delegated task.
+            message (str): The user request or task description to forward to the remote
+                agent. This should contain all necessary context and instructions for the
+                remote agent to understand and execute the task effectively.
+            timeout (Optional[float], optional): Maximum time in seconds to wait for the
+                remote agent to complete the task. If not specified, uses the default
+                timeout configuration. Defaults to None.
+
+        Returns:
+            str: The response from the remote agent as plain text. If the agent returns
+                multiple text parts, they are concatenated with newlines for readability.
         """
         resp = await self.agent_manager.delegate_task_to_agent(
-            alias=agent_alias,
+            agent_url=agent_url,
             message=message,
             timeout=timeout,
         )
@@ -397,7 +408,9 @@ class Agent(BaseModel):
             # Otherwise, get a final response from the model
             try:
                 final_response = self.client.chat.completions.create(
-                    model=self.model, messages=self.short_memory, temperature=temperature
+                    model=self.model,
+                    messages=self.short_memory,
+                    temperature=temperature,
                 )
                 return final_response.choices[0].message.content
             except Exception as e:

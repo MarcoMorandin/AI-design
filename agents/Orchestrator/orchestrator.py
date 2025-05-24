@@ -1,5 +1,4 @@
 import os
-import asyncio
 from dotenv import load_dotenv
 
 from trento_agent_sdk.agent.agent import Agent
@@ -19,7 +18,7 @@ load_dotenv()
 
 # 2) Build a ToolManager and AgentManager for the orchestrator
 tool_manager = ToolManager()
-agent_manager = AgentManager(os.getenv("AGENT_REGISTRY_URL", "http://localhost:8000"))
+agent_manager = AgentManager(os.getenv("AGENT_REGISTRY_URL"))
 
 
 # Long memory
@@ -62,7 +61,7 @@ Follow this workflow strictly and automatically:
     """,
     tool_manager=tool_manager,
     agent_manager=agent_manager,
-    model="gemini-2.0-flash",
+    model="models/gemini-2.5-flash-preview-05-20",
     api_key=os.getenv("GOOGLE_API_KEY"),
     base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
     tool_required="auto",
@@ -94,16 +93,18 @@ orchestrator_card = AgentCard(
 
 # 6) Build the TaskManager and A2AServer
 task_manager = TaskManager()
+
 a2a_server = A2AServer(
     agent=orchestrator_agent,
     agent_card=orchestrator_card,
     task_manager=task_manager,
     host="0.0.0.0",
-    port=8000,
+    port=int(os.getenv("PORT", 8080)),
 )
 
 # 7) Register and run
 if __name__ == "__main__":
     # we need to register the remote summarizer before starting
-    print("Starting Orchestrator on http://localhost:8000")
+    port = int(os.getenv("PORT", 8080))
+    print(f"Starting Orchestrator on http://0.0.0.0:{port}")
     a2a_server.run()

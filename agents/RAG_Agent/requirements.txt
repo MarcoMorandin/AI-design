@@ -5,7 +5,7 @@ google-generativeai
 google-genai
 pydantic
 pydantic-settings
-trento-agent-sdk==2.0.4
+trento-agent-sdk
 
 # For the web server
 fastapi
