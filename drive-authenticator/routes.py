@@ -292,7 +292,139 @@ async def profile(request: Request):
     return user  # FastAPI will serialize this dict to JSON
 
 
+
 @app.get("/logout")
 async def logout(request: Request):
     request.session.clear()
     return RedirectResponse(url="/", status_code=303)
+
+
+@app.get("/user-courses")
+async def get_user_courses(request: Request):
+    """
+    Retrieves all courses (folders) within the user's main folder and all documents 
+    within each course folder including subfolders.
+    
+    Returns:
+        JSON response with list of courses and their documents
+    """
+    # Check if user is authenticated
+    if "credentials" not in request.session or "user_id" not in request.session:
+        return RedirectResponse(
+            url="/login/google", status_code=307
+        )  # Temporary redirect
+    
+    try:
+        # Get user's Google ID from session
+        google_id = request.session.get("google_id")
+        if not google_id:
+            raise HTTPException(
+                status_code=400,
+                detail="User ID not found in session."
+            )
+        
+        # Access users_collection from app.state to get the user's folder ID
+        current_users_collection = request.app.state.users_collection
+        if current_users_collection is None:
+            raise HTTPException(status_code=500, detail="Database not configured.")
+        
+        user = current_users_collection.find_one({"googleId": google_id})
+        if not user or "driveFolderId" not in user:
+            raise HTTPException(
+                status_code=404,
+                detail="User's Drive folder ID not found. Please log out and log in again."
+            )
+        
+        # Get the user's main folder ID
+        main_folder_id = user["driveFolderId"]
+        
+        # Get Drive service using stored credentials
+        drive_service = get_google_drive_service(request.session["credentials"])
+        if not drive_service:
+            raise HTTPException(
+                status_code=500, 
+                detail="Failed to initialize Google Drive service."
+            )
+        
+        # Find all course folders (first level folders within the main folder)
+        course_query = f"mimeType='application/vnd.google-apps.folder' and '{main_folder_id}' in parents and trashed=false"
+        course_response = drive_service.files().list(
+            q=course_query,
+            spaces="drive",
+            fields="files(id, name)"
+        ).execute()
+        
+        course_folders = course_response.get("files", [])
+        
+        # Prepare the result structure
+        courses_data = []
+        
+        # For each course folder, get all documents within it and its subfolders
+        for course_folder in course_folders:
+            course_id = course_folder["id"]
+            course_name = course_folder["name"]
+            
+            # Get all documents for this course
+            course_documents = []
+            
+            def get_files_in_folder(folder_id):
+                # Query for files in this folder
+                query = f"'{folder_id}' in parents and trashed=false"
+                file_response = drive_service.files().list(
+                    q=query,
+                    spaces="drive",
+                    fields="files(id, name, mimeType, webViewLink)"
+                ).execute()
+                
+                files = file_response.get("files", [])
+                
+                for file in files:
+                    # If it's a folder, recursively get its files
+                    if file["mimeType"] == "application/vnd.google-apps.folder":
+                        get_files_in_folder(file["id"])
+                    else:
+                        # Add non-folder files to our results
+                        document_info = {
+                            "name": file["name"],
+                            "id": file["id"],
+                            "link": file.get("webViewLink", f"https://drive.google.com/file/d/{file['id']}/view")
+                        }
+                        course_documents.append(document_info)
+            
+            # Start the recursive file collection for this course
+            get_files_in_folder(course_id)
+            
+            # Add course data to the result
+            courses_data.append({
+                "course_name": course_name,
+                "course_id": course_id,
+                "document_count": len(course_documents),
+                "documents": course_documents
+            })
+        
+        return {
+            "user_folder_id": main_folder_id,
+            "user_folder_name": user.get("driveFolderName", ""),
+            "course_count": len(courses_data),
+            "courses": courses_data
+        }
+        
+    except google.auth.exceptions.RefreshError:
+        # Handle expired credentials
+        return RedirectResponse(
+            url="/login/google", status_code=307
+        )
+    except HttpError as e:
+        print(f"Google API error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error accessing Google Drive: {str(e)}"
+        )
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"An unexpected error occurred: {str(e)}"
+        )

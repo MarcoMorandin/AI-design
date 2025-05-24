@@ -10,7 +10,7 @@ load_dotenv()
 
 # Get API key from environment variable
 API_KEY = os.getenv("GEMINI_API_KEY")
-SERVER_URL = os.getenv("SERVER_URL", "http://localhost:8002")
+SERVER_URL = os.getenv("SERVER_URL", "http://localhost:8001")
 
 
 async def test_markdown_summarizer():

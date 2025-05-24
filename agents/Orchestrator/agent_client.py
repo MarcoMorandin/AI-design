@@ -54,7 +54,7 @@ async def main():
 
         # Example text to summarize
         text_to_summarize = """
-        What Studies using Large Eddy Simulations proved?
+        What is few shot learning?
         """
         #text_to_summarize = """
         #summarize the content of the following video: /Users/marcomorandin/Desktop/AI-Design/AI-design/SummarizationAgent/intervista.mov

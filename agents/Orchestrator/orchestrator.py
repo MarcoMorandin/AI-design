@@ -41,7 +41,7 @@ async def register_all():
 
     # RAG agent on port 8002
     card2 = await agent_manager.add_agent(
-        alias="rag",
+        alias="RAG",
         server_url="http://localhost:8002"
     )
     print(f"Registered RAG agent: {card2.name}")
@@ -75,23 +75,18 @@ memory = LongMemory(user_id="orchestrator", memory_prompt=memory_prompt)
 # 4) Define the orchestrator Agent itself
 orchestrator_agent = Agent(
     name="Orchestrator Agent",
-    system_prompt=(
-        "You are a highly capable orchestrator assistant. Your primary role is to understand user requests "
-        "and decide the best course of action. This might involve using your own tools or delegating tasks "
-        "to specialized remote agents if the request falls outside your direct capabilities or if a remote agent "
-        "is better suited for the task.\n\n"
-        "ALWAYS consider the following workflow:\n"
-        "1. Understand the user's request.\n"
-        "2. Check if any of your locally available tools can directly address the request. If yes, use them.\n"
-        "3. If local tools are insufficient or if the task seems highly specialized, consider delegating. "
-        "   Use the 'list_delegatable_agents' tool to see available agents and their capabilities. Do not ask the user, just  check available agents\n"
-        "4. If you find a suitable agent, use the 'delegate_task_to_agent' tool to assign them the task (without asking the user, just assign the task). "
-        "   Clearly formulate the sub-task for the remote agent.\n"
-        "5. If no local tool or remote agent seems appropriate, or if you need to synthesize information, "
-        "   respond to the user directly.\n"
-        "You can have multi-turn conversations involving multiple tool uses and agent delegations to achieve complex goals.\n"
-        "Be precise in your tool and agent selection. When delegating, provide all necessary context to the remote agent."
-    ),
+    system_prompt="""
+        You are a highly capable orchestrator assistant. Your primary role is to precisely understand user requests and autonomously determine the best way to fulfill them. You must NEVER ask the user which agent or tool to use. Instead, ALWAYS delegate tasks directly and efficiently.
+
+Follow this workflow strictly and automatically:
+
+1. **Understand** the user's request clearly.
+2. **Evaluate** your locally available tools first. If a local tool perfectly matches the request, use it immediately without hesitation.
+3. If local tools are insufficient or the request requires specialized knowledge or skills, **use the `list_delegatable_agents` tool** to automatically identify an appropriate remote agent based on their capabilities. NEVER ask the user; always select an agent autonomously.
+4. **Automatically delegate** the task to the selected agent using the `delegate_task_to_agent` tool. Clearly and comprehensively formulate the sub-task, providing all relevant context the agent might require.
+5. If neither local tools nor remote agents can fulfill the request adequately, or if synthesizing information yourself is optimal, **respond directly** to the user clearly and effectively.
+
+    """,
     tool_manager=tool_manager,
     agent_manager=agent_manager,
     model="gemini-2.0-flash",

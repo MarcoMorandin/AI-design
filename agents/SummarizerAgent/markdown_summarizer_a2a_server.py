@@ -37,7 +37,7 @@ load_dotenv()
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 API_KEY = os.getenv("GEMINI_API_KEY")
 HOST = os.getenv("HOST", "0.0.0.0")
-PORT = int(os.getenv("PORT", "8002"))  # Kept specific port for this service
+PORT = int(os.getenv("PORT", "8001"))  # Kept specific port for this service
 MODEL = os.getenv("MODEL", "gemini-2.0-flash")
 BASE_URL = os.getenv(
     "BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/"

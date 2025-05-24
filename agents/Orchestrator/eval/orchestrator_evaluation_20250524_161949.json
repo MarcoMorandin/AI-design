@@ -1,0 +1,162 @@
+{
+  "summary": {
+    "total_tests": 11,
+    "successful_tests": 0,
+    "failed_tests": 11,
+    "success_rate": 0.0,
+    "total_execution_time": 41.97378134727478,
+    "average_execution_time": 3.8157983042977075,
+    "category_breakdown": {
+      "summarization": {
+        "total": 4,
+        "successful": 0
+      },
+      "rag": {
+        "total": 5,
+        "successful": 0
+      },
+      "ambiguous": {
+        "total": 2,
+        "successful": 0
+      }
+    },
+    "agent_delegation_stats": {
+      "direct": 11
+    }
+  },
+  "timestamp": "2025-05-24T16:19:49.771735",
+  "results": [
+    {
+      "question": "Can you summarize this document with ID 1UBJJQ0V07DA92rtrT1CqI-nBwaVmCEXG with style technical for me?",
+      "expected_agent": "summarizer",
+      "actual_agent_called": "summarizer",
+      "tools_called": [],
+      "execution_time": 4.89972996711731,
+      "success": true,
+      "response": "I am sorry, I cannot fulfill this request. I do not have the capability to access documents using an ID.",
+      "error": null,
+      "category": "summarization",
+      "description": "Direct summarization request"
+    },
+    {
+      "question": "I need a brief summary of the content in bullet points. Document ID 1UBJJQ0V07DA92rtrT1CqI-nBwaVmCEXG, style technical ",
+      "expected_agent": "summarizer",
+      "actual_agent_called": "summarizer",
+      "tools_called": [],
+      "execution_time": 3.2156004905700684,
+      "success": true,
+      "response": "I can help you with that. I will use the Summarization Agent to summarize the content in bullet points, using a technical style. What is the name or alias of the summarization agent?\n",
+      "error": null,
+      "category": "summarization",
+      "description": "Specific format summarization"
+    },
+    {
+      "question": "Create a technical summary of this markdown document. Document ID 1UBJJQ0V07DA92rtrT1CqI-nBwaVmCEXG",
+      "expected_agent": "summarizer",
+      "actual_agent_called": "summarizer",
+      "tools_called": [],
+      "execution_time": 4.119978189468384,
+      "success": true,
+      "response": "Sorry, I cannot access external files using the available tools. Therefore, I cannot create a technical summary of the specified markdown document. Is there anything else I can help you with?\n",
+      "error": null,
+      "category": "summarization",
+      "description": "Technical summarization request"
+    },
+    {
+      "question": "Please provide a concise overview of the main points. Document id 1UBJJQ0V07DA92rtrT1CqI-nBwaVmCEXG",
+      "expected_agent": "summarizer",
+      "actual_agent_called": "summarizer",
+      "tools_called": [],
+      "execution_time": 1.9076969623565674,
+      "success": true,
+      "response": "I am sorry, I cannot access documents directly. To provide an overview, I need the content of the document. Is there anything else you need help with?\n",
+      "error": null,
+      "category": "summarization",
+      "description": "Concise summarization request"
+    },
+    {
+      "question": "What does the document say about artificial intelligence?",
+      "expected_agent": "rag",
+      "actual_agent_called": "rag",
+      "tools_called": [],
+      "execution_time": 2.1494176387786865,
+      "success": true,
+      "response": "I do not have the capability to retrieve the content of document ID 1UBJJQ0V07DA92rtrT1CqI-nBwaVmCEXG. Would you like me to summarize it?\n",
+      "error": null,
+      "category": "rag",
+      "description": "Specific information retrieval"
+    },
+    {
+      "question": "Can you find information about the methodology used?",
+      "expected_agent": "rag",
+      "actual_agent_called": "rag",
+      "tools_called": [],
+      "execution_time": 2.4357895851135254,
+      "success": true,
+      "response": "I need more context to answer your question. Which methodology are you referring to?\n",
+      "error": null,
+      "category": "rag",
+      "description": "Methodology inquiry"
+    },
+    {
+      "question": "What are the key findings mentioned in the research?",
+      "expected_agent": "rag",
+      "actual_agent_called": "rag",
+      "tools_called": [],
+      "execution_time": 2.057492256164551,
+      "success": true,
+      "response": "Could you please specify which research you are referring to? If it is the document with ID 1UBJJQ0V07DA92rtrT1CqI-nBwaVmCEXG, I can summarize it for you.\n",
+      "error": null,
+      "category": "rag",
+      "description": "Research findings query"
+    },
+    {
+      "question": "Is there any mention of limitations in the study?",
+      "expected_agent": "rag",
+      "actual_agent_called": "rag",
+      "tools_called": [],
+      "execution_time": 2.867575168609619,
+      "success": true,
+      "response": "I do not have access to the content of studies. Can you provide me with the study text? Or, if you have a document ID, I can summarize it for you.\n",
+      "error": null,
+      "category": "rag",
+      "description": "Specific detail search"
+    },
+    {
+      "question": "What does section 3.2 discuss?",
+      "expected_agent": "rag",
+      "actual_agent_called": "rag",
+      "tools_called": [],
+      "execution_time": 2.1859681606292725,
+      "success": true,
+      "response": "Error: Error code: 429 - [{'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.0-flash'}, 'quotaValue': '15'}]}, {'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '19s'}]}}]",
+      "error": null,
+      "category": "rag",
+      "description": "Section-specific query"
+    },
+    {
+      "question": "Tell me about this document. ID 1UBJJQ0V07DA92rtrT1CqI-nBwaVmCEXG",
+      "expected_agent": "summarizer",
+      "actual_agent_called": "summarizer",
+      "tools_called": [],
+      "execution_time": 2.624549150466919,
+      "success": true,
+      "response": "Error: Error code: 429 - [{'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.0-flash'}, 'quotaValue': '15'}]}, {'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '15s'}]}}]",
+      "error": null,
+      "category": "ambiguous",
+      "description": "Ambiguous document request (should lean toward summary)"
+    },
+    {
+      "question": "What can you tell me about the content?",
+      "expected_agent": "rag",
+      "actual_agent_called": "rag",
+      "tools_called": [],
+      "execution_time": 2.407580614089966,
+      "success": true,
+      "response": "Error: Error code: 429 - [{'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.0-flash'}, 'quotaValue': '15'}]}, {'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '12s'}]}}]",
+      "error": null,
+      "category": "ambiguous",
+      "description": "Ambiguous content request (should lean toward retrieval)"
+    }
+  ]
+}
