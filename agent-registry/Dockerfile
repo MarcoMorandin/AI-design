@@ -13,20 +13,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Create a directory for logs and data
-RUN mkdir -p /app/data /app/logs
-
 # Expose the port
 EXPOSE 8080
-
-# Set environment variables
-ENV REGISTRY_PORT=8080
-ENV REGISTRY_HOST=0.0.0.0
-ENV MONGODB_URI=mongodb://mongodb:27017
-ENV MONGODB_DATABASE=agent_registry
-ENV MONGODB_COLLECTION=agents
-ENV LOG_LEVEL=INFO
-ENV PYTHONUNBUFFERED=1
 
 # Run the application
 CMD ["python", "run.py"]

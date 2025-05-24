@@ -7,50 +7,24 @@ from trento_agent_sdk.a2a.models.AgentCard import AgentCard, AgentSkill
 from trento_agent_sdk.a2a.TaskManager import TaskManager
 from trento_agent_sdk.a2a_server import A2AServer
 from trento_agent_sdk.tool.tool_manager import ToolManager
-from trento_agent_sdk.agent.agent_manager import AgentManager  # <- make sure this path matches your package
+from trento_agent_sdk.agent.agent_manager import (
+    AgentManager,
+)  # <- make sure this path matches your package
 from trento_agent_sdk.memory.memory import LongMemory
-#from ..services.RAG.rag import RAG
+
+# from ..services.RAG.rag import RAG
 
 # 1) Load env (if you need any keys for your LLM)
 load_dotenv()
 
 # 2) Build a ToolManager and AgentManager for the orchestrator
 tool_manager = ToolManager()
-agent_manager = AgentManager()
-
-
-# 3) Register the SummarizationAgent as a remote agent
-#    This will fetch its .well-known/agent.json and cache its card.
-"""
-async def register_summarizer():
-    # adjust URL if your summarizer lives elsewhere
-    card = await agent_manager.add_agent(
-        alias="summarizer",
-        server_url="http://localhost:8000"
-    )
-    print(f"Orchestrator discovered remote agent: {card.name}")
-"""
-
-async def register_all():
-    # Summarization agent on port 8001
-    card1 = await agent_manager.add_agent(
-        alias="summarizer",
-        server_url="http://localhost:8001"
-    )
-    print(f"Registered summarizer: {card1.name}")
-
-    # RAG agent on port 8002
-    card2 = await agent_manager.add_agent(
-        alias="rag",
-        server_url="http://localhost:8002"
-    )
-    print(f"Registered RAG agent: {card2.name}")
-
+agent_manager = AgentManager(os.getenv("AGENT_REGISTRY_URL", "http://localhost:8000"))
 
 
 # Long memory
 
-memory_prompt= (
+memory_prompt = (
     "You are the LongMemory of an orchestator agent that have the role of choosing the right agent or tool to fulfill the user request.\n"
     "You will receive two inputs:\n"
     "1) existing_memories: a JSON array of {id, topic, description}\n"
@@ -58,18 +32,17 @@ memory_prompt= (
     "First you should extract which external agent or tool the orchestator choose to fulfill the user request and store the it to help the orchestator in future choises\n"
     "If you found usefull information in the chast_history, add them to the list. "
     "If this new information replace some of the existing memories, replace them. "
-    "Analyze the chat and return a JSON object with exactly one field: \"memories_to_add\". "
+    'Analyze the chat and return a JSON object with exactly one field: "memories_to_add". '
     "The value must be either:\n"
     "  • A list of objects, each with exactly these fields:\n"
-    "      – \"id\": the existing memory id to update, OR null if new\n"
-    "      – \"topic\": a label for the general area of memory (e.g. \"agent_to_choose\", \"cuisine\").\n"
-    "      – \"description\": a comprenshicve description about the usefull information to remember.\n"
-    "  • The string \"NO_MEMORIES_TO_ADD\" if nothing has changed.\n"
+    '      – "id": the existing memory id to update, OR null if new\n'
+    '      – "topic": a label for the general area of memory (e.g. "agent_to_choose", "cuisine").\n'
+    '      – "description": a comprenshicve description about the usefull information to remember.\n'
+    '  • The string "NO_MEMORIES_TO_ADD" if nothing has changed.\n'
     "Do NOT include any other fields or commentary."
 )
 
 memory = LongMemory(user_id="orchestrator", memory_prompt=memory_prompt)
-
 
 
 # 4) Define the orchestrator Agent itself
@@ -99,7 +72,7 @@ orchestrator_agent = Agent(
     base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
     tool_required="auto",
     long_memory=memory,
-    #final_tool="delegate_task_to_agent",  
+    # final_tool="delegate_task_to_agent",
 )
 
 # 5) Define the Orchestrator’s own AgentCard
@@ -137,6 +110,5 @@ a2a_server = A2AServer(
 # 7) Register and run
 if __name__ == "__main__":
     # we need to register the remote summarizer before starting
-    asyncio.run(register_all())
     print("Starting Orchestrator on http://localhost:8000")
     a2a_server.run()
