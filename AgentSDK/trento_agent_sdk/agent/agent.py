@@ -49,8 +49,6 @@ class Agent(BaseModel):
         "You can have multi-turn conversations involving multiple tool uses and agent delegations to achieve complex goals.\n"
         "Be precise in your tool and agent selection. When delegating, provide all necessary context to the remote agent."
     )
-    validation: bool = False
-    validation_tool_name: str = None
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -202,6 +200,7 @@ class Agent(BaseModel):
 
             # Keep track of iterations
             iteration_count = 0
+            final_response_content = None
 
             # Continue running until the model decides it's done,
             # or we reach the maximum number of iterations
@@ -370,7 +369,8 @@ class Agent(BaseModel):
                                 }
                             )
                 else:
-                    # If no tool was called, the model has finished its work
+                    # If no tool was called, save the response content and break
+                    final_response_content = response.choices[0].message.content
                     logger.info("Model did not use tools, conversation complete")
                     break
 
@@ -387,15 +387,22 @@ class Agent(BaseModel):
                     }
                 )
 
-            logger.error("SHORT MOMORY")
-            logger.error(self.chat_history)
+            # Save chat history to long memory
             self.long_memory.insert_into_long_memory_with_update(self.chat_history)
 
-            final_response = self.client.chat.completions.create(
-                model=self.model, messages=self.short_memory, temperature=temperature
-            )
+            # If we already have a final response (model didn't use tools), return it
+            if final_response_content is not None:
+                return final_response_content
 
-            return final_response.choices[0].message.content
+            # Otherwise, get a final response from the model
+            try:
+                final_response = self.client.chat.completions.create(
+                    model=self.model, messages=self.short_memory, temperature=temperature
+                )
+                return final_response.choices[0].message.content
+            except Exception as e:
+                logger.error(f"Error getting final response: {e}")
+                return "I apologize, but I encountered an error while generating my final response."
 
         except Exception as e:
             logger.error(f"Error running agent: {e}")
