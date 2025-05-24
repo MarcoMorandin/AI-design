@@ -1,5 +1,7 @@
 import logging
+import aiohttp
 from typing import Dict, Any, List, Optional
+from urllib.parse import quote
 
 from ..a2a_client import A2AClient
 from ..a2a.models.AgentCard import AgentCard
@@ -10,101 +12,110 @@ logger = logging.getLogger(__name__)
 
 class AgentManager:
     """
-    Keeps track of remote A2A agents and offers convenience wrappers that the
-    Agent‑side tools (`list_delegatable_agents_tool`, `delegate_task_to_agent_tool`)
+    Manages remote A2A agents through an external agent-registry service.
+    Offers convenience wrappers that the Agent-side tools
+    (list_delegatable_agents_tool, delegate_task_to_agent_tool)
     can call just like normal Python functions.
     """
 
-    def __init__(self) -> None:
-        # alias  →  {"server_url": str, "card": AgentCard}
-        self._registry: Dict[str, Dict[str, Any]] = {}
+    def __init__(self, registry_url: str = "http://localhost:8080") -> None:
+        """
+        Initialize the AgentManager with an external registry service.
+
+        Args:
+            registry_url: URL of the agent-registry service (default: http://localhost:8080)
+        """
+        self.registry_url = registry_url.rstrip("/")
 
     # ------------------------------------------------------------------ #
     # Discovery / registry
     # ------------------------------------------------------------------ #
-    async def add_agent(self, alias: str, server_url: str) -> AgentCard:
+    async def _get_agent_from_registry(self, agent_url: str) -> AgentCard:
         """
-        Discover a remote agent (via its /.well‑known/agent.json) and cache
-        the result under *alias*.
-
-        Returns the fetched `AgentCard`.  If the alias already exists the
-        cached card is returned and no network request is made.
+        Fetch agent card from the external registry.
         """
-        if alias in self._registry:
-            logger.info("Agent ‘%s’ already registered – using cached card", alias)
-            return self._registry[alias]["card"]
+        async with aiohttp.ClientSession() as session:
+            encoded_url = quote(agent_url, safe="")
+            async with session.get(
+                f"{self.registry_url}/agents/{encoded_url}"
+            ) as response:
+                if response.status == 200:
+                    card_data = await response.json()
+                    return AgentCard(**card_data)
+                else:
+                    # If not found in registry, try direct connection
+                    async with A2AClient(agent_url) as client:
+                        return await client.get_agent_card()
 
-        server_url = server_url.rstrip("/")
-        async with A2AClient(server_url) as client:
-            card = await client.get_agent_card()
-
-        self._registry[alias] = {"server_url": server_url, "card": card}
-        logger.info("Registered remote agent ‘%s’ (%s)", alias, card.name)
-        return card
-
-    def list_delegatable_agents(self) -> List[Dict[str, Any]]:
+    async def list_delegatable_agents(self) -> List[Dict[str, Any]]:
         """
-        Return a JSON‑serialisable list describing every registered agent.
-        Suitable for feeding straight into an LLM function call response.
+        Return a JSON-serialisable list describing every registered agent.
+        Fetches data from the external registry service.
         """
-        result: List[Dict[str, Any]] = []
-        for alias, data in self._registry.items():
-            card: AgentCard = data["card"]
-            result.append(
-                {
-                    "alias": alias,
-                    "name": card.name,
-                    "description": card.description,
-                    "skills": [
-                        {
-                            "id": s.id,
-                            "name": s.name,
-                            "description": s.description,
-                        }
-                        for s in (card.skills or [])
-                    ],
-                    "url": data["server_url"],
-                }
-            )
-        return result
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(f"{self.registry_url}/agents") as response:
+                    if response.status == 200:
+                        agents_data = await response.json()
+                        result = []
 
-    def get_agent_card(self, alias: str) -> AgentCard:
-        """Convenience getter – raises if *alias* is unknown."""
-        try:
-            return self._registry[alias]["card"]
-        except KeyError:
-            raise ValueError(f"Unknown agent alias '{alias}'.") from None
+                        for agent_data in agents_data:
+                            agent_url = agent_data.get("url")
+                            # Use the URL as alias since we no longer maintain local aliases
+                            alias = agent_url
+
+                            card = AgentCard(**agent_data)
+                            result.append(
+                                {
+                                    "alias": alias,
+                                    "name": card.name,
+                                    "description": card.description,
+                                    "skills": [
+                                        {
+                                            "id": s.id,
+                                            "name": s.name,
+                                            "description": s.description,
+                                        }
+                                        for s in (card.skills or [])
+                                    ],
+                                    "url": agent_url,
+                                }
+                            )
+
+                        return result
+                    else:
+                        logger.error(
+                            f"Failed to fetch agents from registry: {response.status}"
+                        )
+                        return []
+
+            except Exception as e:
+                logger.error(f"Error fetching agents from registry: {e}")
+                return []
 
     # ------------------------------------------------------------------ #
     # Delegation
     # ------------------------------------------------------------------ #
     async def delegate_task_to_agent(
         self,
-        alias: str,
+        agent_url: str,
         message: str,
         *,
         polling_interval: float = 1.0,
         timeout: Optional[float] = None,
     ) -> GetTaskResponse:
         """
-        Forward *message* to the chosen agent, wait for completion, and return
-        the full `GetTaskResponse`.
+        Forward message to the chosen agent, wait for completion, and return
+        the full GetTaskResponse.
 
-        The caller can post‑process or just feed the object back into the chat
-        history.  To extract plain text use `AgentManager.extract_text(...)`.
+        The caller can post-process or just feed the object back into the chat
+        history.  To extract plain text use AgentManager.extract_text(...).
         """
-        if alias not in self._registry:
-            raise ValueError(
-                f"Agent alias '{alias}' not found – call add_agent() first."
-            )
-
-        server_url = self._registry[alias]["server_url"]
-
-        async with A2AClient(server_url) as client:
+        async with A2AClient(agent_url) as client:
             # 1. send
             send_resp: SendTaskResponse = await client.send_task(message)
             task_id = send_resp.result.id
-            logger.info("Sent task %s to agent ‘%s’", task_id, alias)
+            logger.info("Sent task %s to agent '%s'", task_id, agent_url)
 
             # 2. wait until COMPLETED / FAILED / CANCELED (or timeout)
             final_resp: GetTaskResponse = await client.wait_for_task_completion(
@@ -123,7 +134,7 @@ class AgentManager:
     @staticmethod
     def extract_text(response: GetTaskResponse) -> str:
         """
-        Pull the plain‑text payload out of a `GetTaskResponse`.
+        Pull the plain-text payload out of a GetTaskResponse.
         Safe even if the response shape evolves slightly.
         """
         if (
@@ -139,4 +150,3 @@ class AgentManager:
             ]
             return "\n".join(texts).strip()
         return ""
-

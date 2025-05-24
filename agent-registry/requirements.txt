@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+aiohttp
+pydantic
+motor
+python-dotenv
+trento-agent-sdk
