@@ -1,5 +1,4 @@
 import os
-import asyncio
 from dotenv import load_dotenv
 
 from trento_agent_sdk.agent.agent import Agent
@@ -100,11 +99,12 @@ a2a_server = A2AServer(
     agent_card=orchestrator_card,
     task_manager=task_manager,
     host="0.0.0.0",
-    port=8000,
+    port=int(os.getenv("PORT", 8080)),
 )
 
 # 7) Register and run
 if __name__ == "__main__":
     # we need to register the remote summarizer before starting
-    print("Starting Orchestrator on http://localhost:8000")
+    port = int(os.getenv("PORT", 8080))
+    print(f"Starting Orchestrator on http://0.0.0.0:{port}")
     a2a_server.run()
