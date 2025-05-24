@@ -31,8 +31,6 @@ def evaluate_summary(final_summary: str, source_document: str):
     rouge = Rouge()
 
     # Calculate ROUGE scores
-    # Note: ROUGE typically compares against reference summaries rather than source
-    # Here we're using the source as reference, but ideally you'd have human references
     scores = rouge.get_scores(final_summary, source_document)[0]
 
     # 2. Readability metrics via textstat
