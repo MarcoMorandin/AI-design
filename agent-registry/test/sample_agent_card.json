@@ -1,0 +1,35 @@
+{
+    "name": "Example Test Agent",
+    "description": "A sample agent for testing the Agent Registry Service",
+    "version": "1.0.0",
+    "provider": "Test Provider",
+    "contact_email": "test@example.com",
+    "skills": [
+        {
+            "id": "skill-001",
+            "name": "text-summarization",
+            "description": "Summarizes text content",
+            "tags": [
+                "nlp",
+                "summarization"
+            ],
+            "examples": [
+                "Summarize this article",
+                "Give me a summary of the document"
+            ]
+        },
+        {
+            "id": "skill-002",
+            "name": "image-analysis",
+            "description": "Analyzes image content",
+            "tags": [
+                "cv",
+                "image"
+            ],
+            "examples": [
+                "What objects are in this image?",
+                "Describe what you see in this picture"
+            ]
+        }
+    ]
+}
