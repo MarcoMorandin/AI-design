@@ -19,7 +19,7 @@ load_dotenv()
 
 # 2) Build a ToolManager and AgentManager for the orchestrator
 tool_manager = ToolManager()
-agent_manager = AgentManager(os.getenv("AGENT_REGISTRY_URL", "http://localhost:8000"))
+agent_manager = AgentManager(os.getenv("AGENT_REGISTRY_URL"))
 
 
 # Long memory
@@ -62,7 +62,7 @@ Follow this workflow strictly and automatically:
     """,
     tool_manager=tool_manager,
     agent_manager=agent_manager,
-    model="gemini-2.0-flash",
+    model="models/gemini-2.5-flash-preview-05-20",
     api_key=os.getenv("GOOGLE_API_KEY"),
     base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
     tool_required="auto",
@@ -94,6 +94,7 @@ orchestrator_card = AgentCard(
 
 # 6) Build the TaskManager and A2AServer
 task_manager = TaskManager()
+
 a2a_server = A2AServer(
     agent=orchestrator_agent,
     agent_card=orchestrator_card,

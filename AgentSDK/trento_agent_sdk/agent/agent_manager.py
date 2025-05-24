@@ -56,7 +56,8 @@ class AgentManager:
             try:
                 async with session.get(f"{self.registry_url}/agents") as response:
                     if response.status == 200:
-                        agents_data = await response.json()
+                        response_data = await response.json()
+                        agents_data = response_data.get("agents", [])
                         result = []
 
                         for agent_data in agents_data:
@@ -81,7 +82,6 @@ class AgentManager:
                                     "url": agent_url,
                                 }
                             )
-
                         return result
                     else:
                         logger.error(
