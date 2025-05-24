@@ -1,12 +1,12 @@
 from __future__ import annotations as _annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from .tool import Tool
-import asyncio
+import json
 import logging
 
-# Set up logger
+# Set up loggers
 logger = logging.getLogger(__name__)
 
 
@@ -52,7 +52,15 @@ class ToolManager:
         if not tool:
             raise Exception(f"Unknown tool: {name}")
 
-        return await tool.run(arguments)
+        # Log tool call with truncated arguments
+        from ..logging_config import safe_json_serialize
+
+        try:
+            result = await tool.run(arguments)
+
+            return result
+        except Exception as e:
+            raise
 
     def get_tool_info(
         self,

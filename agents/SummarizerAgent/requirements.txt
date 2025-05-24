@@ -1,0 +1,49 @@
+# Core Dependencies
+fastapi>=0.115.12
+uvicorn[standard]>=0.34.2
+pydantic>=2.11.3
+python-dotenv>=1.1.0
+requests>=2.32.3
+aiohttp>=3.11.18
+httpx>=0.28.1
+websockets>=15.0.1
+
+# Google Services and Authentication
+google-api-python-client>=2.169.0
+google-auth>=2.40.1
+google-auth-oauthlib>=1.2.2
+google-auth-httplib2>=0.2.0
+google-ai-generativelanguage>=0.6.15
+google-generativeai>=0.8.5
+google-genai>=1.12.1
+
+# Database
+pymongo>=4.12.1
+dnspython>=2.7.0
+
+# AI and ML
+openai>=1.78.1
+
+# File Processing
+PyPDF2>=3.0.0
+ffmpeg-python>=0.2.0
+pathlib>=1.0.1
+
+# Trento SDK (local package)
+trento-agent-sdk  # Comment this out if installing from PyPI
+# Use -e ./AgentSDK for local development
+
+# Web Framework Components
+starlette>=0.46.2
+jinja2>=3.1.6
+itsdangerous>=2.2.0
+
+# Security and Encryption
+rsa>=4.9.1
+cryptography>=41.0.0
+
+# Utilities
+typing-extensions>=4.13.2
+tqdm>=4.67.1
+anyio>=4.9.0
+click>=8.1.8

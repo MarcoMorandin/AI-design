@@ -10,9 +10,6 @@ from fastapi import FastAPI, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-# Import logging configuration
-from logging_config import setup_logging
-
 # Import AgentSDK components
 from trento_agent_sdk.agent.agent import Agent
 from trento_agent_sdk.a2a.models.AgentCard import AgentCard, AgentSkill
@@ -34,7 +31,6 @@ from tools.get_course_folder_id.get_course_folder_id import get_course_folder_id
 from trento_agent_sdk.memory.memory import LongMemory
 
 # Set up proper logging for production environment
-setup_logging()
 logger = logging.getLogger(__name__)
 
 # Load environment variables

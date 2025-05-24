@@ -5,6 +5,7 @@ setup.py
 trento_agent_sdk/__init__.py
 trento_agent_sdk/a2a_client.py
 trento_agent_sdk/a2a_server.py
+trento_agent_sdk/logging_config.py
 trento_agent_sdk.egg-info/PKG-INFO
 trento_agent_sdk.egg-info/SOURCES.txt
 trento_agent_sdk.egg-info/dependency_links.txt

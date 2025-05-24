@@ -45,14 +45,27 @@ def evaluate_summary(final_summary: str, source_document: str):
         / len(final_summary.split()),
     }
 
-    prompt = f"""I provide you some metrics about the valuation of the summary about a general document. I wanto you to analyze the metrics and return the analysis of the metrics
-        --- QEVAL SCORE ---
-        {scores}
-        --- QEVAL SCORE ---
+    # Convert the scores dictionary to a string with proper formatting
+    scores_str = "\n".join([f"{k}: {v}" for k, v in scores.items()])
+    readability_str = "\n".join([f"{k}: {v}" for k, v in readability.items()])
 
-        --- REDABILITY SCORE ---
-        {readability}
-        --- REDABILITY SCORE ---
+    prompt = f"""Analyze these summary quality metrics and provide a concise evaluation:
+
+    --- ROUGE SCORES ---
+    {scores_str}
+    --- ROUGE SCORES ---
+
+    --- READABILITY METRICS ---
+    {readability_str}
+    --- READABILITY METRICS ---
+    
+    Guidelines for analysis:
+    - ROUGE scores: Higher values (closer to 1.0) indicate better content overlap with source
+    - Flesch Reading Ease: 60-70 is ideal (higher = more readable)
+    - Grade levels: Lower values indicate more accessible text
+    - Balance content preservation with readability
+    
+    Provide a brief, actionable assessment focusing on strengths and areas for improvement.
     """
 
     response = client.chat.completions.create(
@@ -68,21 +81,8 @@ def evaluate_summary(final_summary: str, source_document: str):
 
 
 if __name__ == "__main__":
-    # Example usage—replace with your actual document and summary
-    source_document = (
-        "OpenAI’s GPT-4 is a state-of-the-art large language model that achieves strong "
-        "performance across various benchmarks and can be used for tasks like summarization."
-    )
-    final_summary = (
-        "GPT-4, developed by OpenAI, is a powerful language model excelling at many tasks, "
-        "including summarization, and outperforms previous models on several benchmarks."
-    )
+    # Example usage
+    final_summary = "This is a sample summary."
+    source_document = "This is the original document text."
 
-    score, read_stats = evaluate_summary(final_summary, source_document)
-
-    print("=== QuestEval Score ===")
-    print(f"{score:.4f}\n")
-
-    print("=== Readability Metrics ===")
-    for metric, value in read_stats.items():
-        print(f"{metric}: {value:.2f}")
+    print(evaluate_summary(final_summary, source_document))

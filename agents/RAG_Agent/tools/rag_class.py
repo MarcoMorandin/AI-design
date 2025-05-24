@@ -1,9 +1,6 @@
-import os, sys
-
-
+import os
 from .utils import chunk_text
 import time
-import json
 import logging
 from uuid import uuid4
 import requests
@@ -12,25 +9,25 @@ from typing import List
 from google import genai
 from google.genai import types
 
+# Set up a console-only logger
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 load_dotenv()
+
 
 class Embedder:
     def __init__(self) -> None:
         self.embedding_client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
-
 
     def embed(self, text: str) -> List[float]:
         """
         Embed the text using the embedder API
         """
         result = self.embedding_client.models.embed_content(
-                model="models/text-embedding-004",
-                contents=[text],
-                config=types.EmbedContentConfig(task_type="SEMANTIC_SIMILARITY")
-            )
+            model="models/text-embedding-004",
+            contents=[text],
+            config=types.EmbedContentConfig(task_type="SEMANTIC_SIMILARITY"),
+        )
         return result.embeddings[0].values
 
 
@@ -96,7 +93,7 @@ class RAG:
             chunks = chunk_text(text)
             points = []
             for chunk in chunks:
-                pid = uuid4().hex                
+                pid = uuid4().hex
                 points.append(
                     {
                         "id": pid,
@@ -137,7 +134,7 @@ class RAG:
         )
         try:
             resp.raise_for_status()
-        except requests.exceptions.HTTPError as e:
+        except requests.exceptions.HTTPError:
             logger.error("Qdrant API error response: %s", resp.text)
             raise
         hits = resp.json()["result"]
@@ -178,7 +175,7 @@ class RAG:
         return contents
 
 
-#if __name__ == "__main__":
+# if __name__ == "__main__":
 #    rag = RAG("RAG_usertest_user")
 #    #rag.upload_in_kb("This is a test document. It contains some text.")
 #    print(rag.retrieve_relevant_knowledge("What is this document about?"))
