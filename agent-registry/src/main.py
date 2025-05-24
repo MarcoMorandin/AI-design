@@ -15,7 +15,8 @@ from fastapi import FastAPI, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
-from .models import AgentRegistrationRequest, AgentInfo, AgentDiscoveryResponse
+from .models import AgentRegistrationRequest, AgentDiscoveryResponse
+from trento_agent_sdk.a2a.models.AgentCard import AgentCard
 from .utils.mongodb_storage import MongoDBStorage
 from .api.routes import AgentRegistryRoutes
 from .config import REGISTRY_HOST, REGISTRY_PORT, LOG_LEVEL
@@ -67,7 +68,7 @@ def create_app():
     )
 
     # Register API routes
-    @app.post("/register", response_model=AgentInfo)
+    @app.post("/register", response_model=AgentCard)
     async def register_agent(
         request: AgentRegistrationRequest, background_tasks: BackgroundTasks
     ):
@@ -79,20 +80,20 @@ def create_app():
         """List all registered agents."""
         return await routes_handler.list_agents()
 
-    @app.get("/agents/{agent_id}", response_model=AgentInfo)
-    async def get_agent(agent_id: str):
-        """Get specific agent information."""
-        return await routes_handler.get_agent(agent_id)
+    @app.get("/agents/{agent_url:path}", response_model=AgentCard)
+    async def get_agent(agent_url: str):
+        """Get specific agent information by URL."""
+        return await routes_handler.get_agent(agent_url)
 
-    @app.delete("/agents/{agent_id}")
-    async def unregister_agent(agent_id: str, background_tasks: BackgroundTasks):
+    @app.delete("/agents/{agent_url:path}")
+    async def unregister_agent(agent_url: str, background_tasks: BackgroundTasks):
         """Unregister an agent."""
-        return await routes_handler.unregister_agent(agent_id, background_tasks)
+        return await routes_handler.unregister_agent(agent_url, background_tasks)
 
-    @app.post("/refresh/{agent_id}")
-    async def refresh_agent_card(agent_id: str, background_tasks: BackgroundTasks):
+    @app.post("/refresh/{agent_url:path}")
+    async def refresh_agent_card(agent_url: str, background_tasks: BackgroundTasks):
         """Refresh AgentCard data for a specific agent."""
-        return await routes_handler.refresh_agent_card(agent_id, background_tasks)
+        return await routes_handler.refresh_agent_card(agent_url, background_tasks)
 
     @app.get("/")
     async def root():

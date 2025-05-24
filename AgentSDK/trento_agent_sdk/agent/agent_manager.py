@@ -8,6 +8,9 @@ from ..a2a.models.Types import SendTaskResponse, GetTaskResponse
 logger = logging.getLogger(__name__)
 
 
+# Modify agent_manager in order to pass the url of the agent-registry that is in the folder agent-registry, and manage agent through that registry instead of using the builtin one.
+
+
 class AgentManager:
     """
     Keeps track of remote A2A agents and offers convenience wrappers that the
@@ -139,4 +142,3 @@ class AgentManager:
             ]
             return "\n".join(texts).strip()
         return ""
-

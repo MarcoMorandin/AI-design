@@ -4,3 +4,4 @@ aiohttp
 pydantic
 motor
 python-dotenv
+trento-agent-sdk

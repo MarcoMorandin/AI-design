@@ -1,11 +1,10 @@
 """
 MongoDB Storage
 
-MongoDB-based storage implementation for agent registry.
+MongoDB-based storage implementation for agent registry using AgentCard with URL as identifier.
 """
 
 import logging
-from datetime import datetime
 from typing import List, Optional
 from motor.motor_asyncio import (
     AsyncIOMotorClient,
@@ -13,7 +12,7 @@ from motor.motor_asyncio import (
     AsyncIOMotorCollection,
 )
 
-from ..models import AgentInfo
+from trento_agent_sdk.a2a.models.AgentCard import AgentCard
 from ..config import MONGODB_URI, MONGODB_DATABASE, MONGODB_COLLECTION
 
 logger = logging.getLogger(__name__)
@@ -45,109 +44,59 @@ class MongoDBStorage:
             self.client.close()
             logger.info("Disconnected from MongoDB")
 
-    async def register_agent(self, agent_info: AgentInfo) -> AgentInfo:
-        """Register an agent in MongoDB."""
-        try:
-            # Set timestamps
-            agent_info.created_at = datetime.utcnow()
-            agent_info.updated_at = agent_info.created_at
-
-            # Insert into MongoDB
-            await self.collection.insert_one(agent_info.dict())
-            logger.info(f"Registered agent: {agent_info.name} ({agent_info.id})")
-            return agent_info
-        except Exception as e:
-            logger.error(f"Failed to register agent: {e}")
-            raise
-
-    async def save_agent(self, agent_info: AgentInfo) -> bool:
+    async def save_agent(self, agent_card: AgentCard) -> bool:
         """Save agent information to MongoDB (create or update)."""
         try:
-            # Check if agent already exists
-            existing_agent = await self.get_agent(agent_info.agent_id)
-
-            if existing_agent:
-                # Update timestamp for last_seen
-                agent_info.last_seen = datetime.utcnow()
-
-                # Update in MongoDB
-                await self.collection.replace_one(
-                    {"agent_id": agent_info.agent_id}, agent_info.dict()
-                )
-                logger.info(f"Updated agent: {agent_info.name} ({agent_info.agent_id})")
-            else:
-                # Insert into MongoDB
-                await self.collection.insert_one(agent_info.dict())
-                logger.info(
-                    f"Registered agent: {agent_info.name} ({agent_info.agent_id})"
-                )
-
+            # Use URL as the unique identifier
+            await self.collection.replace_one(
+                {"url": agent_card.url}, agent_card.dict(), upsert=True
+            )
+            logger.info(f"Saved agent: {agent_card.name} at {agent_card.url}")
             return True
         except Exception as e:
             logger.error(f"Failed to save agent: {e}")
             return False
 
-    async def update_agent(self, agent_id: str, agent_info: AgentInfo) -> AgentInfo:
-        """Update an agent in MongoDB."""
+    async def get_agent(self, agent_url: str) -> Optional[AgentCard]:
+        """Get agent information by URL."""
         try:
-            # Update timestamp
-            agent_info.updated_at = datetime.utcnow()
-
-            # Update in MongoDB
-            await self.collection.replace_one({"id": agent_id}, agent_info.dict())
-            logger.info(f"Updated agent: {agent_info.name} ({agent_info.id})")
-            return agent_info
+            document = await self.collection.find_one({"url": agent_url})
+            if document:
+                # Remove MongoDB's _id field if present
+                document.pop("_id", None)
+                agent_card = AgentCard(**document)
+                return agent_card
+            return None
         except Exception as e:
-            logger.error(f"Failed to update agent: {e}")
-            raise
+            logger.error(f"Failed to get agent {agent_url}: {e}")
+            return None
 
-    async def get_agent(self, agent_id: str) -> Optional[AgentInfo]:
-        """Get an agent by ID from MongoDB."""
-        try:
-            document = await self.collection.find_one({"agent_id": agent_id})
-            if not document:
-                logger.warning(f"Agent not found: {agent_id}")
-                return None
-
-            agent_info = AgentInfo(**document)
-            logger.info(f"Retrieved agent: {agent_info.name} ({agent_info.agent_id})")
-            return agent_info
-        except Exception as e:
-            logger.error(f"Failed to get agent: {e}")
-            raise
-
-    async def unregister_agent(self, agent_id: str) -> bool:
-        """Unregister an agent from MongoDB."""
-        try:
-            result = await self.collection.delete_one({"agent_id": agent_id})
-            if result.deleted_count == 0:
-                logger.warning(f"Agent not found for unregistering: {agent_id}")
-                return False
-
-            logger.info(f"Unregistered agent: {agent_id}")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to unregister agent: {e}")
-            raise
-
-    async def list_agents(self) -> List[AgentInfo]:
-        """List all agents from MongoDB."""
+    async def list_agents(self) -> List[AgentCard]:
+        """List all registered agents."""
         try:
             cursor = self.collection.find({})
-            documents = await cursor.to_list(length=100)
-            agent_infos = [AgentInfo(**doc) for doc in documents]
-            logger.info(f"Listed {len(agent_infos)} agents")
-            return agent_infos
+            documents = await cursor.to_list(length=None)
+
+            # Remove MongoDB's _id field from each document
+            for doc in documents:
+                doc.pop("_id", None)
+
+            agent_cards = [AgentCard(**doc) for doc in documents]
+            return agent_cards
         except Exception as e:
             logger.error(f"Failed to list agents: {e}")
-            raise
+            return []
 
-    async def count_agents(self) -> int:
-        """Count the number of registered agents."""
+    async def unregister_agent(self, agent_url: str) -> bool:
+        """Unregister (delete) an agent from MongoDB."""
         try:
-            count = await self.collection.count_documents({})
-            logger.info(f"Counted {count} agents")
-            return count
+            result = await self.collection.delete_one({"url": agent_url})
+            if result.deleted_count > 0:
+                logger.info(f"Unregistered agent: {agent_url}")
+                return True
+            else:
+                logger.warning(f"Agent {agent_url} not found for deletion")
+                return False
         except Exception as e:
-            logger.error(f"Failed to count agents: {e}")
-            raise
+            logger.error(f"Failed to unregister agent {agent_url}: {e}")
+            return False

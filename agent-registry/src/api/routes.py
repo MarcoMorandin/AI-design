@@ -8,7 +8,8 @@ import logging
 from datetime import datetime
 from fastapi import HTTPException, BackgroundTasks
 
-from ..models import AgentRegistrationRequest, AgentInfo, AgentDiscoveryResponse
+from ..models import AgentRegistrationRequest, AgentDiscoveryResponse
+from trento_agent_sdk.a2a.models.AgentCard import AgentCard
 from ..utils.agentcard_client import fetch_agent_card
 from ..utils.mongodb_storage import MongoDBStorage
 
@@ -21,17 +22,9 @@ class AgentRegistryRoutes:
     def __init__(self, storage: MongoDBStorage):
         self.storage = storage
 
-    def _generate_agent_id(self, name: str) -> str:
-        """Generate a simple agent ID from the name."""
-        base_id = name.lower().replace(" ", "-").replace("_", "-")
-        # Remove non-alphanumeric characters except hyphens
-        base_id = "".join(c for c in base_id if c.isalnum() or c == "-")
-
-        return base_id
-
     async def register_agent(
         self, request: AgentRegistrationRequest, background_tasks: BackgroundTasks
-    ) -> AgentInfo:
+    ) -> AgentCard:
         """Register an agent by URL - automatically fetches AgentCard data."""
         try:
             logger.info(f"Registering agent from URL: {request.url}")
@@ -45,40 +38,20 @@ class AgentRegistryRoutes:
                     detail=f"Could not fetch AgentCard from {request.url}/.well-known/agent.json",
                 )
 
-            # Generate agent ID if not provided
-            agent_id = request.agent_id or self._generate_agent_id(agent_card.name)
+            # Update agent card URL to match the request URL
+            agent_card.url = request.url.rstrip("/")
 
-            # Check if agent already exists to preserve registration time
-            existing_agent = await self.storage.get_agent(agent_id)
-            registered_at = (
-                existing_agent.registered_at if existing_agent else datetime.now()
-            )
-
-            # Create agent info
-            agent_info = AgentInfo(
-                agent_id=agent_id,
-                name=agent_card.name,
-                description=agent_card.description,
-                url=request.url.rstrip("/"),
-                version=agent_card.version,
-                skills=agent_card.skills,
-                provider=agent_card.provider,
-                registered_at=registered_at,
-                last_seen=datetime.now(),
-                status="active",
-            )
-
-            # Save to MongoDB
-            success = await self.storage.save_agent(agent_info)
+            # Save to MongoDB (URL is used as identifier)
+            success = await self.storage.save_agent(agent_card)
             if not success:
                 raise HTTPException(
                     status_code=500, detail="Failed to save agent to database"
                 )
 
             logger.info(
-                f"Successfully registered agent: {agent_id} ({agent_card.name})"
+                f"Successfully registered agent: {agent_card.name} at {agent_card.url}"
             )
-            return agent_info
+            return agent_card
 
         except HTTPException:
             raise
@@ -99,70 +72,64 @@ class AgentRegistryRoutes:
                 status_code=500, detail=f"Failed to list agents: {str(e)}"
             )
 
-    async def get_agent(self, agent_id: str) -> AgentInfo:
-        """Get specific agent information."""
-        agent = await self.storage.get_agent(agent_id)
+    async def get_agent(self, agent_url: str) -> AgentCard:
+        """Get specific agent information by URL."""
+        agent = await self.storage.get_agent(agent_url)
         if not agent:
             raise HTTPException(status_code=404, detail="Agent not found")
         return agent
 
     async def unregister_agent(
-        self, agent_id: str, background_tasks: BackgroundTasks
+        self, agent_url: str, background_tasks: BackgroundTasks
     ) -> dict:
         """Unregister an agent."""
         # Check if agent exists by trying to get it
-        agent = await self.storage.get_agent(agent_id)
+        agent = await self.storage.get_agent(agent_url)
         if not agent:
             raise HTTPException(status_code=404, detail="Agent not found")
 
-        success = await self.storage.unregister_agent(agent_id)
+        success = await self.storage.unregister_agent(agent_url)
         if not success:
             raise HTTPException(
                 status_code=500, detail="Failed to delete agent from database"
             )
 
-        logger.info(f"Unregistered agent: {agent_id}")
-        return {"message": f"Agent {agent_id} unregistered successfully"}
+        logger.info(f"Unregistered agent: {agent_url}")
+        return {"message": f"Agent {agent_url} unregistered successfully"}
 
     async def refresh_agent_card(
-        self, agent_id: str, background_tasks: BackgroundTasks
+        self, agent_url: str, background_tasks: BackgroundTasks
     ) -> dict:
         """Refresh AgentCard data for a specific agent."""
-        agent = await self.storage.get_agent(agent_id)
+        agent = await self.storage.get_agent(agent_url)
         if not agent:
             raise HTTPException(status_code=404, detail="Agent not found")
 
         try:
-            agent_card = await fetch_agent_card(agent.url)
+            agent_card = await fetch_agent_card(agent_url)
 
             if agent_card:
-                # Update the agent with fresh data
-                agent.name = agent_card.name
-                agent.description = agent_card.description
-                agent.version = agent_card.version
-                agent.skills = agent_card.skills
-                agent.provider = agent_card.provider
-                agent.last_seen = datetime.now()
-                agent.status = "active"
+                # Update the agent card with fresh data
+                agent_card.url = agent_url  # Ensure URL matches
 
                 # Save updated agent
-                success = await self.storage.save_agent(agent)
+                success = await self.storage.save_agent(agent_card)
                 if not success:
                     raise HTTPException(
                         status_code=500, detail="Failed to update agent in database"
                     )
 
-                logger.info(f"Refreshed AgentCard for {agent_id}")
-                return {"message": f"AgentCard refreshed for {agent_id}"}
+                logger.info(f"Refreshed AgentCard for {agent_url}")
+                return {"message": f"AgentCard refreshed for {agent_url}"}
             else:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Could not fetch AgentCard from {agent.url}/.well-known/agent.json",
+                    detail=f"Could not fetch AgentCard from {agent_url}/.well-known/agent.json",
                 )
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error refreshing agent card for {agent_id}: {e}")
+            logger.error(f"Error refreshing agent card for {agent_url}: {e}")
             raise HTTPException(
                 status_code=500, detail=f"Failed to refresh agent card: {str(e)}"
             )
