@@ -1,0 +1,22 @@
+# Base dependencies
+python-dotenv
+trento-agent-sdk
+pymongo
+
+# For the web server
+fastapi
+uvicorn[standard]
+
+# For API requests
+requests
+
+# For Google AI
+google-generativeai
+google-genai
+
+# Utilities
+pydantic
+pydantic-settings
+
+# For testing
+pytest
