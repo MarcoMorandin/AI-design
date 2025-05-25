@@ -1,0 +1,546 @@
+/* General Styles */
+body {
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+    background-color: #f4f6f8;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* Login Page Styles */
+.login-container {
+    background-color: #fff;
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 100%;
+    max-width: 400px;
+}
+
+.login-container h1 {
+    color: #0056b3; /* MoodleAI blue */
+    margin-bottom: 10px;
+}
+
+.login-container p {
+    margin-bottom: 30px;
+    color: #555;
+}
+
+#loginButton {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    font-size: 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#loginButton:hover {
+    background-color: #0056b3;
+}
+
+/* Dashboard Styles */
+.dashboard-container {
+    width: 100%;
+    max-width: 1400px; /* Max width for the dashboard */
+    height: 90vh; /* Make it take most of the viewport height */
+    max-height: 800px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Prevent content from spilling */
+}
+
+/* Header */
+.header {
+    background-color: #ffffff;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.header .logo {
+    font-size: 24px;
+    font-weight: bold;
+    color: #0056b3; /* MoodleAI blue */
+    display: flex;
+    align-items: center;
+}
+
+.header .logo i {
+    margin-right: 10px;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+}
+
+.user-initials {
+    background-color: #007bff;
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+#userName {
+    margin-right: 20px;
+    font-weight: 500;
+}
+
+.logout-button {
+    background: none;
+    border: none;
+    color: #555;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.logout-button:hover {
+    color: #0056b3;
+}
+
+/* Main Content Area */
+.main-content {
+    display: flex;
+    flex-grow: 1;
+    overflow-y: auto; /* Allow scrolling for the whole main content if needed */
+}
+
+/* Sidebar for Courses */
+.sidebar {
+    width: 280px;
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-right: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.sidebar h2 {
+    font-size: 20px;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.courses-list {
+    flex-grow: 1;
+}
+
+.course-item {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    cursor: pointer;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.course-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.course-item.selected {
+    border-left: 4px solid #007bff;
+    background-color: #e9f5ff;
+}
+
+.course-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.course-icon {
+    font-size: 20px;
+    color: #007bff;
+    margin-right: 10px;
+}
+
+.course-info h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.course-info p {
+    margin: 0;
+    font-size: 12px;
+    color: #777;
+}
+
+.course-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: #555;
+    margin-bottom: 10px;
+}
+
+.course-status {
+    background-color: #28a745;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+.reorganize-button {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    color: #333;
+    padding: 8px 12px;
+    border-radius: 5px;
+    font-size: 12px;
+    cursor: pointer;
+    width: 100%;
+    text-align: center;
+    transition: background-color 0.2s ease;
+}
+
+.reorganize-button i {
+    margin-right: 5px;
+}
+
+.reorganize-button:hover {
+    background-color: #e0e0e0;
+}
+
+/* Central Content Area */
+.content-area {
+    flex-grow: 1;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+}
+
+.welcome-message {
+    text-align: center;
+    color: #555;
+}
+
+.welcome-icon {
+    font-size: 60px;
+    color: #007bff;
+    margin-bottom: 20px;
+}
+
+.welcome-message h2 {
+    font-size: 28px;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.welcome-message p {
+    font-size: 16px;
+    line-height: 1.6;
+    max-width: 500px;
+    margin-bottom: 20px;
+}
+
+.welcome-message ul {
+    list-style: none;
+    padding: 0;
+    font-size: 14px;
+}
+
+.welcome-message ul li {
+    margin-bottom: 8px;
+    color: #444;
+}
+
+.welcome-message ul li::before {
+    content: "\2022"; /* Bullet character */
+    color: #007bff;
+    font-weight: bold;
+    display: inline-block;
+    width: 1em;
+    margin-left: -1em;
+}
+
+.course-materials {
+    width: 100%;
+    text-align: left;
+}
+
+.course-materials h3 {
+    font-size: 22px;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.materials-list {
+    /* Styles for the list of files/materials */
+}
+
+.material-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+}
+
+.material-item:hover {
+    background-color: #f9f9f9;
+}
+
+.material-item input[type="checkbox"] {
+    margin-right: 15px;
+    transform: scale(1.2);
+}
+
+.material-item .file-icon {
+    margin-right: 10px;
+    color: #007bff;
+    font-size: 18px;
+}
+
+.material-item .file-name {
+    flex-grow: 1;
+}
+
+.material-item .file-link {
+    color: #007bff;
+    text-decoration: none;
+    font-size: 12px;
+}
+.material-item .file-link:hover {
+    text-decoration: underline;
+}
+
+/* AI Assistant / Chatbot Area */
+.chatbot-area {
+    width: 350px;
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-left: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.chatbot-header {
+    text-align: left;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+    position: relative;
+}
+
+.chatbot-header h3 {
+    font-size: 18px;
+    margin: 0 0 5px 0;
+    color: #333;
+}
+
+.chatbot-header p {
+    font-size: 13px;
+    color: #666;
+    margin: 0;
+}
+
+#clearChatButton {
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    background: none;
+    border: none;
+    font-size: 16px;
+    color: #777;
+    cursor: pointer;
+}
+#clearChatButton:hover {
+    color: #333;
+}
+
+.chat-messages {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 10px 0;
+    margin-bottom: 15px;
+}
+
+.message {
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+}
+
+.message p {
+    background-color: #e9ecef;
+    padding: 10px 15px;
+    border-radius: 15px;
+    max-width: 85%;
+    line-height: 1.4;
+    margin: 0;
+    font-size: 14px;
+}
+
+.bot-message p {
+    background-color: #007bff;
+    color: white;
+    border-bottom-left-radius: 0;
+    align-self: flex-start;
+}
+
+.user-message p {
+    background-color: #e9ecef;
+    color: #333;
+    border-bottom-right-radius: 0;
+    align-self: flex-end;
+}
+
+.message .timestamp {
+    font-size: 10px;
+    color: #888;
+    margin-top: 5px;
+}
+
+.bot-message .timestamp {
+    align-self: flex-start;
+    margin-left: 5px;
+}
+
+.user-message .timestamp {
+    align-self: flex-end;
+    margin-right: 5px;
+}
+
+.chat-input {
+    display: flex;
+    align-items: center;
+    border-top: 1px solid #ddd;
+    padding-top: 15px;
+}
+
+#chatInput {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    margin-right: 10px;
+    resize: none;
+    font-family: 'Roboto', sans-serif;
+    font-size: 14px;
+    min-height: 20px; /* Start small, can grow */
+    max-height: 80px; /* Limit growth */
+    overflow-y: auto;
+}
+
+#sendMessageButton {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 0.2s ease;
+}
+
+#sendMessageButton:hover {
+    background-color: #0056b3;
+}
+
+.selected-files-info {
+    font-size: 12px;
+    color: #666;
+    text-align: right;
+    margin-top: 10px;
+}
+
+/* Placeholder styles */
+.course-item-placeholder p {
+    color: #888;
+    text-align: center;
+    padding: 20px;
+}
+
+/* Utility classes */
+.hidden {
+    display: none !important;
+}
+
+/* Font Awesome Icons - ensure you have this linked in HTML */
+/* Example: <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> */
+
+/* Responsive adjustments (basic example) */
+@media (max-width: 1200px) {
+    .chatbot-area {
+        width: 300px;
+    }
+    .sidebar {
+        width: 250px;
+    }
+}
+
+@media (max-width: 992px) {
+    .main-content {
+        flex-direction: column;
+    }
+    .sidebar, .chatbot-area {
+        width: 100%;
+        border-right: none;
+        border-left: none;
+        border-bottom: 1px solid #e0e0e0;
+        max-height: 300px; /* Limit height when stacked */
+    }
+    .chatbot-area {
+        border-bottom: none;
+    }
+    .dashboard-container {
+        height: auto; /* Adjust height for stacked layout */
+        max-height: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .header {
+        padding: 10px 15px;
+    }
+    .header .logo span {
+        display: none; /* Hide text logo on small screens, keep icon */
+    }
+    .user-profile #userName {
+        display: none; /* Hide username on small screens */
+    }
+    .content-area {
+        padding: 15px;
+    }
+    .welcome-message h2 {
+        font-size: 22px;
+    }
+    .welcome-message p {
+        font-size: 14px;
+    }
+}
