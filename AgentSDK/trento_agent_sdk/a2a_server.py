@@ -1,20 +1,14 @@
-from fastapi import FastAPI, Request, Depends, HTTPException
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 import uvicorn
-import asyncio
-from datetime import datetime
-import json
 
 from .a2a.models.AgentCard import AgentCard
 from .a2a.TaskManager import TaskManager
 from .agent.agent import Agent
 from .a2a.models.Types import (
     GetTaskRequest,
-    GetTaskResponse,
     CancelTaskRequest,
-    CancelTaskResponse,
     SendTaskRequest,
-    SendTaskResponse,
 )
 
 

@@ -28,7 +28,7 @@ class LongMemory:
             "Content-Type": "application/json",
         }
 
-        self.embedding_client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+        self.embedding_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
         self.gemini_api_key = os.getenv("GEMINI_API_KEY")
         self.openai_client = OpenAI(
@@ -38,7 +38,7 @@ class LongMemory:
         self.collection_name = self._get_or_create_user_collection()
 
     def _get_or_create_user_collection(self) -> str:
-        name = f"user_long_memory_{self.user_id}"  # Fixed: Added underscore for better naming
+        name = f"user_long_memory_{self.user_id}"
         try:
             # get existing collections
             url_list = f"{self.qdrant_host}/collections"
@@ -251,49 +251,3 @@ class LongMemory:
         except Exception as e:
             logger.error(f"OpenAI API error: {str(e)}")
             raise
-
-
-'''
-def main():
-    # Add memory_prompt parameter required by __init__
-    memory_prompt = """
-    You are a memory extraction assistant. Your job is to analyze conversation history and extract 
-    or update important information about the user's preferences, interests, and facts about their life.
-    
-    Each memory consists of:
-    - topic: A short label (3-7 words) describing the memory category
-    - description: A detailed 1-2 sentence explanation of the memory
-    
-    If you're updating an existing memory, include its 'id' in your response.
-    
-    Return your response as a JSON object with a 'memories_to_add' key containing an array of memories,
-    or "NO_MEMORIES_TO_ADD" if there's nothing new to add.
-    """
-    
-    lm = LongMemory(user_id="test_user", memory_prompt=memory_prompt)
-
-    chat = (
-    "User: Hey, I spent the weekend diving into that article on sustainable urban gardening you recommended.\n"
-    "Assistant: Fantastic! What stood out to you the most?\n"
-    "User: Well, the benefits to local ecosystems were eye-opening, and I liked how it covered only container gardening.\n"
-    "Assistant: Got it—ecosystem impact plus container vs. rooftop distinctions.\n"
-    "User: Exactly. Now, I could read another ten pages on methods, but I usually skim for the core ideas first.\n"
-    "Assistant: Understood, you'd like the main takeaways up front.\n"
-    "User: Right—and honestly, I want longer paragraph.\n"
-    "Assistant: Great—I'll put that together for you.\n"
-    "User: I really prefer have a technical summary for scientific subject\n"
-    )
-
-    print("→ Inserting preferences into LongMemory…")
-    lm.insert_into_long_memory_with_update(chat)
-
-    print("→ Querying memories for 'what does the user like?'")
-    results = lm.get_memories("What does the user like?", top_k=5)
-    
-    print("\nRetrieved memories:")
-    for idx, mem in enumerate(results, 1):
-        print(f"{idx}. [{mem['topic']}] {mem['description']} (score={mem['score']:.3f})")
-
-if __name__ == "__main__":
-    main()
-'''

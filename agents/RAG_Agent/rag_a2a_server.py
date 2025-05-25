@@ -6,23 +6,13 @@ from trento_agent_sdk.a2a.TaskManager import TaskManager
 from trento_agent_sdk.a2a_server import A2AServer
 from trento_agent_sdk.memory.memory import LongMemory
 from trento_agent_sdk.tool.tool_manager import ToolManager
-
-# Import our custom logging config - just importing is enough to initialize it
-import logging_config
-
 from tools.rag_tool import RAG_tool
 
 # Load environment variables
 load_dotenv()
 
 # Initialize the Google Generative AI client
-api_key = os.getenv("GOOGLE_API_KEY")
-if not api_key:
-    raise ValueError(
-        "GOOGLE_API_KEY environment variable is not set. Please create a .env file with your API key."
-    )
-else:
-    print(f"GOOGLE_API_KEY environment variable is set: {api_key}")
+api_key = os.getenv("GEMINI_API_KEY")
 
 
 # collecton where to retrieve document

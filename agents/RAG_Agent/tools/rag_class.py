@@ -9,19 +9,30 @@ from typing import List
 from google import genai
 from google.genai import types
 
-# Set up a console-only logger
+# logger
 logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-
 class Embedder:
+    """
+    A class for generating text embeddings using Google's Gemini API.
+    """
     def __init__(self) -> None:
-        self.embedding_client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+        """
+        Initialize the Embedder with the Gemini API client.
+        """
+        self.embedding_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
     def embed(self, text: str) -> List[float]:
         """
-        Embed the text using the embedder API
+        Embed the text using the embedder API.
+        
+        Args:
+            text (str): The text to be embedded.
+            
+        Returns:
+            List[float]: A vector representation of the input text.
         """
         result = self.embedding_client.models.embed_content(
             model="models/text-embedding-004",
@@ -32,8 +43,18 @@ class Embedder:
 
 
 class RAG:
+    """
+    Retrieval-Augmented Generation (RAG) class that manages knowledge base operations.
+    This class handles storing, retrieving, and managing text data in a vector database.
+    """
 
     def __init__(self, user_id) -> None:
+        """
+        Initialize the RAG system for a specific user.
+        
+        Args:
+            user_id (str): The unique identifier for the user.
+        """
         self.qdrant_host = os.getenv("QDRANT_HOST")
         self.qdrant_headers = {
             "api-key": os.getenv("QDRANT_API_KEY"),
@@ -45,6 +66,15 @@ class RAG:
         self.embedder = Embedder()
 
     def _get_or_create_user_collection(self) -> str:
+        """
+        Get an existing collection for the user or create a new one if it doesn't exist.
+        
+        Returns:
+            str: The name of the user's collection.
+            
+        Raises:
+            Exception: If there's an error checking or creating the Qdrant collection.
+        """
         name = f"{self.user_id}"
         try:
             # get existing collections
@@ -87,7 +117,13 @@ class RAG:
 
     def upload_in_kb(self, text: str) -> None:
         """
-        Upload the text in the knowledge base
+        Upload the text to the knowledge base after chunking and embedding.
+        
+        Args:
+            text (str): The text to be uploaded to the knowledge base.
+            
+        Raises:
+            Exception: If there's an error uploading text to the Qdrant collection.
         """
         try:
             chunks = chunk_text(text)
@@ -117,6 +153,19 @@ class RAG:
             logger.exception("Error uploading text in Qdrant collection")
 
     def retrieve_relevant_knowledge(self, query: str, top_k: int = 5) -> List[str]:
+        """
+        Retrieve the most relevant knowledge from the database based on the query.
+        
+        Args:
+            query (str): The query text to search for relevant information.
+            top_k (int, optional): The number of top results to return. Defaults to 5.
+            
+        Returns:
+            List[str]: A list of text chunks that are most relevant to the query.
+            
+        Raises:
+            requests.exceptions.HTTPError: If there's an error in the Qdrant API response.
+        """
         # embed query
         query_embedding = self.embedder.embed(query)
         # search payload
@@ -144,6 +193,12 @@ class RAG:
     def get_all_contents(self) -> List[str]:
         """
         Retrieve all 'page_content' fields for the current user from the collection.
+        
+        Returns:
+            List[str]: A list of all text chunks stored for the current user.
+            
+        Raises:
+            requests.exceptions.HTTPError: If there's an error in the Qdrant API response.
         """
         contents = []
         scroll_url = (
@@ -174,8 +229,3 @@ class RAG:
 
         return contents
 
-
-# if __name__ == "__main__":
-#    rag = RAG("RAG_usertest_user")
-#    #rag.upload_in_kb("This is a test document. It contains some text.")
-#    print(rag.retrieve_relevant_knowledge("What is this document about?"))

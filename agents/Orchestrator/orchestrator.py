@@ -6,12 +6,9 @@ from trento_agent_sdk.a2a.models.AgentCard import AgentCard, AgentSkill
 from trento_agent_sdk.a2a.TaskManager import TaskManager
 from trento_agent_sdk.a2a_server import A2AServer
 from trento_agent_sdk.tool.tool_manager import ToolManager
-from trento_agent_sdk.agent.agent_manager import (
-    AgentManager,
-)  # <- make sure this path matches your package
+from trento_agent_sdk.agent.agent_manager import (AgentManager,)
 from trento_agent_sdk.memory.memory import LongMemory
 
-# from ..services.RAG.rag import RAG
 
 # 1) Load env (if you need any keys for your LLM)
 load_dotenv()
@@ -22,7 +19,6 @@ agent_manager = AgentManager(os.getenv("AGENT_REGISTRY_URL"))
 
 
 # Long memory
-
 memory_prompt = (
     "You are the LongMemory of an orchestator agent that have the role of choosing the right agent or tool to fulfill the user request.\n"
     "You will receive two inputs:\n"
@@ -62,11 +58,10 @@ Follow this workflow strictly and automatically:
     tool_manager=tool_manager,
     agent_manager=agent_manager,
     model="models/gemini-2.5-flash-preview-05-20",
-    api_key=os.getenv("GOOGLE_API_KEY"),
+    api_key=os.getenv("GEMINI_API_KEY"),
     base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
     tool_required="auto",
     long_memory=memory,
-    # final_tool="delegate_task_to_agent",
 )
 
 # 5) Define the Orchestrator’s own AgentCard
@@ -104,7 +99,7 @@ a2a_server = A2AServer(
 
 # 7) Register and run
 if __name__ == "__main__":
-    # we need to register the remote summarizer before starting
+    # the agent are registered using the agent-registry
     port = int(os.getenv("PORT", 8080))
     print(f"Starting Orchestrator on http://0.0.0.0:{port}")
     a2a_server.run()

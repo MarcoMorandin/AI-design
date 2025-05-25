@@ -5,7 +5,7 @@ from trento_agent_sdk.a2a_client import A2AClient
 async def main():
     # Create an A2A client
     async with A2AClient(
-        "https://ai-design-rag-agent-595073969012.europe-west8.run.app",  # Replace with your server URL
+        "https://ai-design-rag-agent-595073969012.europe-west8.run.app",
     ) as client:
         # Get the agent card to see what the agent can do
         agent_card = await client.get_agent_card()
@@ -15,10 +15,7 @@ async def main():
         # Send a summarization task to the agent
         print("\nSending task to the agent...")
 
-        # Example Google Drive ID to summarize
-        # Replace this with an actual Google Drive ID from your MongoDB collection
-        google_drive_id = "1l-_1zywhnUG8sbVstSROdLRTZZF89n8y"
-
+        # Example of question
         text_to_summarize = """
         SigLIP
         """

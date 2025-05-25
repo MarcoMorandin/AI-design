@@ -1,6 +1,5 @@
 import logging
 from .models.Task import Task, TaskStatus, TaskState, Message, Artifact
-import asyncio
 from datetime import datetime
 
 from .models.Types import (
