@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  exam-generator:
+    build: .
+    ports:
+      - "8003:8003"
+    env_file:
+      - .env
+    volumes:
+      - ./logs:/app/logs
+    environment:
+      - ENVIRONMENT=production
+      - HOST=0.0.0.0
+      - PORT=8003
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
