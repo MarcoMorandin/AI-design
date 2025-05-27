@@ -8,7 +8,7 @@ ENVIRONMENT = os.environ.get("ENVIRONMENT", "development")
 
 # App configuration
 SECRET_KEY = os.environ.get("FLASK_SECRET_KEY")
-PORT = int(os.environ.get("AUTH_SERVICE_PORT", 5000))
+PORT = int(os.environ.get("PORT", 3000))
 
 # Base URL configuration - set to HTTPS in production
 if ENVIRONMENT == "production":
@@ -33,7 +33,7 @@ if ENVIRONMENT == "production" and (not MONGO_URI or not MONGO_DB_NAME):
 # Google OAuth configuration
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
-REDIRECT_URI = f"{BASE_URL}/auth/google/callback"
+REDIRECT_URI = f"{BASE_URL}/api/auth/google/callback"
 SCOPES = [
     "https://www.googleapis.com/auth/drive",
     "https://www.googleapis.com/auth/userinfo.email",
@@ -47,3 +47,20 @@ if ENVIRONMENT == "production" and (not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SE
 
 # Name for the Drive folder
 DRIVE_FOLDER_BASENAME = "MoodleAI"
+
+# Frontend URL configuration
+FRONTEND_URL = os.environ.get("FRONTEND_URL")
+
+# Ensure Frontend URL is set in production
+if ENVIRONMENT == "production" and not FRONTEND_URL:
+    raise ValueError("FRONTEND_URL environment variable must be set in production")
+
+# Orchestrator URL configuration
+ORCHESTRATOR_URL = os.environ.get(
+    "ORCHESTRATOR_URL", "https://ai-design-orchestrator-595073969012.europe-west1.run.app"
+)
+
+# Ensure we have a valid orchestrator URL
+if not ORCHESTRATOR_URL:
+    print("WARNING: ORCHESTRATOR_URL is not set, using default")
+    ORCHESTRATOR_URL = "https://ai-design-orchestrator-595073969012.europe-west1.run.app"

@@ -1,9 +1,0 @@
-pymongo>=3.12
-google-api-python-client>=2.0
-google-auth-oauthlib>=0.4
-google-auth>=2.0
-requests>=2.25 # Often a dependency of google libs, good to have explicitly
-python-dotenv>=0.19 # For managing environment variables (optional but good practice)
-fastapi>=0.100.0
-uvicorn[standard]>=0.20.0
-itsdangerous

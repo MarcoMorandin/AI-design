@@ -9,14 +9,9 @@ from config import (
 
 app = FastAPI()
 
-# mongo_client = None # Removed global
-# db = None # Removed global
-# users_collection = None # Removed global
-
 
 @app.on_event("startup")
 async def startup_db_client():
-    # global mongo_client, db, users_collection # No longer using these globals here for users_collection
     try:
         app.state.mongo_client = MongoClient(MONGO_URI)
         app.state.db = app.state.mongo_client[MONGO_DB_NAME]
@@ -27,9 +22,7 @@ async def startup_db_client():
         print(f"Error connecting to MongoDB: {e}")
         app.state.mongo_client = None
         app.state.db = None
-        app.state.users_collection = (
-            None  # Ensure it's None on app.state if connection fails
-        )
+        app.state.users_collection = None
 
 
 @app.on_event("shutdown")
