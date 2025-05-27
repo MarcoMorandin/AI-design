@@ -3,7 +3,6 @@ from __future__ import annotations as _annotations
 from collections.abc import Callable
 from typing import Any
 from .tool import Tool
-import json
 import logging
 
 # Set up loggers
@@ -51,9 +50,6 @@ class ToolManager:
         tool = self.get_tool(name)
         if not tool:
             raise Exception(f"Unknown tool: {name}")
-
-        # Log tool call with truncated arguments
-        from ..logging_config import safe_json_serialize
 
         try:
             result = await tool.run(arguments)

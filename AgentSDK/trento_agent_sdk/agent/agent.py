@@ -1,20 +1,26 @@
 import json
 import logging
-from math import e
 from typing import List, Dict, Optional, Any, Literal, Annotated
 from ..memory.memory import LongMemory
 import openai
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..tool.tool_manager import ToolManager
-from ..tool.tool import Tool
 from .agent_manager import AgentManager
 
 logger = logging.getLogger(__name__)
 
 
 class Agent(BaseModel):
-    # allow ToolManager (an arbitrary class) in a pydantic model
+    """
+    A flexible agent that can process user messages, use tools, and delegate tasks to other agents.
+    
+    The Agent class provides a framework for building AI assistants that can:
+    - Process user messages and generate responses
+    - Use tools to perform actions
+    - Delegate tasks to specialized remote agents
+    - Maintain conversation history in short-term and long-term memory
+    """
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     name: str = "Agent"
@@ -60,8 +66,6 @@ class Agent(BaseModel):
 
         if self.agent_manager is not None:
             self._register_internal_tools()
-        else:
-            print("No agent manager provided, no internal tools registered")
 
     def _register_internal_tools(self):
         """Registers tools specific to agent interaction."""
@@ -130,7 +134,15 @@ class Agent(BaseModel):
         return self.agent_manager.extract_text(resp)
 
     def _convert_tools_format(self) -> List[Dict]:
-        """Convert tools from the tool manager to OpenAI function format"""
+        """
+        Convert tools from the tool manager to OpenAI function format.
+        
+        This method retrieves all registered tools from the tool manager and converts
+        them to the format expected by the OpenAI API for function calling.
+        
+        Returns:
+            List[Dict]: List of tool definitions in OpenAI function format
+        """
         tool_list = []
 
         try:
@@ -148,8 +160,17 @@ class Agent(BaseModel):
 
         return tool_list
 
-    # validate the result and insert into long memory
     async def validate_result(self, tool_name, args):
+        """
+        Validate the result of a tool call and insert it into long-term memory.
+        
+        Args:
+            tool_name (str): Name of the tool to call for validation
+            args (Dict): Arguments to pass to the validation tool
+            
+        Returns:
+            str: Serialized result of the validation tool
+        """
         logger.info(f"Validation tool {tool_name} called, executing it and terminating")
         result = await self.tool_manager.call_tool(tool_name, args)
         serialized_result = ""

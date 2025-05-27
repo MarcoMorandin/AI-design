@@ -2,7 +2,6 @@ import logging
 import aiohttp
 from typing import Dict, Any, List, Optional
 from urllib.parse import quote
-
 from ..a2a_client import A2AClient
 from ..a2a.models.AgentCard import AgentCard
 from ..a2a.models.Types import SendTaskResponse, GetTaskResponse
@@ -27,9 +26,7 @@ class AgentManager:
         """
         self.registry_url = registry_url.rstrip("/")
 
-    # ------------------------------------------------------------------ #
-    # Discovery / registry
-    # ------------------------------------------------------------------ #
+
     async def _get_agent_from_registry(self, agent_url: str) -> AgentCard:
         """
         Fetch agent card from the external registry.
@@ -93,9 +90,7 @@ class AgentManager:
                 logger.error(f"Error fetching agents from registry: {e}")
                 return []
 
-    # ------------------------------------------------------------------ #
-    # Delegation
-    # ------------------------------------------------------------------ #
+
     async def delegate_task_to_agent(
         self,
         agent_url: str,
@@ -128,9 +123,6 @@ class AgentManager:
             )
             return final_resp
 
-    # ------------------------------------------------------------------ #
-    # Helpers
-    # ------------------------------------------------------------------ #
     @staticmethod
     def extract_text(response: GetTaskResponse) -> str:
         """

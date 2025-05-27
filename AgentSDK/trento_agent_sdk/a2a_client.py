@@ -1,18 +1,13 @@
 import uuid
 import aiohttp
 import asyncio
-import json
-from typing import Dict, Any, List, Optional, Union
-from pydantic import BaseModel
+from typing import Optional, Union
 
 from .a2a.models.AgentCard import AgentCard, AgentSkill
-from .a2a.models.Task import Task, TaskStatus, Message, TextPart
+from .a2a.models.Task import Message, TextPart
 from .a2a.models.Types import (
-    SendTaskRequest,
     SendTaskResponse,
-    GetTaskRequest,
     GetTaskResponse,
-    CancelTaskRequest,
     CancelTaskResponse,
 )
 
@@ -303,35 +298,3 @@ class A2AClient:
 
             # Wait before polling again
             await asyncio.sleep(polling_interval)
-
-'''
-async def fetch_one_agent_card(server_url: str) -> AgentCard | None:
-    """
-    Try to load one agent's card from its .well-known endpoint.
-    Returns an AgentCard on success, or None on failure.
-    """
-    try:
-        async with A2AClient(server_url) as client:
-            card = await client.get_agent_card()
-            return card
-    except Exception as e:
-        return None
-
-async def discover_agents(
-    server_urls: List[str],
-    concurrency: int = 10
-) -> List[AgentCard]:
-    """
-    Given a list of base URLs, concurrently fetch each .well-known/agent.json,
-    returning all of the successfully retrieved AgentCard objects.
-    """
-    semaphore = asyncio.Semaphore(concurrency)
-    async def sem_fetch(url: str):
-        async with semaphore:
-            return await fetch_one_agent_card(url)
-
-    tasks = [sem_fetch(url) for url in server_urls]
-    results = await asyncio.gather(*tasks)
-    # Filter out failures
-    return [card for card in results if card is not None]
-'''

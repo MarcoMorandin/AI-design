@@ -1,9 +1,6 @@
 from .rag_class import RAG
-import requests
 from dotenv import load_dotenv
 import os
-
-import json
 
 load_dotenv()
 
@@ -27,8 +24,5 @@ class RAG_tool:
         """
         return self.chat_with_document.retrieve_relevant_knowledge(question)
 
-#if __name__ == "__main__":
-#    rag_tool = RAG_tool("RAG_usertest_user")
-#    print(rag_tool.get_response("Earth radiates"))
 
 

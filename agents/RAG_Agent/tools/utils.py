@@ -27,7 +27,7 @@ def chunk_text(text, chunk_size=512, overlap=64):
         # Move the start position for the next chunk, accounting for overlap
         start = end - overlap
         
-        # If we've reached the end of the text, break
+        # Ifend of the text is reached, break
         if start + overlap >= len(text):
             break
     

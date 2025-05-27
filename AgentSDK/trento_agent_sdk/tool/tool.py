@@ -2,8 +2,7 @@ from __future__ import annotations as _annotations
 
 from pydantic import BaseModel, Field
 import inspect
-from typing import Any, Callable, get_type_hints, Optional, Dict, List, Union
-import json
+from typing import Any, Callable, Dict, List, Union
 from .func_metadata import call_fn_with_arg
 
 

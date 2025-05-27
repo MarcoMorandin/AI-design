@@ -1,8 +1,7 @@
 import os
 import logging.config
 import json
-from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 
 def truncate_string(s: str, max_length: int = 50) -> str:

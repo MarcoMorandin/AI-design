@@ -1,20 +1,9 @@
-import openai
-import asyncio
-import uuid
-from datetime import datetime
 import os
 from dotenv import load_dotenv
 
 from trento_agent_sdk.agent.agent import Agent
 from trento_agent_sdk.tool.tool_manager import ToolManager
 from trento_agent_sdk.a2a.models.AgentCard import AgentCard, AgentSkill
-from trento_agent_sdk.a2a.models.Task import (
-    TaskState,
-    Message,
-    TextPart,
-    Task,
-    TaskStatus,
-)
 from trento_agent_sdk.a2a.TaskManager import TaskManager
 from trento_agent_sdk.a2a_server import A2AServer
 

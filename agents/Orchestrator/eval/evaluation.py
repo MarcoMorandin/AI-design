@@ -382,9 +382,7 @@ async def main():
     # Load environment variables
     load_dotenv()
     
-    # You'll need to set up your orchestrator agent here
-    # This is just an example - adapt to your actual setup
-    
+  
     tool_manager = ToolManager()
     agent_manager = AgentManager()
     await register_all(agent_manager)
@@ -439,11 +437,10 @@ async def main():
         tool_manager=tool_manager,
         agent_manager=agent_manager,
         model="gemini-2.0-flash",
-        api_key=os.getenv("GOOGLE_API_KEY"),
+        api_key=os.getenv("GEMINI_API_KEY"),
         base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
         tool_required="auto",
         long_memory=memory,
-        #final_tool="delegate_task_to_agent",  
     )
 
     # Create evaluator and run evaluation
