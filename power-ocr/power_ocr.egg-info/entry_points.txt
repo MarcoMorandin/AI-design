@@ -1,3 +1,0 @@
-[console_scripts]
-pdf-transcribe = power_ocr.cli.pdf_cli:main
-video-transcribe = power_ocr.cli.video_cli:main

@@ -4,8 +4,8 @@ from dotenv import load_dotenv
 load_dotenv()  # Load environment variables from .env file
 
 # Application configuration
-WATCHER_APP_PORT = int(
-    os.environ.get("WATCHER_SERVICE_PORT", 5001)
+PORT = int(
+    os.environ.get("PORT", 5001)
 )  # Renamed from FLASK_PORT_WATCHER
 # IMPORTANT! For Google Notifications - This should be your public ngrok URL (e.g., https://xxxx-xx-xxx-xxx-xx.ngrok-free.app)
 WATCHER_SERVICE_PUBLIC_URL = os.environ.get("WATCHER_SERVICE_PUBLIC_URL")

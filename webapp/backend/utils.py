@@ -3,6 +3,8 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from typing import List, Dict, Any, Optional
 import os
+import requests
+from config import DRIVE_WEBHOOK_URL
 
 # --- Helper Functions for Google Drive ---
 def get_google_drive_service(credentials_dict):  # Renamed parameter for clarity
@@ -85,6 +87,47 @@ def create_drive_folder_if_not_exists(drive_service, folder_name):
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         return None
+
+
+def subscribe_folder_to_webhook(user_google_id):
+    """
+    Subscribe the user's Drive folder to the webhook service for file change monitoring.
+    
+    Args:
+        user_google_id (str): The Google ID of the user whose folder will be subscribed
+        
+    Returns:
+        bool: True if successfully subscribed, False otherwise
+    """
+    # Construct URLs for the watch endpoint of the drive-webhook service
+    webhook_urls = [
+        f"{DRIVE_WEBHOOK_URL}/watch/folder/{user_google_id}",  # External URL from config
+    ]
+    
+    # Try each URL in sequence until one succeeds
+    for url in webhook_urls:
+        try:
+            print(f"Attempting to subscribe folder for user {user_google_id} using URL: {url}")
+            response = requests.post(url, timeout=5)  # 5-second timeout
+            
+            if response.status_code == 200:
+                print(f"Successfully subscribed folder for user {user_google_id} to drive-webhook using URL: {url}")
+                return True
+            elif response.status_code == 404:
+                # User or folder not found in the webhook service database
+                print(f"User or folder not found in webhook service: {response.status_code}, {response.text}")
+            else:
+                print(f"Failed to subscribe folder using {url}: {response.status_code}, {response.text}")
+                # Continue to try the next URL
+        except requests.RequestException as e:
+            print(f"Error calling {url}: {e}")
+            # Continue to try the next URL
+        except Exception as e:
+            print(f"Unexpected error calling {url}: {e}")
+            # Continue to try the next URL
+    
+    print(f"All attempts to subscribe folder for user {user_google_id} to drive-webhook failed")
+    return False
 
 
 def get_folder_structure(drive_service, folder_id: str) -> List[Dict[str, Any]]:

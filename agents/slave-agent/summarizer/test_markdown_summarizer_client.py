@@ -5,8 +5,8 @@ from trento_agent_sdk.a2a_client import A2AClient
 async def main():
     # Create an A2A client
     async with A2AClient(
-        "https://ai-design-summarizer-agent-595073969012.europe-west8.run.app"  # Update with your deployment URL in production
-        # "http://localhost:8002"  # Use localhost for local testing
+        # "https://ai-design-summarizer-agent-595073969012.europe-west8.run.app"  # Update with your deployment URL in production
+        "http://localhost:8002"  # Use localhost for local testing
     ) as client:
         # Get the agent card to see what the agent can do
         agent_card = await client.get_agent_card()

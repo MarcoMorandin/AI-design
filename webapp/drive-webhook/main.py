@@ -9,7 +9,7 @@ import logging
 
 # --- Configuration ---
 from config import (
-    WATCHER_APP_PORT,  # Changed from FLASK_PORT_WATCHER
+    PORT,  # Changed from FLASK_PORT_WATCHER
     WATCHER_SERVICE_PUBLIC_URL,
     MONGO_URI,
     MONGO_DB_NAME,
@@ -621,13 +621,8 @@ async def stop_watch_channel(
 
 
 if __name__ == "__main__":
-    # Port priority:
-    # 1. PORT env var (Google Cloud Run standard)
-    # 2. WEBHOOK_SERVICE_PORT env var (our app standard)
-    # 3. WATCHER_APP_PORT from config.py
-    # 4. Default to 8080 (Google Cloud Run default)
-    port_to_run = 8080
-    logger.info(f"Watcher service (FastAPI) running on http://localhost:{port_to_run}")
+    
+    logger.info(f"Watcher service (FastAPI) running on http://localhost:{PORT}")
     logger.info(
         f"Ensure your public notification URL '{WATCHER_SERVICE_PUBLIC_URL}/notifications/drive' is accessible."
     )
@@ -639,5 +634,5 @@ if __name__ == "__main__":
     uvicorn.run(
         app,
         host="0.0.0.0",
-        port=port_to_run,
+        port=PORT,
     )

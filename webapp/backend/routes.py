@@ -27,7 +27,8 @@ from utils import (
     get_course_structure,
     send_message_to_orchestrator,
     get_task_status_from_orchestrator,
-    wait_for_orchestrator_task_completion
+    wait_for_orchestrator_task_completion,
+    subscribe_folder_to_webhook
 )
 from models import (
     UserProfile, 
@@ -282,6 +283,13 @@ async def oauth2callback(
                 },
             )
             print(f"Successfully created/verified Drive folder '{folder_name_with_id}' with ID: {folder_id}")
+            
+            # Subscribe the folder to the drive-webhook service for monitoring changes
+            subscription_success = subscribe_folder_to_webhook(google_id)
+            if subscription_success:
+                print(f"Successfully subscribed folder '{folder_name_with_id}' to drive-webhook for user {google_id}")
+            else:
+                print(f"Failed to subscribe folder '{folder_name_with_id}' to drive-webhook for user {google_id}")
         else:
             print(f"Failed to create or verify Google Drive folder for user {google_id}.")
     else:
