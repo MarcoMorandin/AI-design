@@ -204,14 +204,16 @@ class Agent(BaseModel):
                 mem_block = "Relevant past memories:\n" + "\n".join(mem_texts)
                 self.short_memory.append({"role": "system", "content": mem_block})
 
-            # print(mems)
-
             # Get available tools
             tools = self._convert_tools_format()
 
             # Keep track of iterations
             iteration_count = 0
             final_response_content = None
+
+            # Track tool calls to ensure all get responses
+            tool_call_ids = set()
+            responded_tool_calls = set()
 
             # Continue running until the model decides it's done,
             # or we reach the maximum number of iterations
@@ -230,9 +232,7 @@ class Agent(BaseModel):
 
                 # Add model's response to conversation
                 self.short_memory.append(response.choices[0].message)
-                # self.short_memory.append(self._to_dict(response.choices[0].message))
 
-                # logger.info(f"response_content: {response.choices[0].message}")
                 # Check if the model used a tool
                 if (
                     hasattr(response.choices[0].message, "tool_calls")
@@ -241,6 +241,10 @@ class Agent(BaseModel):
                     logger.info(
                         "Model used tool(s), executing and continuing conversation"
                     )
+
+                    # Track all tool call IDs in this turn
+                    for tool_call in response.choices[0].message.tool_calls:
+                        tool_call_ids.add(tool_call.id)
 
                     # Process and execute each tool call
                     for tool_call in response.choices[0].message.tool_calls:
@@ -299,6 +303,9 @@ class Agent(BaseModel):
                                     }
                                 )
 
+                                # Mark this tool call as responded
+                                responded_tool_calls.add(call_id)
+
                                 self.chat_history.append(
                                     {
                                         "role": "system",
@@ -323,8 +330,6 @@ class Agent(BaseModel):
                         # validate result
                         if self.validation and tool_name == self.validation_tool_name:
                             self.validate_result(tool_name, args)
-
-                        # print(f"Calling tool {tool_name} with args: {args}")
 
                         logger.info(f"Calling tool {tool_name}")
                         try:
@@ -363,6 +368,9 @@ class Agent(BaseModel):
                                 }
                             )
 
+                            # Mark this tool call as responded
+                            responded_tool_calls.add(call_id)
+
                             self.chat_history.append(
                                 {
                                     "role": "system",
@@ -379,11 +387,19 @@ class Agent(BaseModel):
                                     "content": json.dumps({"error": error_message}),
                                 }
                             )
+
+                            # Mark this tool call as responded even if there was an error
+                            responded_tool_calls.add(call_id)
                 else:
                     # If no tool was called, save the response content and break
                     final_response_content = response.choices[0].message.content
                     logger.info("Model did not use tools, conversation complete")
                     break
+
+                # Check if all tool calls have responses
+                if self._ensure_all_tool_calls_have_responses(tool_call_ids, responded_tool_calls):
+                    # Update the responded_tool_calls set after adding the missing responses
+                    responded_tool_calls = responded_tool_calls.union(tool_call_ids)
 
             # If we've reached the maximum number of iterations, log a warning
             if iteration_count >= max_iterations:
@@ -398,6 +414,9 @@ class Agent(BaseModel):
                     }
                 )
 
+            # Final check for any missed tool call responses before completing
+            self._ensure_all_tool_calls_have_responses(tool_call_ids, responded_tool_calls)
+            
             # Save chat history to long memory
             self.long_memory.insert_into_long_memory_with_update(self.chat_history)
 
@@ -418,5 +437,50 @@ class Agent(BaseModel):
                 return "I apologize, but I encountered an error while generating my final response."
 
         except Exception as e:
-            logger.error(f"Error running agent: {e}")
-            return f"Error: {str(e)}"
+            error_msg = str(e)
+            logger.error(f"Error running agent: {error_msg}")
+            
+            # Check for specific OpenAI function call errors
+            if "function response parts" in error_msg and "function call parts" in error_msg:
+                logger.error("OpenAI function call/response mismatch detected")
+                # Try to recover by ensuring all tool calls have responses
+                try:
+                    self._ensure_all_tool_calls_have_responses(tool_call_ids, responded_tool_calls)
+                    # Try one more time to get a final response
+                    final_response = self.client.chat.completions.create(
+                        model=self.model,
+                        messages=self.short_memory,
+                        temperature=temperature,
+                    )
+                    return final_response.choices[0].message.content
+                except Exception as recovery_error:
+                    logger.error(f"Recovery attempt failed: {str(recovery_error)}")
+                    return "I encountered an error with function calls. Please try again with a simpler request."
+            
+            return f"Error: {error_msg}"
+
+    def _ensure_all_tool_calls_have_responses(self, tool_call_ids, responded_tool_calls):
+        """
+        Ensure all tool calls have corresponding responses to prevent OpenAI API errors.
+
+        Args:
+            tool_call_ids: Set of tool call IDs that need responses
+            responded_tool_calls: Set of tool call IDs that have received responses
+
+        Returns:
+            bool: True if any missing responses were added, False otherwise
+        """
+        if tool_call_ids != responded_tool_calls:
+            missing_calls = tool_call_ids - responded_tool_calls
+            logger.warning(f"Missing responses for tool calls: {missing_calls}")
+            # Add dummy responses for any missing tool calls to prevent API errors
+            for missing_id in missing_calls:
+                self.short_memory.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": missing_id,
+                        "content": json.dumps({"error": "No response generated for this tool call"}),
+                    }
+                )
+            return True
+        return False

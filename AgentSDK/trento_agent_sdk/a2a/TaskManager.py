@@ -82,7 +82,15 @@ class TaskManager:
             return result
         except Exception as e:
             logger.error(f"Error invoking agent: {e}")
-            return f"Error: {str(e)}"
+            error_msg = str(e)
+            
+            # Check for the specific OpenAI function call error
+            if "number of function response parts" in error_msg:
+                logger.error("OpenAI function call/response mismatch detected. This usually happens when not all function calls receive responses.")
+                # Return a more specific error message that can help with debugging
+                return "Error: OpenAI function call error - Please ensure that the number of function response parts is equal to the number of function call parts. Check your agent implementation to ensure all tool calls receive responses."
+            
+            return f"Error: {error_msg}"
 
     async def on_send_task(self, request: SendTaskRequest, agent) -> SendTaskResponse:
         task = self.tasks.get(request.params.id)
