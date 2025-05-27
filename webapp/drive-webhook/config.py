@@ -8,7 +8,7 @@ PORT = int(
     os.environ.get("PORT", 5001)
 )  # Renamed from FLASK_PORT_WATCHER
 # IMPORTANT! For Google Notifications - This should be your public ngrok URL (e.g., https://xxxx-xx-xxx-xxx-xx.ngrok-free.app)
-WATCHER_SERVICE_PUBLIC_URL = os.environ.get("WATCHER_SERVICE_PUBLIC_URL")
+WATCHER_SERVICE_PUBLIC_URL = os.environ.get("BASE_URL")
 
 # MongoDB configuration
 MONGO_URI = os.environ.get("MONGO_URI")

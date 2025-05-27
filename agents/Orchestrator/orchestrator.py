@@ -68,7 +68,7 @@ Follow this workflow strictly and automatically:
 orchestrator_card = AgentCard(
     name="Orchestrator Agent",
     description="Orchestrate all the agent in the ecosystem",
-    url="http://localhost:8000",
+    url=os.getenv("HOST"),
     version="1.0.0",
     skills=[
         AgentSkill(
@@ -82,8 +82,8 @@ orchestrator_card = AgentCard(
     ],
     default_input_modes=["text/plain"],
     default_output_modes=["text/plain"],
-    provider="Your Org",
-    documentation_url=None,
+    provider="University of Trento",
+    documentation_url="TODO",
 )
 
 # 6) Build the TaskManager and A2AServer

@@ -16,8 +16,8 @@ MONGODB_DATABASE = os.getenv("MONGODB_DATABASE", "agent_registry")
 MONGODB_COLLECTION = os.getenv("MONGODB_COLLECTION", "agents")
 
 # Server configuration
-REGISTRY_HOST = os.getenv("REGISTRY_HOST", "0.0.0.0")
-REGISTRY_PORT = int(os.getenv("REGISTRY_PORT", "8080"))
+REGISTRY_HOST = os.getenv("HOST", "0.0.0.0")
+REGISTRY_PORT = int(os.getenv("PORT", "8080"))
 
 # AgentCard fetching configuration
 AGENTCARD_TIMEOUT = int(os.getenv("AGENTCARD_TIMEOUT", "10"))

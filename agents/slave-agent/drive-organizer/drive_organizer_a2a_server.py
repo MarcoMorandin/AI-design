@@ -163,7 +163,7 @@ except Exception as e:
 agent_card = AgentCard(
     name="Drive Organizer Agent",
     description="An agent that organizes Google Drive folders for university courses into logical sections.",
-    url=f"http://{HOST}:{PORT}",
+    url=f"{HOST}:{PORT}",
     version=SERVICE_VERSION,
     skills=[
         AgentSkill(
@@ -179,8 +179,8 @@ agent_card = AgentCard(
     ],
     default_input_modes=["text/plain"],
     default_output_modes=["text/plain"],
-    provider="Arcangeli and Morandin",
-    documentation_url="Work in progress",
+    provider="University of Trento",
+    documentation_url="TODO",
 )
 
 # Create a task manager to handle task lifecycle

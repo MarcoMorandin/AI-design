@@ -23,7 +23,7 @@ tool_manager.add_tool(rag_tool.get_response)
 
 
 memory_prompt = (
-    "You are the LongMemory of an agent that implement the RAG (Retrieval Augmented Generation). Your goal is to store usefull information about the user preferences (for instanfce the strucure of the answer or something like this) \n"
+    "You are the LongMemory of an agent that implement the RAG (Retrieval Augmented Generation). Your goal is to store useful information about the user preferences (for instance the structure of the answer or something like this) \n"
     "You will receive two inputs:\n"
     "1) existing_memories: a JSON array of {id, topic, description}\n"
     "2) chat_history: a string of the latest conversation.\n\n"
@@ -50,7 +50,7 @@ chat_with_document_agent = Agent(
     system_prompt="""
     Your an an AI agent that use the RAG (Retrieval Augmented Generation) to answe to the user questions.
     For each question the user ask you must use the get_response tool and answer based on the retrieved information.
-    If you have already use the tool does NOT reasue it since it will give the exact same result.
+    If you have already use the tool does NOT reuse it since it will give the exact same result.
     If the retrieved information are not enough to answer just say that you don't know since there is not enough information.""",
     tool_manager=tool_manager,
     model="gemini-2.0-flash",  # Using Gemini model as seen in the code
@@ -63,15 +63,15 @@ chat_with_document_agent = Agent(
 
 # Define the agent's capabilities as an AgentCard
 agent_card = AgentCard(
-    name="Retrieval Augmented Generation Agent",
-    description="An agent that can response to the user questions",
-    url=f"http://localhost:{os.getenv('PORT', '8002')}",
+    name="Question and answering agent",
+    description="An agent that can respond to the user questions",
+    url=f"{os.getenv('HOST')}:{os.getenv('PORT')}",
     version="1.0.0",
     skills=[
         AgentSkill(
             id="chat_with_document_rag",
             name="Chat with document",
-            description="You can ansert to the user questions based on the information retrieved from the RAG (Retrieval Augmented Generation)",
+            description="You can answer to the user questions based on the information retrieved from the RAG (Retrieval Augmented Generation)",
             examples=[
                 "User question: What does this document says?",
                 "Response: This document is about [rest of the answer...] ",
@@ -80,8 +80,8 @@ agent_card = AgentCard(
     ],
     default_input_modes=["text/plain"],
     default_output_modes=["text/plain"],
-    provider="Trento AI",
-    documentation_url="https://example.com/docs",
+    provider="University of Trento",
+    documentation_url="TODO",
 )
 
 # Create a task manager to handle task lifecycle

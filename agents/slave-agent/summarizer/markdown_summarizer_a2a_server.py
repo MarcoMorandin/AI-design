@@ -195,7 +195,7 @@ except Exception as e:
 agent_card = AgentCard(
     name="Markdown Summarizer Agent",
     description="An intelligent agent that summarizes markdown documents in various styles",
-    url=f"http://{HOST}:{PORT}",
+    url=f"{HOST}:{PORT}",
     version=SERVICE_VERSION,
     skills=[
         AgentSkill(
@@ -212,8 +212,8 @@ agent_card = AgentCard(
     ],
     default_input_modes=["text/plain", "text/markdown"],
     default_output_modes=["text/plain", "text/markdown"],
-    provider="Trento AI",
-    documentation_url="https://example.com/docs",
+    provider="University of Trento",
+    documentation_url="TODO",
 )
 
 # Create a task manager to handle task lifecycle

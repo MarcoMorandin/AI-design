@@ -90,7 +90,7 @@ async def health_check(request: Request):
 async def api_root():
     """API root with available endpoints"""
     return {
-        "message": "Drive Authenticator API",
+        "message": "Backend API",
         "version": "1.0.0",
         "endpoints": {
             "auth": [

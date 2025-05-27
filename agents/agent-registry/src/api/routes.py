@@ -143,15 +143,15 @@ class AgentRegistryRoutes:
             total_agents = 0
 
         return {
-            "service": "Simple Agent Registry",
+            "service": "Agent Registry",
             "version": "1.0.0",
-            "description": "Simple registry for agent registration and discovery",
+            "description": "Registry for agent registration and discovery",
             "endpoints": {
                 "register": "POST /register (with {url: 'agent_base_url'})",
                 "list_agents": "GET /agents",
-                "get_agent": "GET /agents/{agent_id}",
-                "unregister": "DELETE /agents/{agent_id}",
-                "refresh": "POST /refresh/{agent_id}",
+                "get_agent": "GET /agents/{agent_url}",
+                "unregister": "DELETE /agents/{agent_url}",
+                "refresh": "POST /refresh/{agent_url}",
             },
             "total_agents": total_agents,
         }

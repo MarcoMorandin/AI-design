@@ -176,7 +176,7 @@ except Exception as e:
 agent_card = AgentCard(
     name="Exam Generator Agent",
     description="An agent that generates academic exams based on content from Google Drive documents.",
-    url=f"http://{HOST}:{PORT}",
+    url=f"{HOST}:{PORT}",
     version=SERVICE_VERSION,
     skills=[
         AgentSkill(
@@ -192,8 +192,8 @@ agent_card = AgentCard(
     ],
     default_input_modes=["text/plain"],
     default_output_modes=["text/plain", "text/markdown"],
-    provider="AI Design",
-    documentation_url="Work in progress",
+    provider="University of Trento",
+    documentation_url="TODO",
 )
 
 # Create a task manager to handle task lifecycle
@@ -209,7 +209,7 @@ try:
             agent=exam_generator_agent,
             agent_card=agent_card,
             task_manager=task_manager,
-            host=HOST,
+            host="0.0.0.0",
             port=PORT,
         )
 
