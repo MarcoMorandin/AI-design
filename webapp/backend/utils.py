@@ -265,13 +265,15 @@ async def send_message_to_orchestrator(orchestrator_url: str, message: str, user
             print(f"ERROR: Invalid orchestrator URL: '{orchestrator_url}'")
             return {"status": "error", "message": "Orchestrator URL is not configured properly"}
         
+        final_message = f"{message}\n\n If you need this is the user id: {user_id}"
+        
         # Use A2AClient to send the task
         async with A2AClient(orchestrator_url) as client:
             # Send the task with appropriate session_id
             # Note: Let A2AClient generate a unique task_id automatically by not providing one
             # The session_id should be used to group related conversations
             response = await client.send_task(
-                message=message,
+                message=final_message,
                 task_id=None,  # Let the client generate a unique task ID
                 session_id=session_id or str(user_id)  # Use session_id for conversation grouping
             )

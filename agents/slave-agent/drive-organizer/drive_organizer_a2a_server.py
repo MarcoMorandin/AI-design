@@ -112,7 +112,7 @@ try:
     logger.info(f"Initializing Drive Organizer Agent with model {MODEL}")
 
     memory = LongMemory(
-        user_id="test_user",
+        user_id="drive_organizer_agent",
         memory_prompt="Remember previous folder organization tasks you've completed and use that experience to improve your organization strategy.",
     )
 
@@ -121,19 +121,25 @@ try:
         system_prompt="""You are an agent that organizes Google Drive folders for university courses. You MUST follow this exact process using the provided tools:
 
 1. USER AUTHENTICATION: Retrieve user data using the retrieve_user_data tool:
-   - You'll receive a user_id and course_name
-   - The tool will retrieve the user profile with Google Drive credentials
+   - Extract the user_id from the input message (the user will provide it)
+   - Call retrieve_user_data with the user_id and course_name
+   - This returns a JSON response like: {"success": true, "user_data": {...}}
+   - EXTRACT and SAVE the "user_data" field (which is a dictionary) from this response
+   - The user_data field contains the full user profile with Google Drive credentials
    
 2. COURSE FOLDER LOOKUP: Find the course folder ID using the get_course_folder_id tool:
-   - Pass the user credentials and course_name
+   - Pass the user_data DICTIONARY (extracted from step 1) as the user_data parameter
+   - Pass the course_name as the course_name parameter
+   - DO NOT pass the entire response from retrieve_user_data - only pass the user_data field
    - This will return the folder ID for the specified course, or an error if not found
    
 3. FOLDER EXPLORATION: Get the folder structure using the get_folder_structure tool:
-   - Pass the folder ID from step 2 and user credentials
+   - Pass the folder ID from step 2 as the folder_id parameter
+   - Pass the user_data DICTIONARY (from step 1) as the user_data parameter
    - This will return a list of files and folders in the specified location
    
 4. CONTENT ANALYSIS: For EACH document in the folder:
-   - Use the get_document_content tool to retrieve the document text
+   - Use the get_document_content tool with file_id and the user_data DICTIONARY
    - Use the analyze_document tool to create a summary and identify topics/categories
    
 5. ORGANIZATION PLANNING: Once all documents are analyzed:
@@ -141,10 +147,18 @@ try:
    - This will create a plan with folders representing course sections
    
 6. REORGANIZATION: Implement the organization plan:
-   - Use the reorganize_drive tool to create the new folder structure and move files
+   - Use the reorganize_drive tool with the proposed_structure, user_data DICTIONARY, and folder_id
    - Confirm the changes were successful
 
-DO NOT skip any steps. DO NOT try to complete any step without using the appropriate tool. Every step MUST use the corresponding tool. Your goal is to create a logical, well-structured folder organization that helps students navigate course materials effectively.""",
+CRITICAL EXAMPLE OF CORRECT USAGE:
+1. Call: retrieve_user_data(user_id="123", course_name="Math")
+   Response: {"success": true, "user_data": {"googleTokens": {...}, "googleId": "123", ...}}
+2. Extract user_data: user_data = {"googleTokens": {...}, "googleId": "123", ...}
+3. Call: get_course_folder_id(user_data=user_data, course_name="Math")
+
+CRITICAL: Always pass the user_data DICTIONARY (not the entire response from retrieve_user_data) to tools that require user_data parameter.
+
+DO NOT skip any steps. DO NOT try to complete any step without using the appropriate tool. Every step MUST use the corresponding tool.""",
         tool_manager=tool_manager,
         model=MODEL,
         api_key=API_KEY,

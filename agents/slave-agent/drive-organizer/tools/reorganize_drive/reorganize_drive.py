@@ -1,11 +1,16 @@
 import os
 import json  
+import sys
 from typing import Dict, Any
 import logging
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from google.oauth2.credentials import Credentials
+from google.auth.exceptions import RefreshError
 from dotenv import load_dotenv
+
+# Import shared Google auth utilities
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+from google_auth_utils import create_and_refresh_credentials
 
 logger = logging.getLogger(__name__)
 
@@ -93,15 +98,8 @@ async def reorganize_drive(
         # Extract Google credentials from user data
         google_tokens = user_data.get("googleTokens", {})
 
-        # Create credentials object
-        credentials = Credentials(
-            token=google_tokens.get("access_token"),
-            refresh_token=google_tokens.get("refresh_token"),
-            token_uri="https://oauth2.googleapis.com/token",
-            client_id=os.environ.get("GOOGLE_CLIENT_ID"),
-            client_secret=os.environ.get("GOOGLE_CLIENT_SECRET"),
-            scopes=["https://www.googleapis.com/auth/drive"],
-        )
+        # Create credentials object with refresh
+        credentials = create_and_refresh_credentials(google_tokens)
 
         # Build the Drive service
         drive_service = build("drive", "v3", credentials=credentials)

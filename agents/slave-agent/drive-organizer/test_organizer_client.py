@@ -6,7 +6,8 @@ from trento_agent_sdk.a2a_client import A2AClient
 async def main():
     # Create an A2A client
     async with A2AClient(
-        "http://localhost:8002"  # Update with your deployment URL in production
+        "https://drive-organizer-595073969012.europe-west8.run.app"  # Update with your deployment URL in production
+        # "http://localhost:8002",  # Use this for local testing
     ) as client:
         # Get the agent card to see what the agent can do
         agent_card = await client.get_agent_card()
@@ -21,7 +22,7 @@ async def main():
         user_id = "111369155660754322920"
 
         # Modified task text to use course name
-        task_text = f"organize my course '{course_name}' for user {user_id}"
+        task_text = f"organize my course '{course_name}'\n\n  If you need this is my user id: {user_id}"
 
         # Add debug info
         print(f"Task: {task_text}")

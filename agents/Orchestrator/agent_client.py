@@ -3,7 +3,8 @@ from trento_agent_sdk.a2a_client import A2AClient
 
 async def main():
     async with A2AClient(
-        "https://ai-design-orchestrator-595073969012.europe-west1.run.app"
+        "https://orchestrator-595073969012.europe-west8.run.app",
+        # "http://localhost:8080",
     ) as client:
         agent_card = await client.get_agent_card()
         print(f"Connected to orchestrator: {agent_card.name}")
@@ -14,7 +15,7 @@ async def main():
 
         # Example text to summarize
         user_question_test = """
-        What is few shot learning?
+        summarize this document: 18-KxLZ42dLf7lMtF0_qWQsvPRc5A6lXC
         """
         response = await client.send_task(user_question_test)
 

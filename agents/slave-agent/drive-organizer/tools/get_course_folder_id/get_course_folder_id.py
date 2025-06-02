@@ -4,12 +4,16 @@ from typing import Dict, Any
 import logging
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from google.oauth2.credentials import Credentials
-
-logger = logging.getLogger(__name__)
+from google.auth.exceptions import RefreshError
 from dotenv import load_dotenv
 
+# Import shared Google auth utilities
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+from google_auth_utils import create_and_refresh_credentials
+
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 
 async def get_course_folder_id(
@@ -56,17 +60,52 @@ async def get_course_folder_id(
     try:
         logger.info(f"Looking for course folder: '{course_name}'")
 
-        # Handle user_data as string if it's not already a dictionary
+        # Log the exact type and content of user_data for debugging
+        logger.warning(f"Received user_data of type: {type(user_data)}")
+        logger.warning(f"User_data content (first 500 chars): {repr(str(user_data)[:500])}")
+
+        # Handle different possible formats of user_data input
         if isinstance(user_data, str):
+            logger.warning(f"Received user_data as string: '{user_data[:100]}...'")
             try:
-                user_data = json.loads(user_data)
+                parsed_data = json.loads(user_data)
+                # Check if this is the full response from retrieve_user_data
+                if isinstance(parsed_data, dict) and "user_data" in parsed_data:
+                    logger.info("Detected full retrieve_user_data response, extracting user_data field")
+                    user_data = parsed_data["user_data"]
+                else:
+                    user_data = parsed_data
                 logger.debug("Converted user_data from string to dictionary")
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse user_data JSON: {e}")
+                logger.error(f"Raw user_data received: {repr(user_data)}")
                 return {
                     "success": False,
-                    "message": "Invalid user_data format: not a valid JSON string",
+                    "message": f"Invalid user_data format: not a valid JSON string. Received type: {type(user_data)}, Content: {repr(str(user_data)[:200])}",
                     "folder_id": "",
                 }
+        elif isinstance(user_data, dict):
+            # Check if this is the full response from retrieve_user_data
+            if "user_data" in user_data and "success" in user_data:
+                logger.info("Detected full retrieve_user_data response as dict, extracting user_data field")
+                user_data = user_data["user_data"]
+        elif not isinstance(user_data, dict):
+            logger.error(f"user_data is not a string or dict, it's: {type(user_data)}")
+            logger.error(f"user_data content: {repr(user_data)}")
+            return {
+                "success": False,
+                "message": f"Invalid user_data format: expected dict or JSON string, got {type(user_data)}. Content: {repr(str(user_data)[:200])}",
+                "folder_id": "",
+            }
+        
+        # Validate that we now have a proper user_data dict
+        if not isinstance(user_data, dict):
+            logger.error(f"After processing, user_data is still not a dict: {type(user_data)}")
+            return {
+                "success": False,
+                "message": f"Could not extract valid user_data dictionary. Final type: {type(user_data)}",
+                "folder_id": "",
+            }
 
         # Extract Google credentials from user data
         google_tokens = user_data.get("googleTokens", {})
@@ -85,15 +124,8 @@ async def get_course_folder_id(
             # or create a new root folder
             logger.warning(f"No root folder ID found for user {user_data.get('googleId', 'unknown')}")
             
-            # Create credentials object
-            credentials = Credentials(
-                token=google_tokens.get("access_token"),
-                refresh_token=google_tokens.get("refresh_token"),
-                token_uri="https://oauth2.googleapis.com/token",
-                client_id=os.environ.get("GOOGLE_CLIENT_ID"),
-                client_secret=os.environ.get("GOOGLE_CLIENT_SECRET"),
-                scopes=["https://www.googleapis.com/auth/drive"],
-            )
+            # Create credentials object with refresh
+            credentials = create_and_refresh_credentials(google_tokens)
 
             # Build the Drive service
             drive_service = build("drive", "v3", credentials=credentials)
@@ -129,15 +161,8 @@ async def get_course_folder_id(
                     "folder_id": "",
                 }
 
-        # Create credentials object
-        credentials = Credentials(
-            token=google_tokens.get("access_token"),
-            refresh_token=google_tokens.get("refresh_token"),
-            token_uri="https://oauth2.googleapis.com/token",
-            client_id=os.environ.get("GOOGLE_CLIENT_ID"),
-            client_secret=os.environ.get("GOOGLE_CLIENT_SECRET"),
-            scopes=["https://www.googleapis.com/auth/drive"],
-        )
+        # Create credentials object with refresh
+        credentials = create_and_refresh_credentials(google_tokens)
 
         # Build the Drive service
         drive_service = build("drive", "v3", credentials=credentials)
@@ -175,6 +200,13 @@ async def get_course_folder_id(
             "folder_id": folder_id,
         }
 
+    except RefreshError as refresh_error:
+        logger.error(f"Google OAuth refresh error: {str(refresh_error)}", exc_info=True)
+        return {
+            "success": False,
+            "message": f"Google OAuth credentials expired and refresh failed: {str(refresh_error)}. User needs to re-authenticate.",
+            "folder_id": "",
+        }
     except HttpError as error:
         logger.error(f"Google Drive API error: {str(error)}", exc_info=True)
         return {
