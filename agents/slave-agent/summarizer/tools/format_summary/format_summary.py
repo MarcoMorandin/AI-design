@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import List
 import logging
 import os
 import sys
@@ -27,7 +27,7 @@ MODEL = os.getenv("MODEL", "gemini-2.0-flash")
 
 async def format_summary(
     summaries: List[str], style: str = "standard", title: str = ""
-) -> Dict[str, Any]:
+) -> str:
     """
     Combines and formats multiple chunk summaries into a cohesive final summary.
 
@@ -37,7 +37,7 @@ async def format_summary(
         title: Optional title or context for the summary
 
     Returns:
-        Dict containing the formatted, combined summary
+        str: The formatted, combined summary as a string
 
     Tool:
         name: format_summary
@@ -62,17 +62,8 @@ async def format_summary(
             required:
                 - summaries
         output_schema:
-            type: object
-            properties:
-                combined_summary:
-                    type: string
-                    description: The formatted, combined summary
-                success:
-                    type: boolean
-                    description: Whether the operation was successful
-                message:
-                    type: string
-                    description: Status message or error information
+            type: string
+            description: The formatted, combined summary as plain text
     """
     try:
         logger.info(
@@ -82,11 +73,7 @@ async def format_summary(
         # Validate input summaries
         if not summaries or len(summaries) == 0:
             logger.warning("No summaries provided to format_summary")
-            return {
-                "success": False,
-                "combined_summary": "",
-                "message": "No summaries provided to combine",
-            }
+            return "Error: No summaries provided to combine"
 
         # Filter out empty or None summaries and sanitize them
         valid_summaries = []
@@ -99,21 +86,13 @@ async def format_summary(
         
         if not valid_summaries:
             logger.warning("All provided summaries are empty or corrupted after sanitization")
-            return {
-                "success": False,
-                "combined_summary": "",
-                "message": "All provided summaries are empty or corrupted",
-            }
+            return "Error: All provided summaries are empty or corrupted"
 
         logger.info(f"Valid summaries after filtering: {len(valid_summaries)}")
 
         # If there's only one summary and it's not too long, return it directly
         if len(valid_summaries) == 1 and len(valid_summaries[0]) < 4000:
-            return {
-                "success": True,
-                "combined_summary": valid_summaries[0],
-                "message": "Single summary returned without need for combination",
-            }
+            return valid_summaries[0]
 
         # Initialize the OpenAI client with Gemini base URL and API key
         client = AsyncOpenAI(api_key=GEMINI_API_KEY, base_url=OPENAI_BASE_URL)
@@ -153,11 +132,7 @@ async def format_summary(
                     for i, summary in enumerate(valid_summaries)
                 ])
             
-            return {
-                "success": True,
-                "combined_summary": combined_summary,
-                "message": "Used fallback formatting due to corrupted input data",
-            }
+            return combined_summary
 
         # Create the formatting prompt
         title_context = f"Title/Context: {title}\n\n" if title else ""
@@ -186,7 +161,6 @@ async def format_summary(
                     {"role": "user", "content": formatting_prompt},
                 ],
                 temperature=0.3,  # Lower temperature for consistent formatting
-                max_tokens=2000,
             )
 
         try:
@@ -197,11 +171,7 @@ async def format_summary(
 
             if not response or not response.choices or not response.choices[0].message:
                 logger.error("API returned empty or invalid response")
-                return {
-                    "success": False,
-                    "combined_summary": "",
-                    "message": "API returned an invalid response. Please try again.",
-                }
+                return "Error: API returned an invalid response. Please try again."
 
             combined_summary = response.choices[0].message.content
             
@@ -224,11 +194,7 @@ async def format_summary(
                 combined_summary = sanitize_content(combined_summary)
                 
                 if not combined_summary or len(combined_summary.strip()) < 10:
-                    return {
-                        "success": False,
-                        "combined_summary": "",
-                        "message": "API returned None content and fallback failed. Please try again.",
-                    }
+                    return "Error: API returned None content and fallback failed. Please try again."
             
             # Sanitize the content to remove any invalid control characters
             combined_summary = sanitize_content(combined_summary)
@@ -251,44 +217,31 @@ async def format_summary(
                 combined_summary = sanitize_content(combined_summary)
                 
                 if not combined_summary or not combined_summary.strip():
-                    return {
-                        "success": False,
-                        "combined_summary": "",
-                        "message": "Content became empty after sanitization and fallback failed. Please try again.",
-                    }
+                    return "Error: Content became empty after sanitization and fallback failed. Please try again."
             
             # Validate that the content is JSON serializable
             if not validate_json_serializable(combined_summary):
                 logger.error("API returned content that is not JSON serializable")
                 combined_summary = sanitize_content(combined_summary)  # Try to fix it again
                 if not validate_json_serializable(combined_summary):
-                    return {
-                        "success": False,
-                        "combined_summary": "",
-                        "message": "API returned content with invalid characters that cannot be serialized.",
-                    }
+                    return "Error: API returned content with invalid characters that cannot be serialized."
             
             logger.info(f"Successfully combined and formatted summaries. Length: {len(combined_summary)}")
 
+            # Return just the summary content as a string when used as final tool
+            # The agent framework will convert dictionary results to JSON, but we want 
+            # to provide the clean summary content directly to the user
             return {
                 "success": True,
+                "message": "Exam structure generated successfully",
                 "combined_summary": combined_summary,
-                "message": "Successfully combined and formatted summaries",
             }
 
         except Exception as e:
             logger.error(f"Error in API call after retries: {str(e)}")
             traceback.print_exc()
-            return {
-                "success": False,
-                "combined_summary": "",
-                "message": f"Error formatting and combining summaries: {str(e)}",
-            }
+            return f"Error formatting and combining summaries: {str(e)}"
 
     except Exception as e:
         logger.error(f"Error formatting and combining summaries: {str(e)}")
-        return {
-            "success": False,
-            "combined_summary": "",
-            "message": f"Error formatting and combining summaries: {str(e)}",
-        }
+        return f"Error formatting and combining summaries: {str(e)}"

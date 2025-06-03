@@ -149,7 +149,7 @@ try:
 
 CRITICAL RULES:
 1. NEVER include large content in your responses - always keep responses brief
-2. When you receive content > 500 characters, immediately call chunk_markdown tool
+2. When you receive content > 1000 characters, immediately call chunk_markdown tool
 3. Process ALL content through tools, never analyze content manually
 4. Follow this exact sequence: fetch → chunk → summarize → format
 
