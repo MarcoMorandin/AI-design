@@ -10,6 +10,10 @@ from dotenv import load_dotenv
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from api_utils import retry_api_call
 
+# Import utils for content sanitization
+sys.path.append(os.path.dirname(__file__) + "/..")
+from utils import sanitize_content, validate_json_serializable
+
 load_dotenv()
 logger = logging.getLogger(__name__)
 
@@ -75,11 +79,39 @@ async def format_summary(
             f"Formatting and combining {len(summaries)} summaries in {style} style"
         )
 
+        # Validate input summaries
+        if not summaries or len(summaries) == 0:
+            logger.warning("No summaries provided to format_summary")
+            return {
+                "success": False,
+                "combined_summary": "",
+                "message": "No summaries provided to combine",
+            }
+
+        # Filter out empty or None summaries and sanitize them
+        valid_summaries = []
+        for s in summaries:
+            if s and s.strip():
+                # Sanitize each summary
+                sanitized = sanitize_content(str(s))
+                if sanitized and sanitized.strip():
+                    valid_summaries.append(sanitized)
+        
+        if not valid_summaries:
+            logger.warning("All provided summaries are empty or corrupted after sanitization")
+            return {
+                "success": False,
+                "combined_summary": "",
+                "message": "All provided summaries are empty or corrupted",
+            }
+
+        logger.info(f"Valid summaries after filtering: {len(valid_summaries)}")
+
         # If there's only one summary and it's not too long, return it directly
-        if len(summaries) == 1 and len(summaries[0]) < 4000:
+        if len(valid_summaries) == 1 and len(valid_summaries[0]) < 4000:
             return {
                 "success": True,
-                "combined_summary": summaries[0],
+                "combined_summary": valid_summaries[0],
                 "message": "Single summary returned without need for combination",
             }
 
@@ -102,8 +134,30 @@ async def format_summary(
 
         # Combine summaries into a single text for processing
         combined_text = "\n\n".join(
-            [f"Summary Part {i+1}:\n{summary}" for i, summary in enumerate(summaries)]
+            [f"Summary Part {i+1}:\n{summary}" for i, summary in enumerate(valid_summaries)]
         )
+        
+        # Validate that the combined text is not too corrupted
+        combined_text = sanitize_content(combined_text)
+        if not combined_text or len(combined_text.strip()) < 20:
+            logger.error("Combined text is too short or corrupted after sanitization")
+            # Use direct fallback
+            if style == "bullet-points":
+                combined_summary = "# Combined Summary\n\n" + "\n\n".join([
+                    f"## Section {i+1}\n{summary.strip()}" 
+                    for i, summary in enumerate(valid_summaries)
+                ])
+            else:
+                combined_summary = "# Combined Summary\n\n" + "\n\n".join([
+                    f"**Section {i+1}:** {summary.strip()}" 
+                    for i, summary in enumerate(valid_summaries)
+                ])
+            
+            return {
+                "success": True,
+                "combined_summary": combined_summary,
+                "message": "Used fallback formatting due to corrupted input data",
+            }
 
         # Create the formatting prompt
         title_context = f"Title/Context: {title}\n\n" if title else ""
@@ -150,7 +204,71 @@ async def format_summary(
                 }
 
             combined_summary = response.choices[0].message.content
-            logger.info("Successfully combined and formatted summaries")
+            
+            # Check if the content is None or empty
+            if combined_summary is None:
+                logger.error("API returned None content, falling back to simple combination")
+                # Improved fallback: create a properly formatted combined summary
+                if style == "bullet-points":
+                    combined_summary = "# Combined Summary\n\n" + "\n\n".join([
+                        f"## Section {i+1}\n{summary.strip()}" 
+                        for i, summary in enumerate(valid_summaries)
+                    ])
+                else:
+                    combined_summary = "# Combined Summary\n\n" + "\n\n".join([
+                        f"**Section {i+1}:** {summary.strip()}" 
+                        for i, summary in enumerate(valid_summaries)
+                    ])
+                
+                # Sanitize the fallback content
+                combined_summary = sanitize_content(combined_summary)
+                
+                if not combined_summary or len(combined_summary.strip()) < 10:
+                    return {
+                        "success": False,
+                        "combined_summary": "",
+                        "message": "API returned None content and fallback failed. Please try again.",
+                    }
+            
+            # Sanitize the content to remove any invalid control characters
+            combined_summary = sanitize_content(combined_summary)
+            
+            if not combined_summary or not combined_summary.strip():
+                logger.error("API returned content that became empty after sanitization")
+                # Try the improved fallback approach
+                if style == "bullet-points":
+                    combined_summary = "# Combined Summary\n\n" + "\n\n".join([
+                        f"## Section {i+1}\n{summary.strip()}" 
+                        for i, summary in enumerate(valid_summaries)
+                    ])
+                else:
+                    combined_summary = "# Combined Summary\n\n" + "\n\n".join([
+                        f"**Section {i+1}:** {summary.strip()}" 
+                        for i, summary in enumerate(valid_summaries)
+                    ])
+                
+                # Sanitize the fallback content
+                combined_summary = sanitize_content(combined_summary)
+                
+                if not combined_summary or not combined_summary.strip():
+                    return {
+                        "success": False,
+                        "combined_summary": "",
+                        "message": "Content became empty after sanitization and fallback failed. Please try again.",
+                    }
+            
+            # Validate that the content is JSON serializable
+            if not validate_json_serializable(combined_summary):
+                logger.error("API returned content that is not JSON serializable")
+                combined_summary = sanitize_content(combined_summary)  # Try to fix it again
+                if not validate_json_serializable(combined_summary):
+                    return {
+                        "success": False,
+                        "combined_summary": "",
+                        "message": "API returned content with invalid characters that cannot be serialized.",
+                    }
+            
+            logger.info(f"Successfully combined and formatted summaries. Length: {len(combined_summary)}")
 
             return {
                 "success": True,

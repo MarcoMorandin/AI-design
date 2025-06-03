@@ -10,6 +10,10 @@ from dotenv import load_dotenv
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from api_utils import retry_api_call
 
+# Import utils for content sanitization
+sys.path.append(os.path.dirname(__file__) + "/..")
+from utils import sanitize_content
+
 load_dotenv()
 logger = logging.getLogger(__name__)
 
@@ -64,6 +68,26 @@ async def summarize_chunk(content: str, style: str = "standard") -> Dict[str, An
     try:
         logger.info(f"Summarizing content chunk in {style} style")
 
+        # Validate input content
+        if not content or not content.strip():
+            logger.warning("Empty or None content provided to summarize_chunk")
+            return {
+                "success": False,
+                "summary": "",
+                "message": "No content provided to summarize",
+            }
+
+        # Sanitize content to remove invalid control characters
+        content = sanitize_content(content)
+        
+        if not content:
+            logger.warning("Content is empty after sanitization")
+            return {
+                "success": False,
+                "summary": "",
+                "message": "Content is empty after removing invalid characters",
+            }
+
         # Initialize the OpenAI client with Gemini base URL and API key
         client = AsyncOpenAI(api_key=GEMINI_API_KEY, base_url=OPENAI_BASE_URL)
 
@@ -104,13 +128,13 @@ async def summarize_chunk(content: str, style: str = "standard") -> Dict[str, An
                     {"role": "user", "content": summarization_prompt},
                 ],
                 temperature=0.3,  # Lower temperature for more focused summaries
-                max_tokens=1000,
+                max_tokens=300,   # Moderate length for individual chunk summaries
             )
 
         try:
-            # Use retry_api_call to handle transient API errors
+            # Use retry_api_call to handle transient API errors with longer delays for rate limiting
             response = await retry_api_call(
-                make_api_call, max_retries=3, initial_delay=1.0, backoff_factor=2.0
+                make_api_call, max_retries=5, initial_delay=2.0, backoff_factor=2.0
             )
 
             if not response or not response.choices or not response.choices[0].message:
@@ -122,6 +146,27 @@ async def summarize_chunk(content: str, style: str = "standard") -> Dict[str, An
                 }
 
             summary = response.choices[0].message.content
+            
+            # Check if the content is None or empty
+            if summary is None:
+                logger.error("API returned None content for chunk summary")
+                return {
+                    "success": False,
+                    "summary": "",
+                    "message": "API returned None content. Please try again.",
+                }
+            
+            # Sanitize the summary content
+            summary = sanitize_content(summary)
+            
+            if not summary or not summary.strip():
+                logger.error("Summary is empty after sanitization")
+                return {
+                    "success": False,
+                    "summary": "",
+                    "message": "Summary is empty after sanitization. Please try again.",
+                }
+            
             logger.info(f"Successfully generated {style} summary")
 
             return {

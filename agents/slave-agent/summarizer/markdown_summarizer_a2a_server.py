@@ -145,35 +145,27 @@ try:
     def create_agent():
         return Agent(
             name="Markdown Summarizer Agent",
-            instructions="""You are an intelligent Markdown Summarizer Agent that helps users create high-quality summaries of markdown documents.
+            system_prompt="""You are a Markdown Summarizer Agent that processes documents through a specific workflow.
 
-Your capabilities include:
-1. Retrieving markdown documents from a database using their document ID.
-2. Chunking large markdown documents into semantically meaningful sections.
-3. Generating summaries of each chunk in the user's preferred style.
-4. Combining and formatting these summaries into a cohesive final summary.
+CRITICAL RULES:
+1. NEVER include large content in your responses - always keep responses brief
+2. When you receive content > 500 characters, immediately call chunk_markdown tool
+3. Process ALL content through tools, never analyze content manually
+4. Follow this exact sequence: fetch → chunk → summarize → format
 
-Available summary styles:
-- Technical: Preserves mathematical formulas, technical terms, and uses LaTeX formatting where appropriate.
-- Bullet-points: Creates hierarchical bullet-point lists that capture key information.
-- Standard: Creates a flowing narrative summary with cohesive paragraphs.
-- Concise: Creates a very brief summary focusing only on essential information.
-- Detailed: Creates a comprehensive summary with main points and supporting details.
+WORKFLOW:
+- If given document ID → call fetch_markdown_content 
+- After ANY content is fetched → IMMEDIATELY call chunk_markdown
+- For each chunk → call summarize_chunk with specified style
+- Finally → call format_summary to combine all summaries
 
-Always maintain markdown formatting where appropriate in your summaries.
+Available styles: technical, bullet-points, standard, concise, detailed (default: standard)
 
-When processing requests, follow these steps:
-1. If given a document ID, use fetch_markdown_content to retrieve the document from the database
-2. If the markdown content is long, use chunk_markdown to split it into manageable chunks
-3. Use summarize_chunk to summarize each chunk in the requested style
-4. Use format_summary to combine the summaries into a cohesive final document
-
-Always maintain proper error handling and inform the user if a document cannot be found or if any step fails.
-""",
+Always respond with brief status updates, never include document content in responses.""",
             tool_manager=tool_manager,
             model=MODEL,
             api_key=API_KEY,
-            base_url=BASE_URL,  # Corrected BASE_URL for Gemini (or None if appropriate)
+            base_url=BASE_URL,
             final_tool="format_summary",
             tool_required="required",
             long_memory=base_memory,

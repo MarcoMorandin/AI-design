@@ -243,16 +243,40 @@ class Agent(BaseModel):
                 logger.info(f"Starting iteration {iteration_count} of {max_iterations}")
 
                 # Get response from model
-                response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=self.short_memory,
-                    tools=tools,
-                    tool_choice=self.tool_required,
-                    temperature=temperature,
-                )
+                try:
+                    response = self.client.chat.completions.create(
+                        model=self.model,
+                        messages=self.short_memory,
+                        tools=tools,
+                        tool_choice=self.tool_required,
+                        temperature=temperature,
+                    )
+                except Exception as api_error:
+                    logger.error(f"API call failed: {str(api_error)}")
+                    # If API fails, try without tool_required to get a response
+                    if iteration_count > 1:  # Only fallback after first iteration
+                        logger.info("Retrying API call without tool_required due to previous failure")
+                        response = self.client.chat.completions.create(
+                            model=self.model,
+                            messages=self.short_memory,
+                            tools=tools,
+                            tool_choice="auto",
+                            temperature=temperature,
+                        )
+                    else:
+                        raise api_error
 
                 # Add model's response to conversation
-                self.short_memory.append(response.choices[0].message)
+                # Truncate very long content in the response to prevent serialization issues
+                message_to_add = response.choices[0].message
+                if hasattr(message_to_add, 'content') and message_to_add.content and len(message_to_add.content) > 5000:
+                    # Create a copy with truncated content
+                    import copy
+                    message_copy = copy.deepcopy(message_to_add)
+                    message_copy.content = message_to_add.content[:2000] + "... [Response truncated for memory management]"
+                    self.short_memory.append(message_copy)
+                else:
+                    self.short_memory.append(message_to_add)
 
                 # Check if the model used a tool
                 if (
@@ -287,7 +311,7 @@ class Agent(BaseModel):
 
                                 # Directly return the result
                                 logger.info(
-                                    f"Final tool executed successfully, returning its output as the final result"
+                                    "Final tool executed successfully, returning its output as the final result"
                                 )
 
                                 serialized_result = ""
@@ -414,6 +438,9 @@ class Agent(BaseModel):
                 else:
                     # If no tool was called, save the response content and break
                     final_response_content = response.choices[0].message.content
+                    if final_response_content is None:
+                        logger.warning("Model response content is None, continuing to try tools")
+                        continue  # Continue the loop instead of breaking
                     logger.info("Model did not use tools, conversation complete")
                     break
 
@@ -452,7 +479,11 @@ class Agent(BaseModel):
                     messages=self.short_memory,
                     temperature=temperature,
                 )
-                return final_response.choices[0].message.content
+                content = final_response.choices[0].message.content
+                if content is None:
+                    logger.error("Final response API returned None content")
+                    return "I apologize, but I encountered an error while generating my final response."
+                return content
             except Exception as e:
                 logger.error(f"Error getting final response: {e}")
                 return "I apologize, but I encountered an error while generating my final response."
@@ -473,7 +504,11 @@ class Agent(BaseModel):
                         messages=self.short_memory,
                         temperature=temperature,
                     )
-                    return final_response.choices[0].message.content
+                    content = final_response.choices[0].message.content
+                    if content is None:
+                        logger.error("Recovery final response API returned None content")
+                        return "I encountered an error with function calls. Please try again with a simpler request."
+                    return content
                 except Exception as recovery_error:
                     logger.error(f"Recovery attempt failed: {str(recovery_error)}")
                     return "I encountered an error with function calls. Please try again with a simpler request."

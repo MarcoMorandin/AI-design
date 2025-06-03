@@ -1,9 +1,14 @@
 from typing import Dict, Any
 import logging
 import os
+import sys
 from dotenv import load_dotenv
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, OperationFailure
+
+# Add the parent directory to the path to import utils
+sys.path.append(os.path.dirname(__file__) + "/..")
+from utils import sanitize_content
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -85,6 +90,22 @@ async def fetch_markdown_content(document_id: str) -> Dict[str, Any]:
         # Extract content and metadata
         content = document.get("content", "")
         title = document.get("title", "Untitled Document")
+        
+        # Sanitize content to remove invalid control characters
+        if content:
+            content = sanitize_content(content)
+        
+        # Validate that content is not empty after sanitization
+        if not content:
+            logger.warning(f"Document {document_id} exists but has no content after sanitization")
+            return {
+                "success": False,
+                "message": f"Document {document_id} exists but contains no valid content",
+                "content": "",
+                "title": title,
+                "metadata": {},
+            }
+        
         metadata = {
             "author": document.get("author", "Unknown"),
             "created_at": document.get("created_at", ""),
@@ -96,7 +117,7 @@ async def fetch_markdown_content(document_id: str) -> Dict[str, Any]:
 
         return {
             "success": True,
-            "message": "Document retrieved successfully",
+            "message": f"Document retrieved successfully. Size: {len(content)} characters. Ready for chunking.",
             "content": content,
             "title": title,
             "metadata": metadata,

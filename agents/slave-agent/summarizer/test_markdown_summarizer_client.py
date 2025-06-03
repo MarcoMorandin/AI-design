@@ -17,7 +17,7 @@ async def main():
         print("\nSending exam generation task to the agent...")
 
         # Example Google Drive ID - replace with an actual ID from your MongoDB collection
-        document_id = "1_ToCFBjb6wXaejam7l7Ir0H5uPyCcOSo"
+        document_id = "1EAY9Nfq819SLU1NfbjZgvVBrZm1RSGbT"
 
         # Task text - modify as needed
         task_text = f"Create a technical summary of the documents with IDs {document_id} in Markdown format"
