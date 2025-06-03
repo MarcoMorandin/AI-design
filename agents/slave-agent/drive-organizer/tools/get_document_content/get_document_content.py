@@ -79,14 +79,15 @@ async def get_document_content(
                     "message": "Invalid user_data format: not a valid JSON string",
                     "content": "",
                     "mime_type": "",
+                    "file_id": file_id,
                 }
 
         # First check if document content exists in MongoDB
         client = MongoClient(MONGO_URI)
         db = client[MONGO_DB_NAME]
-        documents_collection = db["documents"]
+        documents_collection = db["processed_files"]
 
-        existing_doc = documents_collection.find_one({"fileId": file_id})
+        existing_doc = documents_collection.find_one({"google_document_id": file_id})
 
         if existing_doc and "content" in existing_doc:
             logger.info(f"Document content found in MongoDB for file ID: {file_id}")
@@ -95,12 +96,22 @@ async def get_document_content(
                 "success": True,
                 "message": "Document content retrieved from MongoDB",
                 "content": existing_doc["content"],
-                "file_name": existing_doc.get("fileName", "Unknown"),
-                "mime_type": existing_doc.get("mimeType", "Unknown"),
+                "file_name": existing_doc.get("file_name", "Unknown"),
+                "mime_type": existing_doc.get("mime_type", ""),
                 "file_id": file_id,
             }
 
+        # Document not found in MongoDB
         client.close()
+        logger.info(f"Document content not found in MongoDB for file ID: {file_id}")
+        return {
+            "success": False,
+            "message": "Document content not found in MongoDB and Google Drive extraction not implemented",
+            "content": "",
+            "file_name": "",
+            "mime_type": "",
+            "file_id": file_id,
+        }
     except Exception as e:
         logger.error(f"Error retrieving document content: {str(e)}", exc_info=True)
         return {
@@ -109,4 +120,5 @@ async def get_document_content(
             "content": "",
             "file_name": "",
             "mime_type": "",
+            "file_id": file_id,
         }

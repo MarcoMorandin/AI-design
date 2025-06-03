@@ -86,6 +86,7 @@ async def analyze_document(
                 "summary": f"File appears to have minimal text content: {file_name}",
                 "topics": ["unknown"],
                 "document_type": "unknown",
+                "file_id": file_id,
             }
 
         # Initialize the OpenAI client with Gemini base URL and API key
@@ -115,7 +116,7 @@ async def analyze_document(
 
         # Call Gemini via OpenAI SDK interface
         response = await client.chat.completions.create(
-            model="gemini-2.0-flash",  # Or whatever Gemini model is available
+            model="gemini-2.5-flash-preview-05-20",  # Or whatever Gemini model is available
             messages=[
                 {
                     "role": "system",
@@ -150,6 +151,13 @@ async def analyze_document(
     except json.JSONDecodeError as je:
         logger.error(f"Error parsing Gemini response: {str(je)}", exc_info=True)
         # Fall back to basic analysis
+        return {
+            "success": True,
+            "summary": f"Basic analysis of {file_name} (JSON parsing failed)",
+            "topics": ["course_topic"],
+            "document_type": "unknown",
+            "file_id": file_id,
+        }
 
     except Exception as e:
         logger.error(f"Error analyzing document: {str(e)}", exc_info=True)
@@ -158,4 +166,5 @@ async def analyze_document(
             "summary": "",
             "topics": [],
             "document_type": "unknown",
+            "file_id": file_id,
         }
