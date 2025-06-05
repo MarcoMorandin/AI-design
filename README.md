@@ -1,63 +1,62 @@
-# AI-design
-Github repo for designing large scale AI systems
 
-Please suggest some requirements😁
+## 📋 Documentation
 
-[Requirements file](https://docs.google.com/document/d/1Rg7ZIygavuiE3DOsFQmwhyblYL-CnRjXOBtcYRM1h5M/edit?usp=sharing)
+- [Requirements Document](https://docs.google.com/document/d/1Rg7ZIygavuiE3DOsFQmwhyblYL-CnRjXOBtcYRM1h5M/edit?usp=sharing)
+- [Architecture Document](https://excalidraw.com/#json=tlm4ij3seTYrBw5_hyGrL,mMxhkMBZm-MySTA1C1G4EQ)
+- [Architecture Document (Backup)](./Architecture.svg)
+- [Evaluation Document](./Evaluation.pdf)
+- [Final Presentation](./Final-Presentation.pdf)
 
-Here are the architecture
+## 🏗️ Project Structure
 
-[Architecture file](https://docs.google.com/document/d/1IBGA4AZ8y7XcuF9IBqJkk7Di_eNOdY3P0eH68JhCEXI/edit?usp=sharing)
+```
+AI-design/
+├── agents/                     # AI Agent Services
+│   ├── orchestrator/          # Central coordinator agent
+│   ├── agent-registry/        # Service discovery system
+│   └── slave-agent/           # Specialized task agents
+│       ├── drive-organizer/   # Google Drive organization
+│       ├── exam-generator/    # Educational content generation
+│       ├── question-answering/# RAG-based Q&A system
+│       └── summarizer/        # Document summarization
+├── webapp/                    # Web Application
+│   ├── frontend/             # React.js frontend
+│   ├── backend/              # FastAPI backend
+│   └── drive-webhook/        # Google Drive integration
+└── libraries/                # Reusable Libraries
+    ├── power-ocr/           # PDF/Video OCR processing
+    └── trento-agent-sdk/    # Agent communication SDK
+```
 
-
-## Try agent:
-([Agent URL](https://ai-design-855231674152.europe-west8.run.app))
-
-### How to try:
-- Get Agent Card:
-
-    ```console
-    curl -X GET "https://ai-design-855231674152.europe-west8.run.app"
-    ```
-
-    ```console
-    curl -X GET "https://ai-design-855231674152.europe-west8.run.app/.well-known/agent.json"
-    ```
-
-- Create a summarization task:
-<<<<<<< HEAD
-<<<<<<< HEAD
-  Since we are still working on this project, the file management is still under development. Please use test.pdf as the provided file.
-=======
->>>>>>> da51f44 (modified agent card and readme)
-=======
-  Since we are still working on this project, the file management is still under development. Please use test.pdf as the provided file.
->>>>>>> 986232b (Update README.md)
-    ```console
-    curl -X POST "https://ai-design-855231674152.europe-west8.run.app/tasks/send" \
-    -H "Content-Type: application/json" \
-    -d '{
-        "id": "'"$(uuidgen | tr -d '\n')"'",
-        "params": {
-        "id": "'"$(uuidgen | tr -d '\n')"'",
-        "sessionId": "'"$(uuidgen | tr -d '\n')"'",
-        "message": {
-            "role": "user",
-            "parts": [
-            {
-                "type": "text",
-                "text": "Summarize this PDF: test.pdf"
-            }
-            ]
-        }
-        }
-    }'
-<<<<<<< HEAD
-<<<<<<< HEAD
-    ```
-=======
-    ```
->>>>>>> da51f44 (modified agent card and readme)
-=======
-    ```
->>>>>>> 986232b (Update README.md)
+## 📊 Agent Card Example
+```json
+{
+  "name": "Drive Organizer Agent",
+  "description": "An agent that organizes Google Drive folders for university courses into logical sections.",
+  "url": "https://localhost:8080",
+  "version": "1.0.0",
+  "skills": [
+    {
+      "id": "organize-drive",
+      "name": "Google Drive Folder Organization",
+      "description": "Can organize Google Drive folders based on document content analysis",
+      "tags": null,
+      "examples": [
+        "organize my course 'Introduction to Computer Science' for user 111369155660754322920",
+        "reorganize my course materials for 'Data Structures' for user 111369155660754322920",
+        "structure my university course 'Machine Learning Fundamentals' for user 111369155660754322920"
+      ],
+      "inputModes": null,
+      "outputModes": null
+    }
+  ],
+  "defaultInputModes": [
+    "text/plain"
+  ],
+  "defaultOutputModes": [
+    "text/plain"
+  ],
+  "provider": "University of Trento",
+  "documentationUrl": "TODO"
+}
+```
