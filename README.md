@@ -3,7 +3,7 @@
 
 - [Requirements Document](https://docs.google.com/document/d/1Rg7ZIygavuiE3DOsFQmwhyblYL-CnRjXOBtcYRM1h5M/edit?usp=sharing)
 - [Architecture Document](https://excalidraw.com/#json=tlm4ij3seTYrBw5_hyGrL,mMxhkMBZm-MySTA1C1G4EQ)
-- [Architecture Document (Backup)](./Architecture.svg)
+- [Architecture Document (Backup)](./architecture.svg)
 - [Evaluation Document](./Evaluation.pdf)
 - [Final Presentation](./Final-Presentation.pdf)
 
